@@ -10,4 +10,7 @@ export const env = {
   get kakaoJsKey() {
     return resolveEnv().VITE_KAKAO_JS_KEY ?? ""
   },
+  get googleLoginUrl() {
+    return resolveEnv().VITE_GOOGLE_LOGIN_URL ?? ""
+  },
 }
