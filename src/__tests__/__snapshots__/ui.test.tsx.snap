@@ -1,0 +1,286 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`UI snapshots matches the home page layout 1`] = `
+<div>
+  <div
+    class="min-h-screen flex flex-col relative"
+  >
+    <div
+      class="fixed inset-0 z-0"
+      style="background-image: url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png); background-size: cover; background-position: center; background-repeat: no-repeat;"
+    />
+    <div
+      class="fixed inset-0 z-0 bg-black/40"
+    />
+    <div
+      class="relative z-10 min-h-screen flex flex-col"
+    >
+      <header
+        class="w-full px-6 py-4 flex items-center justify-between"
+      >
+        <a
+          class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          data-discover="true"
+          href="/"
+        >
+          <img
+            alt="Aetheria 로고"
+            class="h-10 object-contain"
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
+          />
+        </a>
+        <a
+          data-discover="true"
+          href="/mypage"
+        >
+          <button
+            class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md px-3 has-[>svg]:px-2.5 gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
+            data-slot="button"
+          >
+            마이페이지
+          </button>
+        </a>
+      </header>
+      <main
+        class="flex-1 flex items-center justify-center px-6 py-12"
+      >
+        <div
+          class="max-w-4xl w-full text-center space-y-8"
+        >
+          <div
+            class="space-y-6"
+          >
+            <div
+              class="inline-block"
+            >
+              <span
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-medium border border-white/30"
+              >
+                <span
+                  class="w-2 h-2 bg-white rounded-full animate-pulse"
+                />
+                맞춤형 러닝 아트
+              </span>
+            </div>
+            <h1
+              class="text-5xl md:text-7xl font-bold text-white leading-tight text-balance drop-shadow-2xl"
+            >
+              예술이 되는 러닝 경로
+              <br />
+              <span
+                class="text-purple-300"
+              >
+                당신의 러닝으로 완성됩니다
+              </span>
+            </h1>
+            <p
+              class="text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed text-pretty drop-shadow-lg"
+            >
+              러닝 경로를 감각적인 작품으로 바꿔 보세요.
+              <br />
+              매번의 러닝을 하나의 창작물로 남기세요.
+            </p>
+          </div>
+          <div
+            class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+          >
+            <a
+              data-discover="true"
+              href="/create"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive rounded-md has-[>svg]:px-4 text-lg px-8 py-6 h-auto font-semibold bg-purple-500 hover:bg-purple-600 text-white shadow-2xl"
+                data-slot="button"
+              >
+                작품 생성하기
+              </button>
+            </a>
+            <a
+              data-discover="true"
+              href="/gallery"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 rounded-md has-[>svg]:px-4 text-lg px-8 py-6 h-auto font-semibold bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
+                data-slot="button"
+              >
+                갤러리 보기
+              </button>
+            </a>
+          </div>
+          <div
+            class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12"
+          >
+            <div
+              class="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all"
+            >
+              <div
+                class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center"
+              >
+                <svg
+                  class="w-6 h-6 text-purple-300"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  />
+                  <polyline
+                    points="3.27 6.96 12 12.01 20.73 6.96"
+                  />
+                  <line
+                    x1="12"
+                    x2="12"
+                    y1="22.08"
+                    y2="12"
+                  />
+                </svg>
+              </div>
+              <h3
+                class="text-lg font-semibold text-white"
+              >
+                GPS 경로 기록
+              </h3>
+              <p
+                class="text-sm text-white/80 leading-relaxed"
+              >
+                러닝을 정확히 기록해 작품이 되는 경로를 만듭니다.
+              </p>
+            </div>
+            <div
+              class="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all"
+            >
+              <div
+                class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center"
+              >
+                <svg
+                  class="w-6 h-6 text-purple-300"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    height="18"
+                    rx="2"
+                    ry="2"
+                    width="18"
+                    x="3"
+                    y="3"
+                  />
+                  <circle
+                    cx="8.5"
+                    cy="8.5"
+                    r="1.5"
+                  />
+                  <polyline
+                    points="21 15 16 10 5 21"
+                  />
+                </svg>
+              </div>
+              <h3
+                class="text-lg font-semibold text-white"
+              >
+                AI 경로 스타일링
+              </h3>
+              <p
+                class="text-sm text-white/80 leading-relaxed"
+              >
+                선택한 테마에 맞춰 경로를 예술적으로 시각화합니다.
+              </p>
+            </div>
+            <div
+              class="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all"
+            >
+              <div
+                class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center"
+              >
+                <svg
+                  class="w-6 h-6 text-purple-300"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                  />
+                  <circle
+                    cx="9"
+                    cy="7"
+                    r="4"
+                  />
+                  <path
+                    d="M23 21v-2a4 4 0 0 0-3-3.87"
+                  />
+                  <path
+                    d="M16 3.13a4 4 0 0 1 0 7.75"
+                  />
+                </svg>
+              </div>
+              <h3
+                class="text-lg font-semibold text-white"
+              >
+                커뮤니티와 공유
+              </h3>
+              <p
+                class="text-sm text-white/80 leading-relaxed"
+              >
+                작품을 공개하고 다른 러너들의 경로를 탐색하세요.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer
+        class="w-full px-6 py-8 border-t border-white/10"
+      >
+        <div
+          class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
+        >
+          <p
+            class="text-sm text-white/70"
+          >
+            (c) 2025 Aetheria. 모든 권리 보유.
+          </p>
+          <div
+            class="flex items-center gap-6"
+          >
+            <a
+              class="text-sm text-white/70 hover:text-white transition-colors"
+              data-discover="true"
+              href="/about"
+            >
+              서비스 소개
+            </a>
+            <a
+              class="text-sm text-white/70 hover:text-white transition-colors"
+              data-discover="true"
+              href="/terms"
+            >
+              이용약관
+            </a>
+            <a
+              class="text-sm text-white/70 hover:text-white transition-colors"
+              data-discover="true"
+              href="/privacy"
+            >
+              개인정보처리방침
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+  <div
+    class="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2"
+  />
+</div>
+`;

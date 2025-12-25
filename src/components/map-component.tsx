@@ -1,0 +1,240 @@
+﻿"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { Navigation } from "lucide-react"
+import * as L from "leaflet"
+import "leaflet/dist/leaflet.css"
+import "leaflet-gpx"
+import { coordsToAddress } from "@/services/kakao-service"
+
+interface MapComponentProps {
+  center: [number, number]
+  startCoords?: [number, number] | null
+  endCoords?: [number, number] | null
+  gpxData?: string | null
+  onLocationFound: (coords: [number, number]) => void
+}
+
+interface MapInstance {
+  map: L.Map
+  startMarker: L.Marker | null
+  endMarker: L.Marker | null
+  currentLocationMarker: L.Marker | null
+  gpxLayer: L.Layer | null
+}
+
+interface GpxLayer extends L.Layer {
+  on: (event: string, handler: (event: { target: { getBounds: () => L.LatLngBounds } }) => void) => void
+}
+
+interface GpxOptions {
+  async?: boolean
+  marker_options?: {
+    startIconUrl?: string
+    endIconUrl?: string
+    shadowUrl?: string
+  }
+  polyline_options?: {
+    color?: string
+    weight?: number
+    opacity?: number
+  }
+}
+
+type LeafletWithGpx = typeof L & { GPX: new (gpx: string, options?: GpxOptions) => GpxLayer }
+
+export default function MapComponent({ center, startCoords, endCoords, gpxData, onLocationFound }: MapComponentProps) {
+  const mapRef = useRef<MapInstance | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null)
+  const [currentAddress, setCurrentAddress] = useState<string>("")
+  const [showTooltip, setShowTooltip] = useState(false)
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return
+
+    const map = L.map(mapContainerRef.current).setView(center, 13)
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map)
+
+    mapRef.current = {
+      map,
+      startMarker: null,
+      endMarker: null,
+      currentLocationMarker: null,
+      gpxLayer: null,
+    }
+
+    setIsLoading(false)
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
+  }, [center])
+
+  useEffect(() => {
+    if (mapRef.current?.map) {
+      mapRef.current.map.setView(center, 13)
+    }
+  }, [center])
+
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    const { map, startMarker } = mapRef.current
+
+    if (startMarker) {
+      map.removeLayer(startMarker)
+    }
+
+    if (startCoords) {
+      const greenIcon = L.icon({
+        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      })
+
+      const marker = L.marker(startCoords, { icon: greenIcon }).addTo(map).bindPopup("출발")
+      mapRef.current.startMarker = marker
+    }
+  }, [startCoords])
+
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    const { map, endMarker } = mapRef.current
+
+    if (endMarker) {
+      map.removeLayer(endMarker)
+    }
+
+    if (endCoords) {
+      const redIcon = L.icon({
+        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      })
+
+      const marker = L.marker(endCoords, { icon: redIcon }).addTo(map).bindPopup("도착")
+      mapRef.current.endMarker = marker
+    }
+  }, [endCoords])
+
+  useEffect(() => {
+    if (!mapRef.current || !gpxData) return
+
+    const { map, gpxLayer } = mapRef.current
+
+    if (gpxLayer) {
+      map.removeLayer(gpxLayer)
+    }
+
+    const leafletWithGpx = L as LeafletWithGpx
+    const newGpxLayer = new leafletWithGpx.GPX(gpxData, {
+      async: true,
+      marker_options: {
+        startIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        endIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      },
+      polyline_options: {
+        color: "#8b5cf6",
+        weight: 4,
+        opacity: 0.8,
+      },
+    })
+
+    newGpxLayer.on("loaded", (event) => {
+      map.fitBounds(event.target.getBounds())
+    })
+
+    newGpxLayer.addTo(map)
+    mapRef.current.gpxLayer = newGpxLayer
+  }, [gpxData])
+
+  const handleLocationClick = () => {
+    if (!mapRef.current?.map) return
+
+    const { map } = mapRef.current
+
+    map.locate({ setView: true, maxZoom: 16 })
+
+    map.once("locationfound", async (event: L.LocationEvent) => {
+      const coords: [number, number] = [event.latlng.lat, event.latlng.lng]
+      setCurrentLocation(coords)
+      onLocationFound(coords)
+
+      if (mapRef.current?.currentLocationMarker) {
+        map.removeLayer(mapRef.current.currentLocationMarker)
+      }
+
+      const blueIcon = L.icon({
+        iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      })
+
+      const marker = L.marker(coords, { icon: blueIcon }).addTo(map)
+      mapRef.current = { ...mapRef.current, currentLocationMarker: marker }
+
+      let addressLabel = `위도: ${coords[0].toFixed(6)}, 경도: ${coords[1].toFixed(6)}`
+      try {
+        const address = await coordsToAddress(coords[0], coords[1])
+        if (address) addressLabel = address
+      } catch {
+        // Keep fallback coordinates when reverse geocoding is unavailable.
+      }
+      setCurrentAddress(addressLabel)
+
+      marker
+        .bindPopup(
+          `<div style="text-align: center;"><strong>현재 위치</strong><br/><span style="font-size: 12px;">${addressLabel}</span></div>`,
+        )
+        .openPopup()
+    })
+
+    map.once("locationerror", (event: L.ErrorEvent) => {
+      alert(`위치 정보를 가져오지 못했습니다: ${event.message}`)
+    })
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 rounded-lg z-10">
+          <div className="text-white">지도 불러오는 중...</div>
+        </div>
+      )}
+      <div ref={mapContainerRef} className="w-full h-full rounded-lg" />
+      <div className="absolute bottom-4 right-4 z-[1000]">
+        <button
+          onClick={handleLocationClick}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          className="bg-white hover:bg-gray-100 p-3 rounded-full shadow-lg transition-all duration-300 relative"
+          title="내 위치 찾기"
+        >
+          <Navigation className="w-5 h-5 text-purple-600" />
+        </button>
+        {showTooltip && currentLocation && currentAddress && (
+          <div className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-purple-200 whitespace-nowrap text-sm text-gray-800 max-w-xs">
+            <div className="font-semibold text-purple-600 mb-1">현재 위치</div>
+            <div className="text-xs break-words max-w-[200px]">{currentAddress}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
