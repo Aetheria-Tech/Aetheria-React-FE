@@ -1,0 +1,9 @@
+﻿{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "jest", "@testing-library/jest-dom", "node"],
+    "module": "ESNext",
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src", "jest.setup.ts", "**/*.test.ts", "**/*.test.tsx"]
+}
