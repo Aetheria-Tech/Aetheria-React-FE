@@ -160,7 +160,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-white/60 text-sm">카카오 계정으로 빠르게 로그인하세요.</p>
+            <p className="text-white/60 text-sm">소셜 계정으로 빠르게 로그인하세요.</p>
           </div>
         </div>
       </main>
