@@ -14,6 +14,18 @@ export default function LoginPage() {
   const { login } = useAuth()
   const { notify } = useToast()
 
+  const getGoogleLoginUrl = () => {
+    if (env.googleLoginUrl) return env.googleLoginUrl
+    const baseUrl = env.apiBaseUrl.replace(/\/$/, "")
+    if (!baseUrl) {
+      return "/api/v1/auth/login/google"
+    }
+    if (baseUrl.endsWith("/api/v1")) {
+      return `${baseUrl}/auth/login/google`
+    }
+    return `${baseUrl}/api/v1/auth/login/google`
+  }
+
   useEffect(() => {
     const script = document.createElement("script")
     script.src = "https://developers.kakao.com/sdk/js/kakao.js"
@@ -65,6 +77,16 @@ export default function LoginPage() {
     })
   }
 
+  const handleGoogleLogin = () => {
+    const loginUrl = getGoogleLoginUrl()
+    if (!loginUrl) {
+      notify("Google 로그인 URL이 없습니다.", "error")
+      return
+    }
+
+    window.location.assign(loginUrl)
+  }
+
   return (
     <AppBackground overlayClassName="bg-black/60">
       <header className="w-full px-6 py-4 flex items-center justify-between">
@@ -105,6 +127,38 @@ export default function LoginPage() {
                 카카오로 로그인
               </Button>
 
+              <Button
+                onClick={handleGoogleLogin}
+                variant="outline"
+                className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.88-3.02c-1.08.72-2.46 1.15-4.05 1.15-3.12 0-5.77-2.1-6.72-4.93H1.27v3.1A12 12 0 0 0 12 24Z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.27a12 12 0 0 0 0 10.8l4.01-3.1Z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 4.77c1.76 0 3.34.6 4.58 1.8l3.43-3.43C17.95 1.15 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4.01 3.1C6.23 6.87 8.88 4.77 12 4.77Z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                Google로 로그인
+              </Button>
+
               <p className="text-white/50 text-xs text-center leading-relaxed">
                 로그인하면 이용약관과 개인정보처리방침에 동의한 것으로 간주됩니다.
               </p>
@@ -112,7 +166,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-white/60 text-sm">카카오 계정으로 빠르게 로그인하세요.</p>
+            <p className="text-white/60 text-sm">소셜 계정으로 빠르게 로그인하세요.</p>
           </div>
         </div>
       </main>
