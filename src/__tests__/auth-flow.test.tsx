@@ -26,6 +26,7 @@ describe("login flow", () => {
   afterEach(() => {
     delete window.Kakao
     delete process.env.VITE_GOOGLE_LOGIN_URL
+    delete process.env.VITE_API_BASE_URL
     jest.clearAllMocks()
   })
 
@@ -66,6 +67,25 @@ describe("login flow", () => {
     await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
 
     expect(assignSpy).toHaveBeenCalledWith("https://example.com/auth/google")
+    assignSpy.mockRestore()
+  })
+
+  it("falls back to the default Google login path when env is missing", async () => {
+    const user = userEvent.setup()
+    delete process.env.VITE_GOOGLE_LOGIN_URL
+    delete process.env.VITE_API_BASE_URL
+    const assignSpy = jest.spyOn(window.location, "assign").mockImplementation(() => undefined)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>,
+      { route: "/login" },
+    )
+
+    await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
+
+    expect(assignSpy).toHaveBeenCalledWith("/api/v1/auth/login/google")
     assignSpy.mockRestore()
   })
 })

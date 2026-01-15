@@ -16,8 +16,14 @@ export default function LoginPage() {
 
   const getGoogleLoginUrl = () => {
     if (env.googleLoginUrl) return env.googleLoginUrl
-    if (!env.apiBaseUrl) return ""
-    return `${env.apiBaseUrl.replace(/\/$/, "")}/auth/google`
+    const baseUrl = env.apiBaseUrl.replace(/\/$/, "")
+    if (!baseUrl) {
+      return "/api/v1/auth/login/google"
+    }
+    if (baseUrl.endsWith("/api/v1")) {
+      return `${baseUrl}/auth/login/google`
+    }
+    return `${baseUrl}/api/v1/auth/login/google`
   }
 
   useEffect(() => {
