@@ -7,6 +7,7 @@ import { env } from "@/services/env"
 import { kakaoLogin } from "@/services/auth-service"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
+import { redirectTo } from "@/lib/navigation"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -84,7 +85,7 @@ export default function LoginPage() {
       return
     }
 
-    window.location.assign(loginUrl)
+    redirectTo(loginUrl)
   }
 
   return (

@@ -1,37 +1,131 @@
 ﻿import { apiClient } from "@/services/api-client"
+import { env } from "@/services/env"
 import type { Art, CreateArtPayload, CreateArtResponse } from "@/types/art"
 
+const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Aetheria">
+  <trk>
+    <name>Mock Route</name>
+    <trkseg>
+      <trkpt lat="37.5665" lon="126.9780"></trkpt>
+      <trkpt lat="37.5651" lon="126.9820"></trkpt>
+      <trkpt lat="37.5642" lon="126.9865"></trkpt>
+    </trkseg>
+  </trk>
+</gpx>`
+
+let mockArts: Art[] = [
+  {
+    id: "mock-1",
+    title: "새벽 러닝",
+    imageUrl: "/placeholder.svg",
+    distanceKm: 5,
+    theme: "하트",
+    isPublic: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    ownerId: "dev-user",
+    gpxData: mockGpxData,
+    startAddress: "서울시청",
+    endAddress: "남산공원",
+  },
+  {
+    id: "mock-2",
+    title: "도심 러닝",
+    imageUrl: "/placeholder.svg",
+    distanceKm: 8,
+    theme: "별",
+    isPublic: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    ownerId: "dev-user",
+    gpxData: mockGpxData,
+    startAddress: "광화문",
+    endAddress: "한강공원",
+  },
+]
+
+const isMockEnabled = () => env.useMockApi === "true"
+
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
+  if (isMockEnabled()) {
+    const art: Art = {
+      id: `mock-${Date.now()}`,
+      title: `${payload.theme} 러닝`,
+      imageUrl: "/placeholder.svg",
+      distanceKm: payload.distanceKm,
+      theme: payload.theme,
+      isPublic: false,
+      createdAt: new Date().toISOString(),
+      ownerId: "dev-user",
+      gpxData: mockGpxData,
+      startAddress: payload.startAddress,
+      endAddress: payload.endAddress,
+    }
+    mockArts = [art, ...mockArts]
+    return { art, gpxData: mockGpxData, imageUrl: art.imageUrl }
+  }
   // Keep create + AI generation in one request for a single user action.
   const response = await apiClient.post<CreateArtResponse>("/arts", payload)
   return response.data
 }
 
 export async function saveArt(artId: string): Promise<Art> {
+  if (isMockEnabled()) {
+    const art = mockArts.find((item) => item.id === artId)
+    if (!art) {
+      throw new Error("작품을 찾을 수 없습니다.")
+    }
+    return art
+  }
   const response = await apiClient.post<Art>(`/arts/${artId}/save`)
   return response.data
 }
 
 export async function fetchMyArts(): Promise<Art[]> {
+  if (isMockEnabled()) {
+    return [...mockArts]
+  }
   const response = await apiClient.get<Art[]>("/arts/mine")
   return response.data
 }
 
 export async function fetchArtById(artId: string): Promise<Art> {
+  if (isMockEnabled()) {
+    const art = mockArts.find((item) => item.id === artId)
+    if (!art) {
+      throw new Error("작품을 찾을 수 없습니다.")
+    }
+    return art
+  }
   const response = await apiClient.get<Art>(`/arts/${artId}`)
   return response.data
 }
 
 export async function deleteArt(artId: string): Promise<void> {
+  if (isMockEnabled()) {
+    mockArts = mockArts.filter((item) => item.id !== artId)
+    return
+  }
   await apiClient.delete(`/arts/${artId}`)
 }
 
 export async function updateShareStatus(artId: string, isPublic: boolean): Promise<Art> {
+  if (isMockEnabled()) {
+    const art = mockArts.find((item) => item.id === artId)
+    if (!art) {
+      throw new Error("작품을 찾을 수 없습니다.")
+    }
+    const updated = { ...art, isPublic }
+    mockArts = mockArts.map((item) => (item.id === artId ? updated : item))
+    return updated
+  }
   const response = await apiClient.patch<Art>(`/arts/${artId}/share`, { isPublic })
   return response.data
 }
 
 export async function fetchGalleryArts(): Promise<Art[]> {
+  if (isMockEnabled()) {
+    return mockArts.filter((item) => item.isPublic)
+  }
   const response = await apiClient.get<Art[]>("/arts")
   return response.data
 }

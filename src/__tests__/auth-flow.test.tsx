@@ -4,9 +4,14 @@ import { Route, Routes } from "react-router-dom"
 import LoginPage from "@/pages/LoginPage"
 import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { kakaoLogin } from "@/services/auth-service"
+import { redirectTo } from "@/lib/navigation"
 
 jest.mock("@/services/auth-service", () => ({
   kakaoLogin: jest.fn(),
+}))
+
+jest.mock("@/lib/navigation", () => ({
+  redirectTo: jest.fn(),
 }))
 
 describe("login flow", () => {
@@ -55,7 +60,6 @@ describe("login flow", () => {
   it("redirects to Google login URL when clicking the button", async () => {
     const user = userEvent.setup()
     process.env.VITE_GOOGLE_LOGIN_URL = "https://example.com/auth/google"
-    const assignSpy = jest.spyOn(window.location, "assign").mockImplementation(() => undefined)
 
     renderWithProviders(
       <Routes>
@@ -66,15 +70,13 @@ describe("login flow", () => {
 
     await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
 
-    expect(assignSpy).toHaveBeenCalledWith("https://example.com/auth/google")
-    assignSpy.mockRestore()
+    expect(redirectTo).toHaveBeenCalledWith("https://example.com/auth/google")
   })
 
   it("falls back to the default Google login path when env is missing", async () => {
     const user = userEvent.setup()
     delete process.env.VITE_GOOGLE_LOGIN_URL
     delete process.env.VITE_API_BASE_URL
-    const assignSpy = jest.spyOn(window.location, "assign").mockImplementation(() => undefined)
 
     renderWithProviders(
       <Routes>
@@ -85,7 +87,6 @@ describe("login flow", () => {
 
     await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
 
-    expect(assignSpy).toHaveBeenCalledWith("/api/v1/auth/login/google")
-    assignSpy.mockRestore()
+    expect(redirectTo).toHaveBeenCalledWith("/api/v1/auth/login/google")
   })
 })

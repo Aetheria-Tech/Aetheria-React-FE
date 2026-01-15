@@ -13,4 +13,10 @@ export const env = {
   get googleLoginUrl() {
     return resolveEnv().VITE_GOOGLE_LOGIN_URL ?? ""
   },
+  get devBypassAuth() {
+    return resolveEnv().VITE_DEV_BYPASS_AUTH ?? ""
+  },
+  get useMockApi() {
+    return resolveEnv().VITE_USE_MOCK_API ?? ""
+  },
 }
