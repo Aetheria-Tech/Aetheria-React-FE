@@ -1,5 +1,8 @@
 ﻿import axios from "axios"
 import { env } from "@/services/env"
+import { apiClient } from "@/services/api-client"
+import { unwrapApiResponse } from "@/types/api"
+import { filterLocalGeocode, findLocalGeocode } from "@/mocks/geocode-map"
 
 export interface KakaoAddressResult {
   addressName: string
@@ -22,6 +25,12 @@ interface KakaoCoordToAddressResponse {
   }>
 }
 
+interface GeocodeResponse {
+  latitude: number
+  longitude: number
+  formattedAddress: string
+}
+
 const kakaoClient = axios.create({
   baseURL: "https://dapi.kakao.com",
 })
@@ -42,16 +51,39 @@ const getAuthHeader = () => {
   return { Authorization: `KakaoAK ${env.kakaoRestApiKey}` }
 }
 
+const geocodeWithKakao = async (address: string): Promise<KakaoAddressResult | null> => {
+  if (!env.kakaoRestApiKey) return null
+
+  const response = await kakaoClient.get<KakaoAddressSearchResponse>("/v2/local/search/address.json", {
+    params: { query: address },
+    headers: getAuthHeader(),
+  })
+
+  const first = response.data.documents?.[0]
+  if (!first) return null
+
+  return {
+    addressName: first.address_name,
+    x: Number(first.x),
+    y: Number(first.y),
+  }
+}
+
 export async function searchAddress(query: string): Promise<KakaoAddressResult[]> {
-  if (isMockEnabled()) {
-    const normalized = query.trim()
-    if (!normalized) return []
-    const filtered = mockAddressResults.filter((item) => item.addressName.includes(normalized))
-    return filtered.length > 0 ? filtered : mockAddressResults
+  const normalized = query.trim()
+  if (!normalized) return []
+
+  if (isMockEnabled() && !env.kakaoRestApiKey) {
+    const localMatches = filterLocalGeocode(normalized)
+    return localMatches.map((item) => ({
+      addressName: item.formattedAddress,
+      x: item.longitude,
+      y: item.latitude,
+    }))
   }
 
   const response = await kakaoClient.get<KakaoAddressSearchResponse>("/v2/local/search/address.json", {
-    params: { query },
+    params: { query: normalized },
     headers: getAuthHeader(),
   })
 
@@ -63,15 +95,38 @@ export async function searchAddress(query: string): Promise<KakaoAddressResult[]
 }
 
 export async function addressToCoords(address: string): Promise<KakaoAddressResult | null> {
-  if (isMockEnabled()) {
-    const normalized = address.trim()
-    if (!normalized) return null
-    return mockAddressResults.find((item) => item.addressName.includes(normalized)) ?? mockAddressResults[0] ?? null
+  const normalized = address.trim()
+  if (!normalized) return null
+
+  if (!isMockEnabled() && env.apiBaseUrl) {
+    try {
+      const response = await apiClient.get("/api/v1/geocode", { params: { address: normalized } })
+      const data = unwrapApiResponse<GeocodeResponse>(response.data)
+      return {
+        addressName: data.formattedAddress ?? normalized,
+        x: data.longitude,
+        y: data.latitude,
+      }
+    } catch {
+      // Fall back to client-side geocoding when the backend is unavailable.
+    }
   }
 
-  if (!address.trim()) return null
-  const results = await searchAddress(address)
-  return results[0] ?? null
+  const kakaoResult = await geocodeWithKakao(normalized)
+  if (kakaoResult) return kakaoResult
+
+  if (isMockEnabled()) {
+    // Dev fallback for offline UI work; remove when backend geocode is available.
+    const localMatch = findLocalGeocode(normalized)
+    if (!localMatch) return null
+    return {
+      addressName: localMatch.formattedAddress,
+      x: localMatch.longitude,
+      y: localMatch.latitude,
+    }
+  }
+
+  return null
 }
 
 export async function coordsToAddress(lat: number, lng: number): Promise<string | null> {
