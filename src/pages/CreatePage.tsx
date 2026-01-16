@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MapComponent from "@/components/map-component"
 import AppBackground from "@/components/layouts/app-background"
+import { normalizeLatLngTuple, toLatLngFromKakao } from "@/lib/coords"
 import { addressToCoords, searchAddress as searchKakaoAddress } from "@/services/kakao-service"
 import { useCreateArt } from "@/hooks/use-create-art"
 import { useToast } from "@/context/toast-context"
 import type { CreateArtPayload } from "@/types/art"
+import type { LatLng } from "@/lib/coords"
 import type { KakaoAddressResult } from "@/services/kakao-service"
 
 const proficiencyOptions = [
@@ -32,11 +34,11 @@ export default function CreatePage() {
   })
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [mapCenter, setMapCenter] = useState<[number, number]>([37.5665, 126.978])
-  const [startCoords, setStartCoords] = useState<[number, number] | null>(null)
-  const [endCoords, setEndCoords] = useState<[number, number] | null>(null)
-  const [tempStartCoords, setTempStartCoords] = useState<[number, number] | null>(null)
-  const [tempEndCoords, setTempEndCoords] = useState<[number, number] | null>(null)
+  const [mapCenter, setMapCenter] = useState<LatLng>([37.5665, 126.978])
+  const [startCoords, setStartCoords] = useState<LatLng | null>(null)
+  const [endCoords, setEndCoords] = useState<LatLng | null>(null)
+  const [tempStartCoords, setTempStartCoords] = useState<LatLng | null>(null)
+  const [tempEndCoords, setTempEndCoords] = useState<LatLng | null>(null)
   const [gpxData, setGpxData] = useState<string | null>(null)
   const [showStartResults, setShowStartResults] = useState(false)
   const [showEndResults, setShowEndResults] = useState(false)
@@ -86,28 +88,35 @@ export default function CreatePage() {
   }
 
   const handleAddressSelect = (address: KakaoAddressResult, isStart: boolean) => {
-    const coords: [number, number] = [address.y, address.x]
+    const coords = toLatLngFromKakao(address)
+    if (!coords) return
 
     if (isStart) {
       setFormData((prev) => ({ ...prev, startPoint: address.addressName }))
       setTempStartCoords(coords)
+      setStartCoords(coords)
       setShowStartResults(false)
     } else {
       setFormData((prev) => ({ ...prev, endPoint: address.addressName }))
       setTempEndCoords(coords)
+      setEndCoords(coords)
       setShowEndResults(false)
     }
+    setMapCenter(coords)
   }
 
   const handleShowMarkersOnMap = () => {
-    if (tempStartCoords) {
-      setStartCoords(tempStartCoords)
-      setMapCenter(tempStartCoords)
+    const normalizedStart = normalizeLatLngTuple(tempStartCoords)
+    const normalizedEnd = normalizeLatLngTuple(tempEndCoords)
+
+    if (normalizedStart) {
+      setStartCoords(normalizedStart)
+      setMapCenter(normalizedStart)
     }
-    if (tempEndCoords) {
-      setEndCoords(tempEndCoords)
-      if (!tempStartCoords) {
-        setMapCenter(tempEndCoords)
+    if (normalizedEnd) {
+      setEndCoords(normalizedEnd)
+      if (!normalizedStart) {
+        setMapCenter(normalizedEnd)
       }
     }
   }
@@ -124,8 +133,8 @@ export default function CreatePage() {
   }
 
   const handleGenerate = async () => {
-    const resolvedStart = startCoords ?? tempStartCoords
-    const resolvedEnd = endCoords ?? tempEndCoords
+    const resolvedStart = normalizeLatLngTuple(startCoords ?? tempStartCoords)
+    const resolvedEnd = normalizeLatLngTuple(endCoords ?? tempEndCoords)
 
     if (!selectedDistance || !formData.theme || !resolvedStart || !resolvedEnd) {
       notify("거리, 테마, 출발지, 도착지를 모두 입력해 주세요.", "error")
@@ -170,11 +179,16 @@ export default function CreatePage() {
         try {
           const result = await addressToCoords(address)
           if (result) {
-            const coords: [number, number] = [result.y, result.x]
-            if (isStart) {
-              setTempStartCoords(coords)
-            } else {
-              setTempEndCoords(coords)
+            const coords = toLatLngFromKakao(result)
+            if (coords) {
+              if (isStart) {
+                setTempStartCoords(coords)
+                setStartCoords(coords)
+              } else {
+                setTempEndCoords(coords)
+                setEndCoords(coords)
+              }
+              setMapCenter(coords)
             }
           }
         } catch {
@@ -187,22 +201,6 @@ export default function CreatePage() {
         setEndAddressResults([])
       },
     }).open()
-  }
-
-  const fillExampleAddresses = async () => {
-    try {
-      const exampleStart = "서울시청"
-      const exampleEnd = "남산공원"
-      setFormData((prev) => ({ ...prev, startPoint: exampleStart, endPoint: exampleEnd }))
-      const [startResult, endResult] = await Promise.all([
-        addressToCoords(exampleStart),
-        addressToCoords(exampleEnd),
-      ])
-      if (startResult) setTempStartCoords([startResult.y, startResult.x])
-      if (endResult) setTempEndCoords([endResult.y, endResult.x])
-    } catch {
-      notify("예시 주소를 불러오지 못했습니다.", "error")
-    }
   }
 
   return (
@@ -232,17 +230,6 @@ export default function CreatePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 space-y-6">
-              <div className="flex justify-end">
-                <Button
-                  onClick={fillExampleAddresses}
-                  variant="outline"
-                  size="sm"
-                  className="bg-purple-500/80 hover:bg-purple-600/80 text-white border-none"
-                >
-                  예시 채우기
-                </Button>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="proficiency" className="text-white text-base">
                   거리
