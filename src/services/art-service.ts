@@ -1,6 +1,6 @@
 ﻿import { apiClient } from "@/services/api-client"
 import { env } from "@/services/env"
-import type { Art, CreateArtPayload, CreateArtResponse } from "@/types/art"
+import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
 
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Aetheria">
@@ -13,6 +13,23 @@ const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
     </trkseg>
   </trk>
 </gpx>`
+
+const buildMockGpx = (start: Coordinates, end: Coordinates) => {
+  const midLat = (start.lat + end.lat) / 2
+  const midLng = (start.lng + end.lng) / 2
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Aetheria">
+  <trk>
+    <name>Dev Route</name>
+    <trkseg>
+      <trkpt lat="${start.lat}" lon="${start.lng}"></trkpt>
+      <trkpt lat="${midLat}" lon="${midLng}"></trkpt>
+      <trkpt lat="${end.lat}" lon="${end.lng}"></trkpt>
+    </trkseg>
+  </trk>
+</gpx>`
+}
 
 let mockArts: Art[] = [
   {
@@ -47,6 +64,9 @@ const isMockEnabled = () => env.useMockApi === "true"
 
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
   if (isMockEnabled()) {
+    const gpxData = payload.startCoords && payload.endCoords
+      ? buildMockGpx(payload.startCoords, payload.endCoords)
+      : mockGpxData
     const art: Art = {
       id: `mock-${Date.now()}`,
       title: `${payload.theme} 러닝`,
@@ -56,12 +76,12 @@ export async function createArt(payload: CreateArtPayload): Promise<CreateArtRes
       isPublic: false,
       createdAt: new Date().toISOString(),
       ownerId: "dev-user",
-      gpxData: mockGpxData,
+      gpxData,
       startAddress: payload.startAddress,
       endAddress: payload.endAddress,
     }
     mockArts = [art, ...mockArts]
-    return { art, gpxData: mockGpxData, imageUrl: art.imageUrl }
+    return { art, gpxData, imageUrl: art.imageUrl }
   }
   // Keep create + AI generation in one request for a single user action.
   const response = await apiClient.post<CreateArtResponse>("/arts", payload)

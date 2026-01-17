@@ -170,6 +170,48 @@ describe("CreatePage", () => {
     })
   })
 
+  it("sets start coords when clicking the map after focusing start input", async () => {
+    const user = userEvent.setup()
+    const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
+
+    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
+
+    await user.click(screen.getByLabelText("출발지"))
+
+    const lastProps = mapComponentMock.mock.calls.at(-1)?.[0]
+    await act(async () => {
+      lastProps?.onMapClick?.([37.27, 127.02])
+    })
+
+    await waitFor(() => {
+      const latestProps = mapComponentMock.mock.calls.at(-1)?.[0]
+      expect(latestProps?.startCoords).toEqual([37.27, 127.02])
+    })
+    expect(screen.getByLabelText("출발지")).toHaveValue("지도에서 선택한 위치")
+  })
+
+  it("resolves coords on map display when addresses are typed", async () => {
+    const user = userEvent.setup()
+    ;(addressToCoords as jest.Mock).mockResolvedValueOnce({ addressName: "수원", x: 127.01, y: 37.27 })
+    ;(addressToCoords as jest.Mock).mockResolvedValueOnce({ addressName: "고양", x: 126.83, y: 37.66 })
+
+    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
+
+    await user.type(screen.getByLabelText("출발지"), "경기 수원시 장안구")
+    await user.type(screen.getByLabelText("도착지"), "경기 고양시 덕양구")
+
+    await act(async () => {
+      await user.click(screen.getByRole("button", { name: /지도에 표시/i }))
+    })
+
+    await waitFor(() => {
+      const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
+      const latestProps = mapComponentMock.mock.calls.at(-1)?.[0]
+      expect(latestProps?.startCoords).toEqual([37.27, 127.01])
+      expect(latestProps?.endCoords).toEqual([37.66, 126.83])
+    })
+  })
+
   it("searches addresses and generates artwork", async () => {
     const user = userEvent.setup()
     const startResult = { addressName: "서울시청", x: 126.977, y: 37.566 }

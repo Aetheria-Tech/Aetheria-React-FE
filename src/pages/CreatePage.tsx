@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import MapComponent from "@/components/map-component"
 import AppBackground from "@/components/layouts/app-background"
 import { normalizeLatLngTuple, toLatLngFromKakao } from "@/lib/coords"
+import { saveStoredGeocode } from "@/mocks/geocode-map"
 import { addressToCoords, searchAddress as searchKakaoAddress } from "@/services/kakao-service"
 import { useCreateArt } from "@/hooks/use-create-art"
 import { useToast } from "@/context/toast-context"
@@ -39,6 +40,7 @@ export default function CreatePage() {
   const [endCoords, setEndCoords] = useState<LatLng | null>(null)
   const [tempStartCoords, setTempStartCoords] = useState<LatLng | null>(null)
   const [tempEndCoords, setTempEndCoords] = useState<LatLng | null>(null)
+  const [activeLocation, setActiveLocation] = useState<"start" | "end" | null>(null)
   const [gpxData, setGpxData] = useState<string | null>(null)
   const [showStartResults, setShowStartResults] = useState(false)
   const [showEndResults, setShowEndResults] = useState(false)
@@ -103,20 +105,94 @@ export default function CreatePage() {
       setShowEndResults(false)
     }
     setMapCenter(coords)
+    saveStoredGeocode({
+      keyword: address.addressName,
+      latitude: coords[0],
+      longitude: coords[1],
+      formattedAddress: address.addressName,
+    })
   }
 
-  const handleShowMarkersOnMap = () => {
-    const normalizedStart = normalizeLatLngTuple(tempStartCoords)
-    const normalizedEnd = normalizeLatLngTuple(tempEndCoords)
-
-    if (normalizedStart) {
-      setStartCoords(normalizedStart)
-      setMapCenter(normalizedStart)
+  const applyMapSelection = (coords: LatLng, isStart: boolean) => {
+    const addressValue = isStart ? formData.startPoint : formData.endPoint
+    const shouldPersist = addressValue && addressValue !== "지도에서 선택한 위치"
+    if (isStart) {
+      setTempStartCoords(coords)
+      setStartCoords(coords)
+      setFormData((prev) => ({
+        ...prev,
+        startPoint: prev.startPoint || "지도에서 선택한 위치",
+      }))
+    } else {
+      setTempEndCoords(coords)
+      setEndCoords(coords)
+      setFormData((prev) => ({
+        ...prev,
+        endPoint: prev.endPoint || "지도에서 선택한 위치",
+      }))
     }
-    if (normalizedEnd) {
-      setEndCoords(normalizedEnd)
-      if (!normalizedStart) {
-        setMapCenter(normalizedEnd)
+    setMapCenter(coords)
+    if (shouldPersist) {
+      saveStoredGeocode({
+        keyword: addressValue,
+        latitude: coords[0],
+        longitude: coords[1],
+        formattedAddress: addressValue,
+      })
+    }
+  }
+
+  const handleMapClick = (coords: LatLng) => {
+    if (activeLocation === "start") {
+      applyMapSelection(coords, true)
+    } else if (activeLocation === "end") {
+      applyMapSelection(coords, false)
+    }
+  }
+
+  const resolveCoordsForAddress = async (
+    address: string,
+    existing: LatLng | null,
+  ): Promise<LatLng | null> => {
+    const normalizedExisting = normalizeLatLngTuple(existing)
+    if (normalizedExisting) return normalizedExisting
+
+    const normalizedAddress = address.trim()
+    if (!normalizedAddress) return null
+
+    try {
+      const result = await addressToCoords(normalizedAddress)
+      const coords = toLatLngFromKakao(result)
+      if (!coords) return null
+      saveStoredGeocode({
+        keyword: normalizedAddress,
+        latitude: coords[0],
+        longitude: coords[1],
+        formattedAddress: normalizedAddress,
+      })
+      return coords
+    } catch {
+      notify("주소 좌표를 가져오지 못했습니다.", "error")
+      return null
+    }
+  }
+
+  const handleShowMarkersOnMap = async () => {
+    const [resolvedStart, resolvedEnd] = await Promise.all([
+      resolveCoordsForAddress(formData.startPoint, tempStartCoords),
+      resolveCoordsForAddress(formData.endPoint, tempEndCoords),
+    ])
+
+    if (resolvedStart) {
+      setTempStartCoords(resolvedStart)
+      setStartCoords(resolvedStart)
+      setMapCenter(resolvedStart)
+    }
+    if (resolvedEnd) {
+      setTempEndCoords(resolvedEnd)
+      setEndCoords(resolvedEnd)
+      if (!resolvedStart) {
+        setMapCenter(resolvedEnd)
       }
     }
   }
@@ -189,6 +265,12 @@ export default function CreatePage() {
                 setEndCoords(coords)
               }
               setMapCenter(coords)
+              saveStoredGeocode({
+                keyword: address,
+                latitude: coords[0],
+                longitude: coords[1],
+                formattedAddress: address,
+              })
             }
           }
         } catch {
@@ -276,10 +358,20 @@ export default function CreatePage() {
                     value={formData.startPoint}
                     onClick={() => openDaumPostcode(true)}
                     onChange={(event) => {
-                      setFormData((prev) => ({ ...prev, startPoint: event.target.value }))
-                      searchAddress(event.target.value, true)
+                      const nextValue = event.target.value
+                      setFormData((prev) => ({ ...prev, startPoint: nextValue }))
+                      if (nextValue !== formData.startPoint) {
+                        setTempStartCoords(null)
+                        setStartCoords(null)
+                      }
+                      searchAddress(nextValue, true)
                     }}
-                    onFocus={() => startAddressResults.length > 0 && setShowStartResults(true)}
+                    onFocus={() => {
+                      setActiveLocation("start")
+                      if (startAddressResults.length > 0) {
+                        setShowStartResults(true)
+                      }
+                    }}
                     className="bg-white/20 border-white/30 text-white placeholder:text-white/50 pl-10"
                   />
                 </div>
@@ -310,10 +402,20 @@ export default function CreatePage() {
                     value={formData.endPoint}
                     onClick={() => openDaumPostcode(false)}
                     onChange={(event) => {
-                      setFormData((prev) => ({ ...prev, endPoint: event.target.value }))
-                      searchAddress(event.target.value, false)
+                      const nextValue = event.target.value
+                      setFormData((prev) => ({ ...prev, endPoint: nextValue }))
+                      if (nextValue !== formData.endPoint) {
+                        setTempEndCoords(null)
+                        setEndCoords(null)
+                      }
+                      searchAddress(nextValue, false)
                     }}
-                    onFocus={() => endAddressResults.length > 0 && setShowEndResults(true)}
+                    onFocus={() => {
+                      setActiveLocation("end")
+                      if (endAddressResults.length > 0) {
+                        setShowEndResults(true)
+                      }
+                    }}
                     className="bg-white/20 border-white/30 text-white placeholder:text-white/50 pl-10"
                   />
                 </div>
@@ -335,7 +437,7 @@ export default function CreatePage() {
               <div className="flex gap-3">
                 <Button
                   onClick={handleShowMarkersOnMap}
-                  disabled={!tempStartCoords && !tempEndCoords}
+                  disabled={!tempStartCoords && !tempEndCoords && !formData.startPoint && !formData.endPoint}
                   className="flex-1 bg-indigo-500/90 hover:bg-indigo-600/90 text-white"
                 >
                   <MapPin className="w-4 h-4 mr-2" />
@@ -379,6 +481,7 @@ export default function CreatePage() {
                     startCoords={startCoords}
                     endCoords={endCoords}
                     gpxData={gpxData}
+                    onMapClick={handleMapClick}
                     onLocationFound={(coords) => setMapCenter(coords)}
                   />
                 </div>

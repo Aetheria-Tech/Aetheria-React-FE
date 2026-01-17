@@ -13,6 +13,7 @@ interface MapComponentProps {
   endCoords?: [number, number] | null
   gpxData?: string | null
   onLocationFound: (coords: [number, number]) => void
+  onMapClick?: (coords: [number, number]) => void
 }
 
 interface MapInstance {
@@ -23,8 +24,11 @@ interface MapInstance {
   gpxLayer: L.Layer | null
 }
 
-interface GpxLayer extends L.Layer {
-  on: (event: string, handler: (event: { target: { getBounds: () => L.LatLngBounds } }) => void) => void
+type GpxLayer = L.Layer & {
+  on(
+    event: "loaded",
+    handler: (event: { target: { getBounds: () => L.LatLngBounds } }) => void,
+  ): this
 }
 
 interface GpxOptions {
@@ -43,7 +47,14 @@ interface GpxOptions {
 
 type LeafletWithGpx = typeof L & { GPX: new (gpx: string, options?: GpxOptions) => GpxLayer }
 
-export default function MapComponent({ center, startCoords, endCoords, gpxData, onLocationFound }: MapComponentProps) {
+export default function MapComponent({
+  center,
+  startCoords,
+  endCoords,
+  gpxData,
+  onLocationFound,
+  onMapClick,
+}: MapComponentProps) {
   const mapRef = useRef<MapInstance | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -80,6 +91,20 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       mapRef.current.map.setView(center, 13)
     }
   }, [center])
+
+  useEffect(() => {
+    if (!mapRef.current?.map || !onMapClick) return
+
+    const { map } = mapRef.current
+    const handleClick = (event: L.LeafletMouseEvent) => {
+      onMapClick([event.latlng.lat, event.latlng.lng])
+    }
+
+    map.on("click", handleClick)
+    return () => {
+      map.off("click", handleClick)
+    }
+  }, [onMapClick])
 
   useEffect(() => {
     if (!mapRef.current) return
@@ -153,7 +178,7 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       },
     })
 
-    newGpxLayer.on("loaded", (event) => {
+    newGpxLayer.on("loaded", (event: { target: { getBounds: () => L.LatLngBounds } }) => {
       map.fitBounds(event.target.getBounds())
     })
 
@@ -187,7 +212,8 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       })
 
       const marker = L.marker(coords, { icon: blueIcon }).addTo(map)
-      mapRef.current = { ...mapRef.current, currentLocationMarker: marker }
+      if (!mapRef.current) return
+      mapRef.current.currentLocationMarker = marker
 
       let addressLabel = `위도: ${coords[0].toFixed(6)}, 경도: ${coords[1].toFixed(6)}`
       try {

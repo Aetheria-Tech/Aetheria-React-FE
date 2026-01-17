@@ -1,10 +1,14 @@
 // Dev-only local geocode map; replace with backend geocode when available.
+import { env } from "@/services/env"
+
 export type LocalGeocodeEntry = {
   keyword: string
   latitude: number
   longitude: number
   formattedAddress: string
 }
+
+const STORAGE_KEY = "aetheria:local-geocode"
 
 export const localGeocodeMap: LocalGeocodeEntry[] = [
   {
@@ -47,23 +51,57 @@ export const localGeocodeMap: LocalGeocodeEntry[] = [
 
 const normalize = (value: string) => value.trim()
 
+const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+
+const readStored = (): LocalGeocodeEntry[] => {
+  if (!canUseStorage()) return []
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item) => item && typeof item.keyword === "string") as LocalGeocodeEntry[]
+  } catch {
+    return []
+  }
+}
+
+const writeStored = (entries: LocalGeocodeEntry[]) => {
+  if (!canUseStorage()) return
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+}
+
+export const saveStoredGeocode = (entry: Omit<LocalGeocodeEntry, "keyword"> & { keyword: string }) => {
+  if (env.useMockApi !== "true") return
+  const keyword = normalize(entry.keyword)
+  if (!keyword) return
+
+  const stored = readStored()
+  const next = stored.filter((item) => item.keyword !== keyword)
+  next.push({ ...entry, keyword })
+  writeStored(next)
+}
+
+const getAllEntries = () => [...localGeocodeMap, ...readStored()]
+
 export const findLocalGeocode = (address: string): LocalGeocodeEntry | null => {
   const normalized = normalize(address)
   if (!normalized) return null
 
-  const exact = localGeocodeMap.find(
+  const entries = getAllEntries()
+  const exact = entries.find(
     (item) => item.keyword === normalized || item.formattedAddress === normalized,
   )
   if (exact) return exact
 
-  return localGeocodeMap.find((item) => normalized.includes(item.keyword)) ?? null
+  return entries.find((item) => normalized.includes(item.keyword)) ?? null
 }
 
 export const filterLocalGeocode = (query: string): LocalGeocodeEntry[] => {
   const normalized = normalize(query)
   if (!normalized) return []
 
-  return localGeocodeMap.filter(
+  return getAllEntries().filter(
     (item) => item.keyword.includes(normalized) || normalized.includes(item.keyword),
   )
 }
