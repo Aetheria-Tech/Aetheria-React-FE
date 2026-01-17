@@ -107,8 +107,9 @@ export async function addressToCoords(address: string): Promise<KakaoAddressResu
         x: data.longitude,
         y: data.latitude,
       }
-    } catch {
+    } catch (error) {
       // Fall back to client-side geocoding when the backend is unavailable.
+      console.warn("Backend geocoding failed, falling back to client-side.", error)
     }
   }
 
