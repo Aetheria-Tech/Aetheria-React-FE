@@ -32,3 +32,14 @@ export const unwrapApiResponse = <T>(value: unknown): T => {
 
   return value.data as T
 }
+
+export const unwrapVoidResponse = (value: unknown) => {
+  if (!isRestApiResponse(value)) {
+    throw new Error("Invalid API response")
+  }
+
+  if (!value.success) {
+    const message = value.error?.message ?? "API request failed"
+    throw new Error(message)
+  }
+}

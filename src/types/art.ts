@@ -6,6 +6,7 @@
 export interface Art {
   id: string
   title: string
+  content?: string
   imageUrl: string
   distanceKm: number
   theme: string

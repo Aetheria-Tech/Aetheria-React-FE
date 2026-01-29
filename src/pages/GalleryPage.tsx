@@ -14,6 +14,13 @@ export default function GalleryPage() {
   const [arts, setArts] = useState<Art[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
+  const formatDistance = (value: number) => (value ? `${value}km` : "-")
+  const formatDate = (value: string) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString()
+  }
+
   useEffect(() => {
     setIsLoading(true)
     fetchGalleryArts()
@@ -99,8 +106,8 @@ export default function GalleryPage() {
                   <div className="p-4 space-y-3">
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/60">{item.distanceKm}km</span>
-                      <span className="text-[#836FFF] font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
+                      <span className="text-white/60">{formatDistance(item.distanceKm)}</span>
+                      <span className="text-[#836FFF] font-medium">{formatDate(item.createdAt)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/60">테마: {item.theme}</span>

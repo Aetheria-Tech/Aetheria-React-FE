@@ -1,6 +1,8 @@
-﻿import { apiClient } from "@/services/api-client"
+import { apiClient } from "@/services/api-client"
 import { env } from "@/services/env"
+import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
+import type { RunningArtDetail, RunningArtPatchRequest, RunningArtSummary } from "@/types/running-art"
 
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Aetheria">
@@ -35,6 +37,7 @@ let mockArts: Art[] = [
   {
     id: "mock-1",
     title: "새벽 러닝",
+    content: "새벽 공기를 느끼며 달린 러닝",
     imageUrl: "/placeholder.svg",
     distanceKm: 5,
     theme: "하트",
@@ -48,6 +51,7 @@ let mockArts: Art[] = [
   {
     id: "mock-2",
     title: "도심 러닝",
+    content: "도심 야경을 보며 달린 러닝",
     imageUrl: "/placeholder.svg",
     distanceKm: 8,
     theme: "별",
@@ -62,6 +66,16 @@ let mockArts: Art[] = [
 
 const isMockEnabled = () => env.useMockApi === "true"
 
+const mapArtToRunningArt = (art: Art, index: number): RunningArtSummary => ({
+  id: Number.isFinite(Number(art.id)) ? Number(art.id) : index + 1,
+  title: art.title,
+  content: art.content ?? "",
+  shape: art.theme,
+  proficiency: "BEGINNER",
+  gpx: art.gpxData ?? "",
+  userId: Number.isFinite(Number(art.ownerId)) ? Number(art.ownerId) : 0,
+})
+
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
   if (isMockEnabled()) {
     const gpxData = payload.startCoords && payload.endCoords
@@ -70,6 +84,7 @@ export async function createArt(payload: CreateArtPayload): Promise<CreateArtRes
     const art: Art = {
       id: `mock-${Date.now()}`,
       title: `${payload.theme} 러닝`,
+      content: "",
       imageUrl: "/placeholder.svg",
       distanceKm: payload.distanceKm,
       theme: payload.theme,
@@ -148,4 +163,59 @@ export async function fetchGalleryArts(): Promise<Art[]> {
   }
   const response = await apiClient.get<Art[]>("/arts")
   return response.data
+}
+
+export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
+  if (isMockEnabled()) {
+    return mockArts.map((art, index) => mapArtToRunningArt(art, index))
+  }
+  const response = await apiClient.get("/api/v1/running-arts/me")
+  return unwrapApiResponse<RunningArtSummary[]>(response.data)
+}
+
+export async function getRunningArtDetail(runningArtId: number | string): Promise<RunningArtDetail> {
+  if (isMockEnabled()) {
+    const numericId = Number(runningArtId)
+    const index = Number.isFinite(numericId) ? numericId - 1 : -1
+    const art = index >= 0 && index < mockArts.length ? mockArts[index] : null
+    if (!art) {
+      throw new Error("작품을 찾을 수 없습니다.")
+    }
+    return mapArtToRunningArt(art, index)
+  }
+  const response = await apiClient.get(`/api/v1/running-arts/${runningArtId}`)
+  return unwrapApiResponse<RunningArtDetail>(response.data)
+}
+
+export async function deleteRunningArt(runningArtId: number | string): Promise<void> {
+  if (isMockEnabled()) {
+    const numericId = Number(runningArtId)
+    const index = Number.isFinite(numericId) ? numericId - 1 : -1
+    if (index >= 0 && index < mockArts.length) {
+      mockArts = mockArts.filter((_, idx) => idx !== index)
+      return
+    }
+    throw new Error("작품을 찾을 수 없습니다.")
+  }
+  const response = await apiClient.delete(`/api/v1/running-arts/${runningArtId}`)
+  unwrapVoidResponse(response.data)
+}
+
+export async function patchRunningArt(
+  runningArtId: number | string,
+  payload: RunningArtPatchRequest,
+): Promise<void> {
+  if (isMockEnabled()) {
+    const numericId = Number(runningArtId)
+    const index = Number.isFinite(numericId) ? numericId - 1 : -1
+    if (index >= 0 && index < mockArts.length) {
+      mockArts = mockArts.map((item, idx) =>
+        idx === index ? { ...item, title: payload.title, content: payload.content } : item,
+      )
+      return
+    }
+    throw new Error("작품을 찾을 수 없습니다.")
+  }
+  const response = await apiClient.patch(`/api/v1/running-arts/${runningArtId}`, payload)
+  unwrapVoidResponse(response.data)
 }

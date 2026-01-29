@@ -73,3 +73,11 @@
 ## 8) Codexì— ë§¥ë½ ì œê³µ ë°©ë²•
 - ìƒˆ ì„¸ì…˜ì—ì„œëŠ” ì´ íŒŒì¼ ë‚´ìš©ì„ ë¨¼ì € ì•Œë ¤ì£¼ê³  ì‘ì—… ì‹œì‘
 - ì‘ì—… ì™„ë£Œ í›„ ë³€ê²½ ì‚¬í•­ì„ ì´ íŒŒì¼ì— ë°˜ë“œì‹œ ì—…ë°ì´íŠ¸
+
+## 9) ÃÖ±Ù ¾÷µ¥ÀÌÆ® (feature/17 ÁøÇà Áß)
+- RunningArt Å¸ÀÔ Á¤ÀÇ Ãß°¡: `src/types/running-art.ts`
+- void ÀÀ´ä Ã³¸® ÇïÆÛ Ãß°¡: `src/types/api.ts` (unwrapVoidResponse)
+- ·¯´×¾ÆÆ® API ¼­ºñ½º ÇÔ¼ö Ãß°¡: `getMyRunningArts`, `getRunningArtDetail`, `deleteRunningArt`, `patchRunningArt`
+- `useMyArts`/`useArtDetail` ·¯´×¾ÆÆ® ¿¬µ¿ ¹× UI ¾î´ğÅÍ Àû¿ë
+- MyPage/MyPageDetail/Share/Gallery ³¯Â¥¡¤°Å¸® Ç¥½Ã fallback Ã³¸®
+- Å×½ºÆ® º¸°­: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`

@@ -1,11 +1,11 @@
-﻿import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
 import MyPageDetail from "@/pages/MyPageDetail"
 import SharePage from "@/pages/SharePage"
 import ForbiddenPage from "@/pages/ForbiddenPage"
-import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
-import { fetchArtById, updateShareStatus } from "@/services/art-service"
+import { renderWithProviders } from "@/test/test-utils"
+import { getRunningArtDetail, patchRunningArt } from "@/services/art-service"
 
 jest.mock("@/services/art-service", () => ({
   createArt: jest.fn(),
@@ -15,59 +15,121 @@ jest.mock("@/services/art-service", () => ({
   fetchArtById: jest.fn(),
   updateShareStatus: jest.fn(),
   fetchGalleryArts: jest.fn(),
+  getMyRunningArts: jest.fn(),
+  getRunningArtDetail: jest.fn(),
+  deleteRunningArt: jest.fn(),
+  patchRunningArt: jest.fn(),
 }))
 
 describe("sharing", () => {
   it("updates share status from detail view", async () => {
     const user = userEvent.setup()
+    const auth = {
+      user: {
+        id: "10",
+        name: "Owner",
+        email: "owner@example.com",
+      },
+      tokens: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+      },
+    }
     const art = {
-      id: "art-1",
+      id: 1,
       title: "Morning run",
-      imageUrl: "/art.png",
-      distanceKm: 5,
-      theme: "Star",
-      isPublic: false,
-      createdAt: new Date().toISOString(),
-      ownerId: mockAuthPayload.user.id,
+      content: "테스트 러닝 아트",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U",
+      userId: 10,
     }
 
-    ;(fetchArtById as jest.Mock).mockResolvedValue(art)
-    ;(updateShareStatus as jest.Mock).mockResolvedValue({ ...art, isPublic: true })
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(patchRunningArt as jest.Mock).mockResolvedValue(undefined)
 
     renderWithProviders(
       <Routes>
         <Route path="/mypage/:id" element={<MyPageDetail />} />
       </Routes>,
-      { route: "/mypage/art-1", auth: mockAuthPayload },
+      { route: "/mypage/1", auth },
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
 
-    await user.click(screen.getByRole("checkbox"))
+    const checkbox = screen.getByRole("checkbox")
+    await user.click(checkbox)
 
-    await waitFor(() => expect(updateShareStatus).toHaveBeenCalledWith("art-1", true))
+    await waitFor(() =>
+      expect(patchRunningArt).toHaveBeenCalledWith(1, {
+        title: "Morning run",
+        content: "테스트 러닝 아트",
+      }),
+    )
+    await waitFor(() => expect(checkbox).toBeChecked())
+  })
+
+  it("shows toast and rolls back when share update fails", async () => {
+    const user = userEvent.setup()
+    const auth = {
+      user: {
+        id: "10",
+        name: "Owner",
+        email: "owner@example.com",
+      },
+      tokens: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+      },
+    }
+    const art = {
+      id: 1,
+      title: "Morning run",
+      content: "테스트 러닝 아트",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U",
+      userId: 10,
+    }
+
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(patchRunningArt as jest.Mock).mockRejectedValue(new Error("fail"))
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+
+    const checkbox = screen.getByRole("checkbox")
+    await user.click(checkbox)
+
+    expect(await screen.findByText("공유 설정 업데이트에 실패했습니다.")).toBeInTheDocument()
+    expect(checkbox).not.toBeChecked()
   })
 
   it("redirects to 403 for private shared artwork", async () => {
     const art = {
-      id: "art-2",
+      id: 2,
       title: "Private run",
-      imageUrl: "/private.png",
-      distanceKm: 4,
-      theme: "Heart",
-      isPublic: false,
-      createdAt: new Date().toISOString(),
-      ownerId: "owner-2",
+      content: "비공개 테스트",
+      shape: "STAR",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U",
+      userId: 99,
     }
 
-    ;(fetchArtById as jest.Mock).mockResolvedValue(art)
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
 
     renderWithProviders(
       <Routes>
         <Route path="/share/:id" element={<SharePage />} />
         <Route path="/403" element={<ForbiddenPage />} />
       </Routes>,
-      { route: "/share/art-2", auth: null },
+      { route: "/share/2", auth: null },
     )
 
     expect(await screen.findByText("접근이 거부되었습니다")).toBeInTheDocument()

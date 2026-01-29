@@ -19,6 +19,18 @@ export default function MyPage() {
     profileImage: "",
   })
 
+  const formatDistance = (value: number) => (value ? `${value}km` : "-")
+  const formatDate = (value: string) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString()
+  }
+  const formatDateTime = (value: string) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString()
+  }
+
   useEffect(() => {
     setUserProfile({
       name: user?.name ?? "",
@@ -195,8 +207,8 @@ export default function MyPage() {
                   <div className="p-4 space-y-2">
                     <h3 className="text-white font-semibold text-lg truncate">{artwork.title}</h3>
                     <div className="flex items-center justify-between text-sm text-gray-300">
-                      <span>{artwork.distanceKm}km</span>
-                      <span>{new Date(artwork.createdAt).toLocaleDateString()}</span>
+                      <span>{formatDistance(artwork.distanceKm)}</span>
+                      <span>{formatDate(artwork.createdAt)}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -235,8 +247,8 @@ export default function MyPage() {
                         </h3>
                       </Link>
                       <div className="flex flex-wrap gap-4 text-sm text-gray-300">
-                        <span>거리: {artwork.distanceKm}km</span>
-                        <span>생성일: {new Date(artwork.createdAt).toLocaleString()}</span>
+                        <span>거리: {formatDistance(artwork.distanceKm)}</span>
+                        <span>생성일: {formatDateTime(artwork.createdAt)}</span>
                       </div>
                     </div>
                     <Button

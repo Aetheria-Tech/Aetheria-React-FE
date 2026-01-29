@@ -11,6 +11,13 @@ export default function SharePage() {
   const { art, isLoading, loadArt } = useArtDetail()
   const { user } = useAuth()
 
+  const formatDistance = (value: number) => (value ? `${value}km` : "-")
+  const formatDateTime = (value: string) => {
+    if (!value) return "-"
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString()
+  }
+
   useEffect(() => {
     if (id) {
       loadArt(id).catch(() => undefined)
@@ -57,8 +64,8 @@ export default function SharePage() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 space-y-4">
           <h2 className="text-2xl font-semibold">{art.title}</h2>
           <img src={art.imageUrl || "/placeholder.svg"} alt={art.title} className="w-full rounded-lg" />
-          <p className="text-white/70">거리: {art.distanceKm}km</p>
-          <p className="text-white/60">생성일: {new Date(art.createdAt).toLocaleString()}</p>
+          <p className="text-white/70">거리: {formatDistance(art.distanceKm)}</p>
+          <p className="text-white/60">생성일: {formatDateTime(art.createdAt)}</p>
         </div>
       </div>
     </div>
