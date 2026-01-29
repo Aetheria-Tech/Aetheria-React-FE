@@ -1,6 +1,6 @@
 ﻿import { useCallback, useState } from "react"
 import type { Art } from "@/types/art"
-import { getRunningArtDetail, patchRunningArt } from "@/services/art-service"
+import { getRunningArtDetail } from "@/services/art-service"
 import { useToast } from "@/context/toast-context"
 import { toArtFromRunningArt } from "@/lib/running-art"
 
@@ -32,28 +32,14 @@ export function useArtDetail() {
 
   const updateShare = useCallback(
     async (artId: string, isPublic: boolean) => {
-      if (!art) return null
+      if (!art || String(art.id) !== artId) return null
       setIsLoading(true)
       setError(null)
-      const previous = art
-      try {
-        const parsedId = Number(artId)
-        await patchRunningArt(Number.isFinite(parsedId) ? parsedId : artId, {
-          title: previous.title,
-          content: previous.content ?? "",
-        })
-        const updated = { ...previous, isPublic }
-        setArt(updated)
-        notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
-        return updated
-      } catch (err) {
-        setError("공유 설정 업데이트에 실패했습니다")
-        setArt(previous)
-        notify("공유 설정 업데이트에 실패했습니다.", "error")
-        return null
-      } finally {
-        setIsLoading(false)
-      }
+      const updated = { ...art, isPublic }
+      setArt(updated)
+      notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
+      setIsLoading(false)
+      return updated
     },
     [notify, art],
   )
