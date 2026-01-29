@@ -1,7 +1,7 @@
-# 프로젝트 진행사항 & 요청사항
+﻿# 프로젝트 진행사항 & 요청사항
 
-이 문서는 노트북/새 세션에서 Codex가 맥락을 바로 이해하도록 하기 위한 요약입니다.  
-앞으로 작업할 때는 **변경된 내용/결정사항을 이 파일에 추가**해 주세요.
+이 문서는 노트북/새 세션에서 Codex가 맥락을 바로 이해하도록 하기 위한 요약입니다.
+앞으로 작업할 때는 변경된 내용/결정사항을 이 파일에 추가해 주세요.
 
 ## 1) 프로젝트 정보
 - 경로: `C:\Dev\capstone-fe`
@@ -10,20 +10,20 @@
 - 스타일: TailwindCSS + Radix UI
 - 지도: Leaflet + leaflet-gpx
 - 테스트: Jest + React Testing Library
-- UI 문구/테스트 스냅샷: **한국어 유지**
+- UI 문구/테스트 스냅샷: 한국어 유지
 - 정책: 기존 기능 유지 최우선, Swagger에 없는 API 임의 생성 금지
 
 ## 2) 브랜치/작업 흐름
 - 기본 브랜치: `develop`
 - 이슈별 브랜치 생성 → 작업 → PR → `develop` 머지
-- 최근 작업 브랜치: `feature/15` (Create 페이지 개선) → **develop에 머지 완료**
+- 최근 작업 브랜치: `feature/15` (Create 페이지 개선) → develop 머지 완료
 - 현재 진행 예정 브랜치: `feature/17` (MyPage 기능 완성)
 
 ## 3) 최근 완료 작업(요약)
 ### Create 페이지 & 지도 마커 개선(merge 완료)
 - 주소 입력 변경 시 좌표 초기화/재조회로 마커 정확도 개선
 - 지도 클릭으로 위치 선택(onMapClick) 지원
-- “지도에 표시” 클릭 시 주소→좌표 해석 가능
+- “지도에 표시” 클릭 시 주소→좌표 해석
 - 로컬 지오코딩/GPX 개발용 보강:
   - `src/mocks/geocode-map.ts` (로컬 데이터 + localStorage 저장)
   - `addressToCoords`: 백엔드 `/api/v1/geocode` 우선 → 실패 시 Kakao → mock
@@ -46,11 +46,11 @@
   - `PATCH /api/v1/running-arts/{runningArtId}`
   - `DELETE /api/v1/running-arts/{runningArtId}`
 - Auth/Token: 기존 컨텍스트/인터셉터 유지
-- **Swagger에 없는 API는 프론트에서 임의 생성 금지**
+- Swagger에 없는 API는 프론트에서 임의 생성 금지
 
 ## 6) 현재 요청사항/작업 계획
 ### 6.1 MyPage 기능 완성 (feature/17)
-- UI는 이미 있음 → **기능만 완성**
+- UI는 이미 있음 → 기능만 완성
 - 구현 범위:
   - 목록 조회/상세 조회/삭제/공유 토글
   - 로딩/빈 상태/에러 토스트 처리
@@ -74,10 +74,10 @@
 - 새 세션에서는 이 파일 내용을 먼저 알려주고 작업 시작
 - 작업 완료 후 변경 사항을 이 파일에 반드시 업데이트
 
-## 9) �ֱ� ������Ʈ (feature/17 ���� ��)
-- RunningArt Ÿ�� ���� �߰�: `src/types/running-art.ts`
-- void ���� ó�� ���� �߰�: `src/types/api.ts` (unwrapVoidResponse)
-- ���׾�Ʈ API ���� �Լ� �߰�: `getMyRunningArts`, `getRunningArtDetail`, `deleteRunningArt`, `patchRunningArt`
-- `useMyArts`/`useArtDetail` ���׾�Ʈ ���� �� UI ����� ����
-- MyPage/MyPageDetail/Share/Gallery ��¥���Ÿ� ǥ�� fallback ó��
-- �׽�Ʈ ����: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`
+## 9) 최근 업데이트 (feature/17 진행 중)
+- RunningArt 타입 정의 추가: `src/types/running-art.ts`
+- void 응답 처리 헬퍼 추가: `src/types/api.ts` (unwrapVoidResponse)
+- 러닝아트 API 서비스 함수 추가: `getMyRunningArts`, `getRunningArtDetail`, `deleteRunningArt`, `patchRunningArt`
+- `useMyArts`/`useArtDetail` 러닝아트 연동 및 UI 어댑터 적용
+- MyPage/MyPageDetail/Share/Gallery 날짜·거리 표시 fallback 처리
+- 테스트 보강: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`
