@@ -4,18 +4,12 @@ import { ArrowLeft, Link as LinkIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
+import { formatDateTime, formatDistance } from "@/lib/formatters"
 
 export default function MyPageDetail() {
   const { id } = useParams()
   const { art, isLoading, loadArt, updateShare } = useArtDetail()
   const { user } = useAuth()
-
-  const formatDistance = (value: number) => (value ? `${value}km` : "-")
-  const formatDateTime = (value: string) => {
-    if (!value) return "-"
-    const parsed = new Date(value)
-    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString()
-  }
 
   useEffect(() => {
     if (id) {

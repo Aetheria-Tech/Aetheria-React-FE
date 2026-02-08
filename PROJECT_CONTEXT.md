@@ -80,6 +80,7 @@
 - 러닝아트 API 서비스 함수 추가: `getMyRunningArts`, `getRunningArtDetail`, `deleteRunningArt`, `patchRunningArt`
 - `useMyArts`/`useArtDetail` 러닝아트 연동 및 UI 어댑터 적용
 - MyPage/MyPageDetail/Share/Gallery 날짜·거리 표시 fallback 처리
+- 날짜/거리 포맷터 공통화: `src/lib/formatters.ts`
 - 테스트 보강: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`
 - 공유 토글은 로컬 상태 변경만 수행 (Swagger에 isPublic 없음)
 

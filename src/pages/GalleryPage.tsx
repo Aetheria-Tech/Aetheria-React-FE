@@ -7,19 +7,13 @@ import ShootingStars from "@/components/shooting-stars"
 import { fetchGalleryArts } from "@/services/art-service"
 import type { Art } from "@/types/art"
 import { useToast } from "@/context/toast-context"
+import { formatDate, formatDistance } from "@/lib/formatters"
 
 export default function GalleryPage() {
   const { notify } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [arts, setArts] = useState<Art[]>([])
   const [isLoading, setIsLoading] = useState(false)
-
-  const formatDistance = (value: number) => (value ? `${value}km` : "-")
-  const formatDate = (value: string) => {
-    if (!value) return "-"
-    const parsed = new Date(value)
-    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString()
-  }
 
   useEffect(() => {
     setIsLoading(true)

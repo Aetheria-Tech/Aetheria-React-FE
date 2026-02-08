@@ -6,6 +6,7 @@ import AppBackground from "@/components/layouts/app-background"
 import { useMyArts } from "@/hooks/use-my-arts"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
+import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
 
 export default function MyPage() {
   const { user } = useAuth()
@@ -18,18 +19,6 @@ export default function MyPage() {
     email: "",
     profileImage: "",
   })
-
-  const formatDistance = (value: number) => (value ? `${value}km` : "-")
-  const formatDate = (value: string) => {
-    if (!value) return "-"
-    const parsed = new Date(value)
-    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleDateString()
-  }
-  const formatDateTime = (value: string) => {
-    if (!value) return "-"
-    const parsed = new Date(value)
-    return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString()
-  }
 
   useEffect(() => {
     setUserProfile({

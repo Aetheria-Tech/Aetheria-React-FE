@@ -6,7 +6,7 @@ export const toArtFromRunningArt = (runningArt: RunningArtSummary | RunningArtDe
   title: runningArt.title,
   content: runningArt.content,
   imageUrl: "/placeholder.svg",
-  distanceKm: 0,
+  distanceKm: Number.NaN,
   theme: runningArt.shape,
   isPublic: false,
   createdAt: "",
