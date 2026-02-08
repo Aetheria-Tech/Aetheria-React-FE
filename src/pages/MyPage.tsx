@@ -36,6 +36,17 @@ export default function MyPage() {
     loadArts().catch(() => undefined)
   }, [loadArts])
 
+  useEffect(() => {
+    if (!isWithdrawOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isWithdrawing) {
+        setIsWithdrawOpen(false)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isWithdrawOpen, isWithdrawing])
+
   const handleSaveProfile = () => {
     setIsEditingProfile(false)
     // Profile edits are local until backend support is added.
@@ -51,7 +62,8 @@ export default function MyPage() {
       notify("회원탈퇴가 완료되었습니다.", "success")
       setIsWithdrawOpen(false)
       navigate("/", { replace: true })
-    } catch {
+    } catch (error) {
+      console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
       notify("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
     } finally {
       setIsWithdrawing(false)
@@ -308,6 +320,7 @@ export default function MyPage() {
                 onClick={() => setIsWithdrawOpen(false)}
                 className="text-white hover:bg-white/10"
                 disabled={isWithdrawing}
+                autoFocus
               >
                 취소
               </Button>
