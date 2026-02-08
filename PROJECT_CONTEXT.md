@@ -82,3 +82,11 @@
 - MyPage/MyPageDetail/Share/Gallery 날짜·거리 표시 fallback 처리
 - 테스트 보강: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`
 - 공유 토글은 로컬 상태 변경만 수행 (Swagger에 isPublic 없음)
+
+## 10) 해야 할 일 (메모 복원)
+- 로그인/회원탈퇴/로그아웃 연동 정리
+- 조회 페이지 및 삭제 버튼 동작
+- 제목/콘텐츠 수정 버튼(상세 수정 기능)
+- 프로필 수정
+- 출발/도착지 위도·경도 수집 → 생성 API 연결
+- 미리보기 관련 정리/삭제 처리
