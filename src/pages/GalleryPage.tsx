@@ -7,6 +7,7 @@ import ShootingStars from "@/components/shooting-stars"
 import { fetchGalleryArts } from "@/services/art-service"
 import type { Art } from "@/types/art"
 import { useToast } from "@/context/toast-context"
+import { formatDate, formatDistance } from "@/lib/formatters"
 
 export default function GalleryPage() {
   const { notify } = useToast()
@@ -99,8 +100,8 @@ export default function GalleryPage() {
                   <div className="p-4 space-y-3">
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/60">{item.distanceKm}km</span>
-                      <span className="text-[#836FFF] font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
+                      <span className="text-white/60">{formatDistance(item.distanceKm)}</span>
+                      <span className="text-[#836FFF] font-medium">{formatDate(item.createdAt)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/60">테마: {item.theme}</span>

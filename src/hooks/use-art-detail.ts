@@ -1,7 +1,8 @@
 ﻿import { useCallback, useState } from "react"
 import type { Art } from "@/types/art"
-import { fetchArtById, updateShareStatus } from "@/services/art-service"
+import { getRunningArtDetail } from "@/services/art-service"
 import { useToast } from "@/context/toast-context"
+import { toArtFromRunningArt } from "@/lib/running-art"
 
 export function useArtDetail() {
   const { notify } = useToast()
@@ -14,9 +15,10 @@ export function useArtDetail() {
       setIsLoading(true)
       setError(null)
       try {
-        const data = await fetchArtById(artId)
-        setArt(data)
-        return data
+        const data = await getRunningArtDetail(artId)
+        const mapped = toArtFromRunningArt(data)
+        setArt(mapped)
+        return mapped
       } catch (err) {
         setError("작품을 불러오는 데 실패했습니다")
         notify("작품을 불러오는 데 실패했습니다.", "error")
@@ -30,22 +32,16 @@ export function useArtDetail() {
 
   const updateShare = useCallback(
     async (artId: string, isPublic: boolean) => {
+      if (!art || String(art.id) !== artId) return null
       setIsLoading(true)
       setError(null)
-      try {
-        const data = await updateShareStatus(artId, isPublic)
-        setArt(data)
-        notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
-        return data
-      } catch (err) {
-        setError("공유 설정 업데이트에 실패했습니다")
-        notify("공유 설정 업데이트에 실패했습니다.", "error")
-        throw err
-      } finally {
-        setIsLoading(false)
-      }
+      const updated = { ...art, isPublic }
+      setArt(updated)
+      notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
+      setIsLoading(false)
+      return updated
     },
-    [notify],
+    [notify, art],
   )
 
   return {

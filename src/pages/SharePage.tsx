@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
+import { formatDateTime, formatDistance } from "@/lib/formatters"
 
 export default function SharePage() {
   const { id } = useParams()
@@ -57,8 +58,8 @@ export default function SharePage() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 space-y-4">
           <h2 className="text-2xl font-semibold">{art.title}</h2>
           <img src={art.imageUrl || "/placeholder.svg"} alt={art.title} className="w-full rounded-lg" />
-          <p className="text-white/70">거리: {art.distanceKm}km</p>
-          <p className="text-white/60">생성일: {new Date(art.createdAt).toLocaleString()}</p>
+          <p className="text-white/70">거리: {formatDistance(art.distanceKm)}</p>
+          <p className="text-white/60">생성일: {formatDateTime(art.createdAt)}</p>
         </div>
       </div>
     </div>
