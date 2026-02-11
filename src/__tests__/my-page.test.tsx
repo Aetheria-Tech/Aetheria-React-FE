@@ -145,6 +145,32 @@ describe("MyPage", () => {
     expect(deleteRunningArt).toHaveBeenCalledWith(1)
   })
 
+  it("keeps artwork and shows toast when delete fails", async () => {
+    const user = userEvent.setup()
+    const arts = [
+      {
+        id: 1,
+        title: "Morning run",
+        content: "테스트 러닝 아트",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        gpx: "_p~iF~ps|U",
+        userId: 10,
+      },
+    ]
+
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue(arts)
+    ;(deleteRunningArt as jest.Mock).mockRejectedValue(new Error("fail"))
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: /삭제/i }))
+
+    expect(await screen.findByText("작품 삭제에 실패했습니다.")).toBeInTheDocument()
+    expect(screen.getByText("Morning run")).toBeInTheDocument()
+  })
+
   it("navigates to detail view when clicking an artwork card", async () => {
     const user = userEvent.setup()
     const arts = [

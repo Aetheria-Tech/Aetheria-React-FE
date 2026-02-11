@@ -39,7 +39,7 @@ export function useMyArts() {
       } catch (err) {
         setError("작품 삭제에 실패했습니다")
         notify("작품 삭제에 실패했습니다.", "error")
-        return
+        throw err
       } finally {
         setIsLoading(false)
       }

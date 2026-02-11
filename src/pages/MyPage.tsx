@@ -72,6 +72,10 @@ export default function MyPage() {
     }
   }
 
+  const handleRemoveArt = (artId: string) => {
+    removeArt(artId).catch(() => undefined)
+  }
+
   return (
     <AppBackground overlayClassName="bg-black/50">
       <header className="w-full px-6 py-4 flex items-center justify-between">
@@ -263,7 +267,7 @@ export default function MyPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeArt(artwork.id)}
+                      onClick={() => handleRemoveArt(artwork.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -304,7 +308,7 @@ export default function MyPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeArt(artwork.id)}
+                      onClick={() => handleRemoveArt(artwork.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
                     >
                       <Trash2 className="w-4 h-4" />

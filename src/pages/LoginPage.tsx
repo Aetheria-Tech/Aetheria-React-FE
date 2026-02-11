@@ -17,14 +17,17 @@ export default function LoginPage() {
 
   const getGoogleLoginUrl = () => {
     if (env.googleLoginUrl) return env.googleLoginUrl
-    const baseUrl = env.apiBaseUrl.replace(/\/$/, "")
-    if (!baseUrl) {
-      return "/api/v1/auth/login/google"
+
+    const defaultPath = "/api/v1/auth/login/google"
+    const baseUrl = env.apiBaseUrl
+    if (!baseUrl) return defaultPath
+
+    try {
+      return new URL(defaultPath, baseUrl).href
+    } catch (error) {
+      console.error("Google 로그인 URL 생성에 실패했습니다:", baseUrl, error)
+      return defaultPath
     }
-    if (baseUrl.endsWith("/api/v1")) {
-      return `${baseUrl}/auth/login/google`
-    }
-    return `${baseUrl}/api/v1/auth/login/google`
   }
 
   useEffect(() => {
