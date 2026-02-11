@@ -1,10 +1,16 @@
-import { screen, waitFor } from "@testing-library/react"
+﻿import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
 import MyPage from "@/pages/MyPage"
 import MyPageDetail from "@/pages/MyPageDetail"
 import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { deleteRunningArt, getMyRunningArts, getRunningArtDetail } from "@/services/art-service"
+import { withdrawMe } from "@/services/auth-service"
+import { authStorage } from "@/services/auth-storage"
+
+jest.mock("@/services/auth-service", () => ({
+  withdrawMe: jest.fn(),
+}))
 
 jest.mock("@/services/art-service", () => ({
   createArt: jest.fn(),
@@ -21,6 +27,10 @@ jest.mock("@/services/art-service", () => ({
 }))
 
 describe("MyPage", () => {
+  beforeEach(() => {
+    ;(withdrawMe as jest.Mock).mockReset()
+  })
+
   it("loads and displays artworks", async () => {
     const arts = [
       {
@@ -113,5 +123,117 @@ describe("MyPage", () => {
 
     expect(await screen.findByText("작품 상세")).toBeInTheDocument()
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
+  })
+
+  it("renders withdraw button and opens modal", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    const button = await screen.findByRole("button", { name: "회원탈퇴" })
+    await user.click(button)
+
+    expect(screen.getByRole("heading", { name: "회원탈퇴" })).toBeInTheDocument()
+    expect(
+      screen.getByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다."),
+    ).toBeInTheDocument()
+  })
+
+  it("closes withdraw modal on cancel", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: "취소" }))
+
+    expect(
+      screen.queryByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다."),
+    ).not.toBeInTheDocument()
+  })
+
+  it("withdraws account, clears auth, and navigates home on success", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(withdrawMe as jest.Mock).mockResolvedValue(undefined)
+    const clearSpy = jest.spyOn(authStorage, "clear")
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/" element={<div>홈</div>} />
+      </Routes>,
+      { route: "/mypage", auth: mockAuthPayload },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
+    const dialog = await screen.findByRole("dialog")
+    await act(async () => {
+      await user.click(within(dialog).getByRole("button", { name: "회원탈퇴" }))
+    })
+
+    await waitFor(() => expect(withdrawMe).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(clearSpy).toHaveBeenCalled())
+    expect(await screen.findByText("홈")).toBeInTheDocument()
+    clearSpy.mockRestore()
+  })
+
+  it("shows toast and does not logout on withdraw failure", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(withdrawMe as jest.Mock).mockRejectedValue(new Error("fail"))
+    const clearSpy = jest.spyOn(authStorage, "clear")
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/" element={<div>홈</div>} />
+      </Routes>,
+      { route: "/mypage", auth: mockAuthPayload },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
+    const dialog = await screen.findByRole("dialog")
+    await act(async () => {
+      await user.click(within(dialog).getByRole("button", { name: "회원탈퇴" }))
+    })
+
+    expect(
+      await screen.findByText("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    ).toBeInTheDocument()
+    expect(clearSpy).not.toHaveBeenCalled()
+    expect(screen.queryByText("홈")).not.toBeInTheDocument()
+    clearSpy.mockRestore()
+  })
+
+  it("prevents duplicate withdraw requests", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    let resolvePromise: (() => void) | undefined
+    const pending = new Promise<void>((resolve) => {
+      resolvePromise = resolve
+    })
+    ;(withdrawMe as jest.Mock).mockReturnValue(pending)
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
+    const dialog = await screen.findByRole("dialog")
+    const confirm = within(dialog).getByRole("button", { name: "회원탈퇴" })
+    await act(async () => {
+      await user.click(confirm)
+      await user.click(confirm)
+    })
+
+    expect(withdrawMe).toHaveBeenCalledTimes(1)
+    resolvePromise?.()
   })
 })

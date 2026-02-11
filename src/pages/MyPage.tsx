@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Edit2, Grid3x3, List, Plus, Trash2, User, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
@@ -7,13 +7,17 @@ import { useMyArts } from "@/hooks/use-my-arts"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
+import { withdrawMe } from "@/services/auth-service"
 
 export default function MyPage() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const { notify } = useToast()
+  const navigate = useNavigate()
   const { arts, isLoading, loadArts, removeArt } = useMyArts()
   const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
@@ -32,10 +36,38 @@ export default function MyPage() {
     loadArts().catch(() => undefined)
   }, [loadArts])
 
+  useEffect(() => {
+    if (!isWithdrawOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isWithdrawing) {
+        setIsWithdrawOpen(false)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isWithdrawOpen, isWithdrawing])
+
   const handleSaveProfile = () => {
     setIsEditingProfile(false)
     // Profile edits are local until backend support is added.
     notify("프로필 변경 사항이 로컬에 저장되었습니다.", "info")
+  }
+
+  const handleWithdraw = async () => {
+    if (isWithdrawing) return
+    setIsWithdrawing(true)
+    try {
+      await withdrawMe()
+      logout()
+      notify("회원탈퇴가 완료되었습니다.", "success")
+      setIsWithdrawOpen(false)
+      navigate("/", { replace: true })
+    } catch (error) {
+      console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
+      notify("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
+    } finally {
+      setIsWithdrawing(false)
+    }
   }
 
   return (
@@ -134,6 +166,18 @@ export default function MyPage() {
                 </div>
               </div>
             </div>
+            {isEditingProfile && (
+              <div className="mt-6 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsWithdrawOpen(true)}
+                  className="text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 transition-all duration-300"
+                >
+                  회원탈퇴
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -255,6 +299,42 @@ export default function MyPage() {
           )}
         </div>
       </main>
+
+      {isWithdrawOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-title"
+            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+          >
+            <h2 id="withdraw-title" className="text-xl font-semibold mb-3">
+              회원탈퇴
+            </h2>
+            <p className="text-white/70 text-sm mb-6">
+              정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsWithdrawOpen(false)}
+                className="text-white hover:bg-white/10"
+                disabled={isWithdrawing}
+                autoFocus
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleWithdraw}
+                className="bg-rose-500 hover:bg-rose-600 text-white"
+                disabled={isWithdrawing}
+              >
+                {isWithdrawing ? "처리 중..." : "회원탈퇴"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppBackground>
   )
 }
