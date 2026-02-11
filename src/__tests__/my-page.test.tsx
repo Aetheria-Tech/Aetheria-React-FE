@@ -4,7 +4,7 @@ import { Route, Routes } from "react-router-dom"
 import MyPage from "@/pages/MyPage"
 import MyPageDetail from "@/pages/MyPageDetail"
 import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
-import { deleteRunningArt, getMyRunningArts, getRunningArtDetail } from "@/services/art-service"
+import { deleteRunningArt, getMyRunningArts, getRunningArtDetail, patchRunningArt } from "@/services/art-service"
 import { withdrawMe } from "@/services/auth-service"
 import { authStorage } from "@/services/auth-storage"
 import { isDevEnvironment } from "@/lib/runtime"
@@ -259,6 +259,79 @@ describe("MyPage", () => {
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
+  })
+
+  it("shows textarea when clicking description edit button in detail page", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+
+    expect(screen.getByRole("textbox", { name: "설명 입력" })).toBeInTheDocument()
+  })
+
+  it("saves edited description via patch and returns to view mode on success", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+    ;(patchRunningArt as jest.Mock).mockResolvedValue(undefined)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+
+    const textarea = screen.getByRole("textbox", { name: "설명 입력" })
+    await user.clear(textarea)
+    await user.type(textarea, "수정된 설명")
+    await user.click(screen.getByRole("button", { name: "설명 저장" }))
+
+    await waitFor(() =>
+      expect(patchRunningArt).toHaveBeenCalledWith("1", {
+        title: "Morning run",
+        content: "수정된 설명",
+      }),
+    )
+    expect(await screen.findByText("설명이 저장되었습니다.")).toBeInTheDocument()
+    expect(screen.getByText("수정된 설명")).toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "설명 입력" })).not.toBeInTheDocument()
+  })
+
+  it("keeps edit mode and input value when description save fails", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+    ;(patchRunningArt as jest.Mock).mockRejectedValue(new Error("save-fail"))
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+
+    const textarea = screen.getByRole("textbox", { name: "설명 입력" })
+    await user.clear(textarea)
+    await user.type(textarea, "저장 실패 후 유지")
+    await user.click(screen.getByRole("button", { name: "설명 저장" }))
+
+    expect(await screen.findByText("설명 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
+    expect(screen.getByRole("textbox", { name: "설명 입력" })).toHaveValue("저장 실패 후 유지")
+    expect(screen.getByRole("button", { name: "설명 저장" })).toBeInTheDocument()
   })
 
   it("renders withdraw button and opens modal", async () => {
