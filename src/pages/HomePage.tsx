@@ -1,8 +1,19 @@
-﻿import { Link } from "react-router-dom"
+﻿import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
+import { useAuth } from "@/context/auth-context"
+import { isDevEnvironment } from "@/lib/runtime"
 
 export default function HomePage() {
+  const { isLoggedIn, logout } = useAuth()
+  const navigate = useNavigate()
+  const showLogout = isLoggedIn || isDevEnvironment()
+
+  const handleLogout = () => {
+    logout()
+    navigate("/", { replace: true })
+  }
+
   return (
     <AppBackground overlayClassName="bg-black/40">
       <header className="w-full px-6 py-4 flex items-center justify-between">
@@ -14,15 +25,27 @@ export default function HomePage() {
           />
         </Link>
 
-        <Link to="/mypage">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
-          >
-            마이페이지
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {showLogout && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
+            >
+              로그아웃
+            </Button>
+          )}
+          <Link to="/mypage">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
+            >
+              마이페이지
+            </Button>
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 py-12">

@@ -7,12 +7,14 @@ import { useMyArts } from "@/hooks/use-my-arts"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
+import { isDevEnvironment } from "@/lib/runtime"
 import { withdrawMe } from "@/services/auth-service"
 
 export default function MyPage() {
-  const { user, logout } = useAuth()
+  const { user, isLoggedIn, logout } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
+  const showLogout = isLoggedIn || isDevEnvironment()
   const { arts, isLoading, loadArts, removeArt } = useMyArts()
   const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -70,6 +72,10 @@ export default function MyPage() {
     }
   }
 
+  const handleRemoveArt = (artId: string) => {
+    removeArt(artId).catch(() => undefined)
+  }
+
   return (
     <AppBackground overlayClassName="bg-black/50">
       <header className="w-full px-6 py-4 flex items-center justify-between">
@@ -79,13 +85,28 @@ export default function MyPage() {
             뒤로
           </Button>
         </Link>
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
-            alt="Aetheria 로고"
-            className="h-8 object-contain"
-          />
-        </Link>
+        <div className="flex items-center gap-2">
+          {showLogout && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                logout()
+                navigate("/", { replace: true })
+              }}
+              className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40 transition-all duration-300"
+            >
+              로그아웃
+            </Button>
+          )}
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
+              alt="Aetheria 로고"
+              className="h-8 object-contain"
+            />
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1 px-6 py-8">
@@ -246,7 +267,7 @@ export default function MyPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeArt(artwork.id)}
+                      onClick={() => handleRemoveArt(artwork.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -287,7 +308,7 @@ export default function MyPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeArt(artwork.id)}
+                      onClick={() => handleRemoveArt(artwork.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
                     >
                       <Trash2 className="w-4 h-4" />

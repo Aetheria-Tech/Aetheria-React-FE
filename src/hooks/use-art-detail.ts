@@ -31,14 +31,13 @@ export function useArtDetail() {
   )
 
   const updateShare = useCallback(
-    async (artId: string, isPublic: boolean) => {
+    (artId: string, isPublic: boolean) => {
       if (!art || String(art.id) !== artId) return null
-      setIsLoading(true)
       setError(null)
+      // TODO: 백엔드 공유 토글 API가 준비되면 로컬 업데이트 대신 서버 상태를 기준으로 갱신해야 합니다.
       const updated = { ...art, isPublic }
       setArt(updated)
       notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
-      setIsLoading(false)
       return updated
     },
     [notify, art],
