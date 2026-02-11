@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Edit2, Grid3x3, List, Plus, Trash2, User, Mail } from "lucide-react"
+import { ArrowLeft, Edit2, Grid3x3, List, Plus, User, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
 import { useMyArts } from "@/hooks/use-my-arts"
@@ -15,7 +15,7 @@ export default function MyPage() {
   const { notify } = useToast()
   const navigate = useNavigate()
   const showLogout = isLoggedIn || isDevEnvironment()
-  const { arts, isLoading, loadArts, removeArt } = useMyArts()
+  const { arts, isLoading, loadArts } = useMyArts()
   const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
@@ -70,10 +70,6 @@ export default function MyPage() {
     } finally {
       setIsWithdrawing(false)
     }
-  }
-
-  const handleRemoveArt = (artId: string) => {
-    removeArt(artId).catch(() => undefined)
   }
 
   return (
@@ -264,15 +260,6 @@ export default function MyPage() {
                       <span>{formatDistance(artwork.distanceKm)}</span>
                       <span>{formatDate(artwork.createdAt)}</span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveArt(artwork.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      삭제
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -305,14 +292,6 @@ export default function MyPage() {
                         <span>생성일: {formatDateTime(artwork.createdAt)}</span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveArt(artwork.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               ))}
