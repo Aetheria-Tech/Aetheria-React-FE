@@ -1,93 +1,118 @@
-﻿# 프로젝트 진행사항 & 요청사항
+﻿# PROJECT_CONTEXT
 
-이 문서는 노트북/새 세션에서 Codex가 맥락을 바로 이해하도록 하기 위한 요약입니다.
-앞으로 작업할 때는 변경된 내용/결정사항을 이 파일에 추가해 주세요.
+새 채팅/새 기기에서 작업을 바로 이어가기 위한 인수인계 문서입니다.
+최종 업데이트: 2026-02-11
 
-## 1) 프로젝트 정보
+## 1) 프로젝트 기본 정보
 - 경로: `C:\Dev\capstone-fe`
-- 스택: React 19 + Vite + TypeScript (SPA)
-- 라우팅: React Router
-- 스타일: TailwindCSS + Radix UI
+- 스택: React 19 + Vite + TypeScript + React Router + TailwindCSS + Radix UI
 - 지도: Leaflet + leaflet-gpx
 - 테스트: Jest + React Testing Library
-- UI 문구/테스트 스냅샷: 한국어 유지
-- 정책: 기존 기능 유지 최우선, Swagger에 없는 API 임의 생성 금지
+- 브랜치 전략: `develop` 기준, 이슈별 `feature/<번호>-<작업>` 브랜치
 
-## 2) 브랜치/작업 흐름
-- 기본 브랜치: `develop`
-- 이슈별 브랜치 생성 → 작업 → PR → `develop` 머지
-- 최근 작업 브랜치: `feature/15` (Create 페이지 개선) → develop 머지 완료
-- 현재 진행 예정 브랜치: `feature/17` (MyPage 기능 완성)
+## 2) 개발 원칙
+- 기존 기능 유지 최우선
+- 변경 최소화(큰 리팩터/파일 대이동 금지)
+- UI 문구 및 테스트 스냅샷 한국어 유지
+- Swagger에 없는 API 임의 생성 금지
+- TDD(테스트 먼저 작성) 준수
 
-## 3) 최근 완료 작업(요약)
-### Create 페이지 & 지도 마커 개선(merge 완료)
-- 주소 입력 변경 시 좌표 초기화/재조회로 마커 정확도 개선
-- 지도 클릭으로 위치 선택(onMapClick) 지원
-- “지도에 표시” 클릭 시 주소→좌표 해석
-- 로컬 지오코딩/GPX 개발용 보강:
-  - `src/mocks/geocode-map.ts` (로컬 데이터 + localStorage 저장)
-  - `addressToCoords`: 백엔드 `/api/v1/geocode` 우선 → 실패 시 Kakao → mock
-  - `art-service`의 mock GPX가 start/end 좌표 기반 동적 생성
-- 좌표 유틸: `src/lib/coords.ts` (LatLng 정규화)
-- Leaflet 타입 오류 해결: `@types/leaflet` 추가
-- 테스트 보강: `src/__tests__/create-page.test.tsx`
-- 백엔드 지오코딩 실패 시 `console.warn` 로그 추가
-
-## 4) 환경 변수(로컬 개발)
-`.env.local`
-- `VITE_DEV_BYPASS_AUTH=true`
+## 3) 로컬 환경(.env.local)
 - `VITE_USE_MOCK_API=true`
+- `VITE_DEV_BYPASS_AUTH=true`
 
-## 5) Swagger 기반 API 계약(요약)
-- Geocode: `GET /api/v1/geocode` (address → lat/lng)
-- Running Art:
-  - `GET /api/v1/running-arts/me`
-  - `GET /api/v1/running-arts/{runningArtId}`
-  - `PATCH /api/v1/running-arts/{runningArtId}`
-  - `DELETE /api/v1/running-arts/{runningArtId}`
-- Auth/Token: 기존 컨텍스트/인터셉터 유지
-- Swagger에 없는 API는 프론트에서 임의 생성 금지
+참고:
+- 현재는 백엔드 미연동 개발을 병행해서 mock 데이터/로직이 일부 존재함
+- 실백엔드 연동 시 `VITE_USE_MOCK_API=false`로 전환 필요
 
-## 6) 현재 요청사항/작업 계획
-### 6.1 MyPage 기능 완성 (feature/17)
-- UI는 이미 있음 → 기능만 완성
-- 구현 범위:
-  - 목록 조회/상세 조회/삭제/공유 토글
-  - 로딩/빈 상태/에러 토스트 처리
-  - 테스트(TDD): 조회/삭제/토글/상세 시나리오
+## 4) Swagger 계약(확정)
+- 문서: `https://kimkihyun0206.github.io/aetheria-swagger/#/`
+- Running Art
+- `GET /api/v1/running-arts/me`
+- `GET /api/v1/running-arts/{runningArtId}`
+- `PATCH /api/v1/running-arts/{runningArtId}`
+- `DELETE /api/v1/running-arts/{runningArtId}`
+- Geocode
+- `GET /api/v1/geocode`
+- Auth
+- `DELETE /api/v1/auth/me` (회원탈퇴)
 
-### 6.2 Gallery 페이지
-- 공개 목록/상세 구현 필요
-- API 스펙 확정 여부 확인 후 진행
+PATCH 스키마 확정:
+- `UpdateRunningArtRequest`
+- 필수 필드: `title`, `content`
 
-### 6.3 백엔드 연동
-- `VITE_API_BASE_URL`로 연동
-- CORS/토큰 정책 합의 필요
+## 5) 기능 개발 이력(브랜치 단위)
 
-## 7) 개발 시 주의사항
-- 기존 UI/기능 최대한 유지
-- 한국어 UI 문구 유지
-- 작업 후 테스트 실행(관련 테스트 우선)
-- 큰 리팩터는 별도 이슈/브랜치로 분리
+### feature/15 (Create/지도 보강, develop 반영 완료)
+- 주소 입력/지도 클릭 기반 좌표 선택 흐름 보강
+- 마커 표시 정확도 개선
+- mock GPX를 출발/도착 좌표 기반으로 생성
+- 관련 테스트 추가
 
-## 8) Codex에 맥락 제공 방법
-- 새 세션에서는 이 파일 내용을 먼저 알려주고 작업 시작
-- 작업 완료 후 변경 사항을 이 파일에 반드시 업데이트
+### feature/17 (MyPage API 연동, develop 반영 완료)
+- RunningArt 목록/상세/삭제/공유 토글 기본 흐름 연동
+- 타입/서비스/훅 계층 정리
+- 날짜/거리 fallback 처리 보강
+- `my-page`, `share` 테스트 보강
 
-## 9) 최근 업데이트 (feature/17 진행 중)
-- RunningArt 타입 정의 추가: `src/types/running-art.ts`
-- void 응답 처리 헬퍼 추가: `src/types/api.ts` (unwrapVoidResponse)
-- 러닝아트 API 서비스 함수 추가: `getMyRunningArts`, `getRunningArtDetail`, `deleteRunningArt`, `patchRunningArt`
-- `useMyArts`/`useArtDetail` 러닝아트 연동 및 UI 어댑터 적용
-- MyPage/MyPageDetail/Share/Gallery 날짜·거리 표시 fallback 처리
-- 날짜/거리 포맷터 공통화: `src/lib/formatters.ts`
-- 테스트 보강: `src/__tests__/my-page.test.tsx`, `src/__tests__/share.test.tsx`
-- 공유 토글은 로컬 상태 변경만 수행 (Swagger에 isPublic 없음)
+### feature/21 (회원탈퇴, develop 반영 완료)
+- MyPage에서 회원탈퇴 버튼/확인 UI 추가
+- `DELETE /api/v1/auth/me` 연동
+- 성공 시 인증 정리 + 홈 이동, 실패 시 한국어 토스트
 
-## 10) 해야 할 일 (메모 복원)
-- 로그인/회원탈퇴/로그아웃 연동 정리
-- 조회 페이지 및 삭제 버튼 동작
-- 제목/콘텐츠 수정 버튼(상세 수정 기능)
-- 프로필 수정
-- 출발/도착지 위도·경도 수집 → 생성 API 연결
-- 미리보기 관련 정리/삭제 처리
+### feature/23 (로그아웃 UI, develop 반영 완료)
+- Home/MyPage에서 로그아웃 버튼 노출
+- 기본은 로그인 상태 노출, 개발 편의 조건 반영
+- 코드리뷰 피드백 반영(런타임/URL 처리 안정화 포함)
+
+### feature/25 (삭제 위치 이동, develop 반영 완료)
+- MyPage 목록에서 삭제 버튼 제거
+- 상세 페이지(`MyPageDetail`)에서 삭제 수행으로 UX 변경
+- 삭제 성공 시 `/mypage` 이동, 실패 시 오류 토스트
+- 로컬 시연을 위한 dev 조건 보완 적용
+- main 반영 시 dev 전용 완화 조건 정리 필요(TODO)
+
+### feature/27 (상세 설명 편집, 로컬 develop 반영 완료)
+- 상세 페이지에 설명 보기/수정/저장 기능 추가
+- 저장 시 `PATCH /api/v1/running-arts/{id}` 호출 (`title`, `content`)
+- 성공: 뷰 모드 전환 + 성공 토스트
+- 실패: 편집 모드 유지 + 오류 토스트(롤백 없음)
+- 코드리뷰 피드백 반영:
+- 편집 시작/취소 시 중복 `setDraftContent` 제거
+
+## 6) 현재 동작 핵심 정리
+- 상세 페이지 삭제 버튼:
+- 현재 소유자 기준/개발 시연 조건을 함께 고려한 상태
+- 요구사항 최종 확정 후(실운영 기준) dev 완화 조건 재정리 필요
+- 상세 페이지 설명 수정:
+- textarea 인라인 편집 -> 저장 -> PATCH
+- 실패 시 입력값 유지 정책 적용
+
+## 7) 테스트 상태
+- 최근 주요 테스트 통과:
+- `src/__tests__/my-page.test.tsx`
+- `src/__tests__/home-page.test.tsx`
+- 상세 설명 편집 시나리오 포함:
+- 수정 클릭 -> textarea 노출
+- 저장 클릭 -> PATCH payload 검증
+- 성공 -> 뷰 반영/토스트
+- 실패 -> 편집 유지/토스트
+
+## 8) Git 상태(중요)
+- 현재 로컬 브랜치: `develop`
+- 로컬 상태: `develop...origin/develop [ahead 3]`
+- 최신 로컬 머지 커밋: `970c63d` (`feature/27-detail-description` -> `develop`)
+- 즉, 로컬 `develop`에 원격 미반영 커밋이 남아있을 수 있음(푸시 확인 필요)
+
+## 9) 다음 작업 후보
+- Gallery 페이지 기능 완성(조회/상세/권한/오류 처리)
+- 프로필 수정 API 연동(`GET/PATCH /api/v1/users/me`)
+- Create 페이지 실백엔드 연동 기준 요청/응답 매핑 최종 점검
+- mock 의존 로직 정리(실연동 브랜치에서 단계적으로 제거)
+
+## 10) 새 채팅에서 바로 시작하는 방법
+1. `PROJECT_CONTEXT.md`를 먼저 읽고 현재 상태 확인
+2. `git status -sb`, `git log --oneline -n 10`으로 브랜치/동기화 확인
+3. 작업 전 이슈 생성 -> feature 브랜치 생성
+4. Swagger 확인 후 테스트 먼저 작성(TDD)
+5. 구현 후 테스트/커밋/PR 템플릿 순서로 진행
