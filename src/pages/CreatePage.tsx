@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import MapComponent from "@/components/map-component"
 import AppBackground from "@/components/layouts/app-background"
 import { normalizeLatLngTuple, toLatLngFromKakao } from "@/lib/coords"
 import { saveStoredGeocode } from "@/mocks/geocode-map"
@@ -25,7 +24,7 @@ const proficiencyOptions = [
 
 export default function CreatePage() {
   const { notify } = useToast()
-  const { createArt, saveArt, data, savedArt, isLoading, isSaving } = useCreateArt()
+  const { createArt, isLoading } = useCreateArt()
 
   const [formData, setFormData] = useState({
     proficiency: "",
@@ -34,14 +33,8 @@ export default function CreatePage() {
     endPoint: "",
   })
 
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [mapCenter, setMapCenter] = useState<LatLng>([37.5665, 126.978])
   const [startCoords, setStartCoords] = useState<LatLng | null>(null)
   const [endCoords, setEndCoords] = useState<LatLng | null>(null)
-  const [tempStartCoords, setTempStartCoords] = useState<LatLng | null>(null)
-  const [tempEndCoords, setTempEndCoords] = useState<LatLng | null>(null)
-  const [activeLocation, setActiveLocation] = useState<"start" | "end" | null>(null)
-  const [gpxData, setGpxData] = useState<string | null>(null)
   const [showStartResults, setShowStartResults] = useState(false)
   const [showEndResults, setShowEndResults] = useState(false)
   const [startAddressResults, setStartAddressResults] = useState<KakaoAddressResult[]>([])
@@ -56,13 +49,6 @@ export default function CreatePage() {
       document.body.removeChild(script)
     }
   }, [])
-
-  useEffect(() => {
-    if (data) {
-      setGpxData(data.gpxData)
-      setGeneratedImage(data.imageUrl)
-    }
-  }, [data])
 
   const selectedDistance = useMemo(() => {
     return proficiencyOptions.find((option) => option.value === formData.proficiency)?.distance ?? 0
@@ -95,59 +81,19 @@ export default function CreatePage() {
 
     if (isStart) {
       setFormData((prev) => ({ ...prev, startPoint: address.addressName }))
-      setTempStartCoords(coords)
       setStartCoords(coords)
       setShowStartResults(false)
     } else {
       setFormData((prev) => ({ ...prev, endPoint: address.addressName }))
-      setTempEndCoords(coords)
       setEndCoords(coords)
       setShowEndResults(false)
     }
-    setMapCenter(coords)
     saveStoredGeocode({
       keyword: address.addressName,
       latitude: coords[0],
       longitude: coords[1],
       formattedAddress: address.addressName,
     })
-  }
-
-  const applyMapSelection = (coords: LatLng, isStart: boolean) => {
-    const addressValue = isStart ? formData.startPoint : formData.endPoint
-    const shouldPersist = addressValue && addressValue !== "지도에서 선택한 위치"
-    if (isStart) {
-      setTempStartCoords(coords)
-      setStartCoords(coords)
-      setFormData((prev) => ({
-        ...prev,
-        startPoint: prev.startPoint || "지도에서 선택한 위치",
-      }))
-    } else {
-      setTempEndCoords(coords)
-      setEndCoords(coords)
-      setFormData((prev) => ({
-        ...prev,
-        endPoint: prev.endPoint || "지도에서 선택한 위치",
-      }))
-    }
-    setMapCenter(coords)
-    if (shouldPersist) {
-      saveStoredGeocode({
-        keyword: addressValue,
-        latitude: coords[0],
-        longitude: coords[1],
-        formattedAddress: addressValue,
-      })
-    }
-  }
-
-  const handleMapClick = (coords: LatLng) => {
-    if (activeLocation === "start") {
-      applyMapSelection(coords, true)
-    } else if (activeLocation === "end") {
-      applyMapSelection(coords, false)
-    }
   }
 
   const resolveCoordsForAddress = async (
@@ -177,40 +123,11 @@ export default function CreatePage() {
     }
   }
 
-  const handleShowMarkersOnMap = async () => {
-    const [resolvedStart, resolvedEnd] = await Promise.all([
-      resolveCoordsForAddress(formData.startPoint, tempStartCoords),
-      resolveCoordsForAddress(formData.endPoint, tempEndCoords),
-    ])
-
-    if (resolvedStart) {
-      setTempStartCoords(resolvedStart)
-      setStartCoords(resolvedStart)
-      setMapCenter(resolvedStart)
-    }
-    if (resolvedEnd) {
-      setTempEndCoords(resolvedEnd)
-      setEndCoords(resolvedEnd)
-      if (!resolvedStart) {
-        setMapCenter(resolvedEnd)
-      }
-    }
-  }
-
-  const handleResetMarkers = () => {
-    setStartCoords(null)
-    setEndCoords(null)
-    setTempStartCoords(null)
-    setTempEndCoords(null)
-    setFormData((prev) => ({ ...prev, startPoint: "", endPoint: "" }))
-    setMapCenter([37.5665, 126.978])
-    setGpxData(null)
-    setGeneratedImage(null)
-  }
-
   const handleGenerate = async () => {
-    const resolvedStart = normalizeLatLngTuple(startCoords ?? tempStartCoords)
-    const resolvedEnd = normalizeLatLngTuple(endCoords ?? tempEndCoords)
+    const [resolvedStart, resolvedEnd] = await Promise.all([
+      resolveCoordsForAddress(formData.startPoint, startCoords),
+      resolveCoordsForAddress(formData.endPoint, endCoords),
+    ])
 
     if (!selectedDistance || !formData.theme || !resolvedStart || !resolvedEnd) {
       notify("거리, 테마, 출발지, 도착지를 모두 입력해 주세요.", "error")
@@ -258,13 +175,10 @@ export default function CreatePage() {
             const coords = toLatLngFromKakao(result)
             if (coords) {
               if (isStart) {
-                setTempStartCoords(coords)
                 setStartCoords(coords)
               } else {
-                setTempEndCoords(coords)
                 setEndCoords(coords)
               }
-              setMapCenter(coords)
               saveStoredGeocode({
                 keyword: address,
                 latitude: coords[0],
@@ -310,7 +224,7 @@ export default function CreatePage() {
             <p className="text-white/80 text-lg">거리, 테마, 출발/도착지를 입력해 경로를 생성하세요.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="max-w-3xl mx-auto">
             <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="proficiency" className="text-white text-base">
@@ -361,13 +275,11 @@ export default function CreatePage() {
                       const nextValue = event.target.value
                       setFormData((prev) => ({ ...prev, startPoint: nextValue }))
                       if (nextValue !== formData.startPoint) {
-                        setTempStartCoords(null)
                         setStartCoords(null)
                       }
                       searchAddress(nextValue, true)
                     }}
                     onFocus={() => {
-                      setActiveLocation("start")
                       if (startAddressResults.length > 0) {
                         setShowStartResults(true)
                       }
@@ -405,13 +317,11 @@ export default function CreatePage() {
                       const nextValue = event.target.value
                       setFormData((prev) => ({ ...prev, endPoint: nextValue }))
                       if (nextValue !== formData.endPoint) {
-                        setTempEndCoords(null)
                         setEndCoords(null)
                       }
                       searchAddress(nextValue, false)
                     }}
                     onFocus={() => {
-                      setActiveLocation("end")
                       if (endAddressResults.length > 0) {
                         setShowEndResults(true)
                       }
@@ -434,25 +344,6 @@ export default function CreatePage() {
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleShowMarkersOnMap}
-                  disabled={!tempStartCoords && !tempEndCoords && !formData.startPoint && !formData.endPoint}
-                  className="flex-1 bg-indigo-500/90 hover:bg-indigo-600/90 text-white"
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  지도에 표시
-                </Button>
-                <Button
-                  onClick={handleResetMarkers}
-                  disabled={!startCoords && !endCoords && !tempStartCoords && !tempEndCoords}
-                  variant="outline"
-                  className="flex-1 bg-white/30 border-white/30 text-white hover:bg-white/40"
-                >
-                  초기화
-                </Button>
-              </div>
-
               <Button
                 onClick={handleGenerate}
                 disabled={isLoading}
@@ -470,43 +361,6 @@ export default function CreatePage() {
                   </>
                 )}
               </Button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30">
-                <h3 className="text-white text-lg font-semibold mb-4">경로 미리보기</h3>
-                <div className="aspect-square rounded-lg overflow-hidden">
-                  <MapComponent
-                    center={mapCenter}
-                    startCoords={startCoords}
-                    endCoords={endCoords}
-                    gpxData={gpxData}
-                    onMapClick={handleMapClick}
-                    onLocationFound={(coords) => setMapCenter(coords)}
-                  />
-                </div>
-              </div>
-
-              {generatedImage && (
-                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30">
-                  <h3 className="text-white text-lg font-semibold mb-4">생성된 작품</h3>
-                  <img src={generatedImage || "/placeholder.svg"} alt="생성된 러닝 아트" className="w-full rounded-lg" />
-                  <div className="flex gap-3 mt-4">
-                    <Button
-                      onClick={() => saveArt()}
-                      disabled={!data?.art.id || isSaving}
-                      className="flex-1 bg-purple-500 hover:bg-purple-600"
-                    >
-                      {savedArt ? "저장됨" : isSaving ? "저장 중..." : "저장"}
-                    </Button>
-                    <Link to="/mypage" className="flex-1">
-                      <Button variant="outline" className="w-full bg-white/30 border-white/30 text-white hover:bg-white/40">
-                        공유 관리
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -5,11 +5,6 @@ import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { createArt } from "@/services/art-service"
 import { searchAddress, addressToCoords } from "@/services/kakao-service"
 
-jest.mock("@/components/map-component", () => ({
-  __esModule: true,
-  default: jest.fn(() => <div data-testid="map" />),
-}))
-
 jest.mock("@/components/ui/select", () => {
   const React = require("react")
   const SelectItem = ({ value, children }: { value: string; children: React.ReactNode }) => (
@@ -98,118 +93,9 @@ describe("CreatePage", () => {
     expect(screen.getByLabelText("테마")).toBeInTheDocument()
     expect(screen.getByLabelText("출발지")).toBeInTheDocument()
     expect(screen.getByLabelText("도착지")).toBeInTheDocument()
-  })
-
-  it("normalizes coords and passes lat/lng order to the map", async () => {
-    const user = userEvent.setup()
-    const startResult = { addressName: "서울시청", x: "126.977", y: "37.566" } as unknown as {
-      addressName: string
-      x: number
-      y: number
-    }
-    const endResult = { addressName: "남산공원", x: "126.99", y: "37.55" } as unknown as {
-      addressName: string
-      x: number
-      y: number
-    }
-
-    ;(searchAddress as jest.Mock).mockResolvedValue([startResult, endResult])
-    const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
-
-    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
-
-    await user.type(screen.getByLabelText("출발지"), "서울")
-    await user.click(await screen.findByText("서울시청"))
-
-    await user.type(screen.getByLabelText("도착지"), "남산")
-    await user.click(await screen.findByText("남산공원"))
-
-    await act(async () => {
-      await user.click(screen.getByRole("button", { name: /지도에 표시/i }))
-    })
-
-    await waitFor(() => {
-      const lastCall = mapComponentMock.mock.calls.at(-1)
-      const lastProps = lastCall?.[0]
-
-      expect(lastProps?.startCoords).toEqual([37.566, 126.977])
-      expect(lastProps?.endCoords).toEqual([37.55, 126.99])
-      expect(typeof lastProps?.startCoords?.[0]).toBe("number")
-      expect(typeof lastProps?.startCoords?.[1]).toBe("number")
-      expect(typeof lastProps?.endCoords?.[0]).toBe("number")
-      expect(typeof lastProps?.endCoords?.[1]).toBe("number")
-    })
-  })
-
-  it("updates markers when selecting an address from the popup", async () => {
-    const user = userEvent.setup()
-    let oncomplete: ((data: { address: string }) => void) | null = null
-
-    window.daum = {
-      Postcode: jest.fn().mockImplementation((options: { oncomplete: (data: { address: string }) => void }) => {
-        oncomplete = options.oncomplete
-        return { open: jest.fn() }
-      }),
-    }
-
-    ;(addressToCoords as jest.Mock).mockResolvedValue({ addressName: "서울시청", x: "126.977", y: "37.566" })
-
-    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
-
-    await user.click(screen.getByLabelText("출발지"))
-
-    await act(async () => {
-      oncomplete?.({ address: "서울시청" })
-    })
-
-    const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
-
-    await waitFor(() => {
-      const lastProps = mapComponentMock.mock.calls.at(-1)?.[0]
-      expect(lastProps?.startCoords).toEqual([37.566, 126.977])
-    })
-  })
-
-  it("sets start coords when clicking the map after focusing start input", async () => {
-    const user = userEvent.setup()
-    const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
-
-    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
-
-    await user.click(screen.getByLabelText("출발지"))
-
-    const lastProps = mapComponentMock.mock.calls.at(-1)?.[0]
-    await act(async () => {
-      lastProps?.onMapClick?.([37.27, 127.02])
-    })
-
-    await waitFor(() => {
-      const latestProps = mapComponentMock.mock.calls.at(-1)?.[0]
-      expect(latestProps?.startCoords).toEqual([37.27, 127.02])
-    })
-    expect(screen.getByLabelText("출발지")).toHaveValue("지도에서 선택한 위치")
-  })
-
-  it("resolves coords on map display when addresses are typed", async () => {
-    const user = userEvent.setup()
-    ;(addressToCoords as jest.Mock).mockResolvedValueOnce({ addressName: "수원", x: 127.01, y: 37.27 })
-    ;(addressToCoords as jest.Mock).mockResolvedValueOnce({ addressName: "고양", x: 126.83, y: 37.66 })
-
-    renderWithProviders(<CreatePage />, { auth: mockAuthPayload })
-
-    await user.type(screen.getByLabelText("출발지"), "경기 수원시 장안구")
-    await user.type(screen.getByLabelText("도착지"), "경기 고양시 덕양구")
-
-    await act(async () => {
-      await user.click(screen.getByRole("button", { name: /지도에 표시/i }))
-    })
-
-    await waitFor(() => {
-      const mapComponentMock = jest.requireMock("@/components/map-component").default as jest.Mock
-      const latestProps = mapComponentMock.mock.calls.at(-1)?.[0]
-      expect(latestProps?.startCoords).toEqual([37.27, 127.01])
-      expect(latestProps?.endCoords).toEqual([37.66, 126.83])
-    })
+    expect(screen.queryByText("경로 지도")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /지도에 표시/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /초기화/i })).not.toBeInTheDocument()
   })
 
   it("searches addresses and generates artwork", async () => {
@@ -260,7 +146,7 @@ describe("CreatePage", () => {
       }),
     )
 
-    expect(await screen.findByText("생성된 작품")).toBeInTheDocument()
+    expect(screen.queryByText("생성된 작품")).not.toBeInTheDocument()
   })
 
   it("shows loading state while generating", async () => {
