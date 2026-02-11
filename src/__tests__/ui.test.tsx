@@ -2,6 +2,10 @@
 import HomePage from "@/pages/HomePage"
 import { renderWithProviders } from "@/test/test-utils"
 
+jest.mock("@/lib/runtime", () => ({
+  isDevEnvironment: jest.fn(() => false),
+}))
+
 describe("UI snapshots", () => {
   it("matches the home page layout", () => {
     const { container } = renderWithProviders(<HomePage />)

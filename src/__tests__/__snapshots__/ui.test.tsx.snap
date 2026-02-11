@@ -29,17 +29,21 @@ exports[`UI snapshots matches the home page layout 1`] = `
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
           />
         </a>
-        <a
-          data-discover="true"
-          href="/mypage"
+        <div
+          class="flex items-center gap-2"
         >
-          <button
-            class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md px-3 has-[>svg]:px-2.5 gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
-            data-slot="button"
+          <a
+            data-discover="true"
+            href="/mypage"
           >
-            마이페이지
-          </button>
-        </a>
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md px-3 has-[>svg]:px-2.5 gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
+              data-slot="button"
+            >
+              마이페이지
+            </button>
+          </a>
+        </div>
       </header>
       <main
         class="flex-1 flex items-center justify-center px-6 py-12"

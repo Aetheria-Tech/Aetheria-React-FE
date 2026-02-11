@@ -7,9 +7,14 @@ import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { deleteRunningArt, getMyRunningArts, getRunningArtDetail } from "@/services/art-service"
 import { withdrawMe } from "@/services/auth-service"
 import { authStorage } from "@/services/auth-storage"
+import { isDevEnvironment } from "@/lib/runtime"
 
 jest.mock("@/services/auth-service", () => ({
   withdrawMe: jest.fn(),
+}))
+
+jest.mock("@/lib/runtime", () => ({
+  isDevEnvironment: jest.fn(() => false),
 }))
 
 jest.mock("@/services/art-service", () => ({
@@ -29,6 +34,53 @@ jest.mock("@/services/art-service", () => ({
 describe("MyPage", () => {
   beforeEach(() => {
     ;(withdrawMe as jest.Mock).mockReset()
+    ;(isDevEnvironment as jest.Mock).mockReturnValue(false)
+  })
+
+  it("shows logout button for authenticated users", async () => {
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByRole("button", { name: "로그아웃" })).toBeInTheDocument()
+  })
+
+  it("hides logout button for unauthenticated users in non-dev mode", async () => {
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+
+    renderWithProviders(<MyPage />, { auth: null })
+
+    await screen.findByText("아직 작품이 없습니다.")
+    expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument()
+  })
+
+  it("shows logout button for unauthenticated users in dev mode", async () => {
+    ;(isDevEnvironment as jest.Mock).mockReturnValue(true)
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+
+    renderWithProviders(<MyPage />, { auth: null })
+
+    expect(await screen.findByRole("button", { name: "로그아웃" })).toBeInTheDocument()
+  })
+
+  it("logs out and navigates home when clicking logout button", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    const clearSpy = jest.spyOn(authStorage, "clear")
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/" element={<div>홈</div>} />
+      </Routes>,
+      { route: "/mypage", auth: mockAuthPayload },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "로그아웃" }))
+
+    await waitFor(() => expect(clearSpy).toHaveBeenCalled())
+    expect(await screen.findByText("홈")).toBeInTheDocument()
+    clearSpy.mockRestore()
   })
 
   it("loads and displays artworks", async () => {
