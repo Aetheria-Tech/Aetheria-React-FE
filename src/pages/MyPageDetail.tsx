@@ -33,7 +33,8 @@ export default function MyPageDetail() {
       await deleteRunningArt(id)
       notify("작품이 삭제되었습니다.", "success")
       navigate("/mypage", { replace: true })
-    } catch {
+    } catch (error) {
+      console.error("작품 삭제 실패:", error)
       notify("작품 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
     } finally {
       setIsDeleting(false)
@@ -58,7 +59,7 @@ export default function MyPageDetail() {
             size="sm"
             className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
             onClick={handleDelete}
-            disabled={!art || isLoading || isDeleting}
+            disabled={!isOwner || isLoading || isDeleting}
           >
             {isDeleting ? "삭제 중..." : "삭제"}
           </Button>

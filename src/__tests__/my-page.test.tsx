@@ -31,6 +31,28 @@ jest.mock("@/services/art-service", () => ({
   patchRunningArt: jest.fn(),
 }))
 
+const detailAuth = {
+  user: {
+    id: "10",
+    name: "Owner",
+    email: "owner@example.com",
+  },
+  tokens: {
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+  },
+}
+
+const detailArt = {
+  id: 1,
+  title: "Morning run",
+  content: "테스트 러닝 아트",
+  shape: "HEART",
+  proficiency: "BEGINNER",
+  gpx: "_p~iF~ps|U",
+  userId: 10,
+}
+
 describe("MyPage", () => {
   beforeEach(() => {
     ;(withdrawMe as jest.Mock).mockReset()
@@ -175,28 +197,7 @@ describe("MyPage", () => {
 
   it("deletes artwork in detail page and navigates to MyPage on success", async () => {
     const user = userEvent.setup()
-    const auth = {
-      user: {
-        id: "10",
-        name: "Owner",
-        email: "owner@example.com",
-      },
-      tokens: {
-        accessToken: "access-token",
-        refreshToken: "refresh-token",
-      },
-    }
-    const art = {
-      id: 1,
-      title: "Morning run",
-      content: "테스트 러닝 아트",
-      shape: "HEART",
-      proficiency: "BEGINNER",
-      gpx: "_p~iF~ps|U",
-      userId: 10,
-    }
-
-    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
     ;(deleteRunningArt as jest.Mock).mockResolvedValue(undefined)
 
     renderWithProviders(
@@ -204,7 +205,7 @@ describe("MyPage", () => {
         <Route path="/mypage/:id" element={<MyPageDetail />} />
         <Route path="/mypage" element={<div>마이페이지 목록</div>} />
       </Routes>,
-      { route: "/mypage/1", auth },
+      { route: "/mypage/1", auth: detailAuth },
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
@@ -217,28 +218,7 @@ describe("MyPage", () => {
 
   it("shows error toast and stays on detail page when delete fails", async () => {
     const user = userEvent.setup()
-    const auth = {
-      user: {
-        id: "10",
-        name: "Owner",
-        email: "owner@example.com",
-      },
-      tokens: {
-        accessToken: "access-token",
-        refreshToken: "refresh-token",
-      },
-    }
-    const art = {
-      id: 1,
-      title: "Morning run",
-      content: "테스트 러닝 아트",
-      shape: "HEART",
-      proficiency: "BEGINNER",
-      gpx: "_p~iF~ps|U",
-      userId: 10,
-    }
-
-    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
     ;(deleteRunningArt as jest.Mock).mockRejectedValue(new Error("fail"))
 
     renderWithProviders(
@@ -246,7 +226,7 @@ describe("MyPage", () => {
         <Route path="/mypage/:id" element={<MyPageDetail />} />
         <Route path="/mypage" element={<div>마이페이지 목록</div>} />
       </Routes>,
-      { route: "/mypage/1", auth },
+      { route: "/mypage/1", auth: detailAuth },
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
@@ -254,6 +234,31 @@ describe("MyPage", () => {
 
     expect(await screen.findByText("작품 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
     expect(screen.queryByText("마이페이지 목록")).not.toBeInTheDocument()
+  })
+
+  it("disables delete button when current user is not the owner", async () => {
+    const auth = {
+      user: {
+        id: "99",
+        name: "Viewer",
+        email: "viewer@example.com",
+      },
+      tokens: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+      },
+    }
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
   })
 
   it("renders withdraw button and opens modal", async () => {
