@@ -6,6 +6,7 @@ import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
+import { isDevEnvironment } from "@/lib/runtime"
 import { deleteRunningArt } from "@/services/art-service"
 
 export default function MyPageDetail() {
@@ -23,6 +24,7 @@ export default function MyPageDetail() {
   }, [id, loadArt])
 
   const isOwner = useMemo(() => Boolean(art && user && art.ownerId === user.id), [art, user])
+  const canManageArt = isOwner || isDevEnvironment()
   const shareUrl = typeof window !== "undefined" && art ? `${window.location.origin}/share/${art.id}` : ""
 
   const handleDelete = async () => {
@@ -59,7 +61,7 @@ export default function MyPageDetail() {
             size="sm"
             className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
             onClick={handleDelete}
-            disabled={!isOwner || isLoading || isDeleting}
+            disabled={!canManageArt || isLoading || isDeleting}
           >
             {isDeleting ? "삭제 중..." : "삭제"}
           </Button>
@@ -91,13 +93,13 @@ export default function MyPageDetail() {
                     type="checkbox"
                     checked={art.isPublic}
                     onChange={(event) => updateShare(art.id, event.target.checked)}
-                    disabled={!isOwner || isLoading}
+                    disabled={!canManageArt || isLoading}
                     className="h-4 w-4"
                   />
                   {art.isPublic ? "공개" : "비공개"}
                 </label>
               </div>
-              {!isOwner && <p className="text-white/60 text-sm">공유 설정은 소유자만 변경할 수 있습니다.</p>}
+              {!canManageArt && <p className="text-white/60 text-sm">공유 설정은 소유자만 변경할 수 있습니다.</p>}
             </div>
 
             {art.isPublic ? (
