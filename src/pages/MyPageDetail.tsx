@@ -53,13 +53,11 @@ export default function MyPageDetail() {
 
   const handleStartEditContent = () => {
     if (!art || !canManageArt) return
-    setDraftContent(art.content ?? "")
     setIsEditingContent(true)
   }
 
   const handleCancelEditContent = () => {
     if (isSavingContent) return
-    setDraftContent(art?.content ?? "")
     setIsEditingContent(false)
   }
 
