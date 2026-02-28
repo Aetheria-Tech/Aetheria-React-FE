@@ -16,6 +16,7 @@ export default function MyPageDetail() {
   const { art, isLoading, loadArt, updateShare, setArt } = useArtDetail()
   const { user } = useAuth()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isEditingContent, setIsEditingContent] = useState(false)
   const [draftContent, setDraftContent] = useState("")
   const [isSavingContent, setIsSavingContent] = useState(false)
@@ -41,6 +42,7 @@ export default function MyPageDetail() {
     setIsDeleting(true)
     try {
       await deleteRunningArt(id)
+      setIsDeleteConfirmOpen(false)
       notify("작품이 삭제되었습니다.", "success")
       navigate("/mypage", { replace: true })
     } catch (error) {
@@ -95,7 +97,7 @@ export default function MyPageDetail() {
             variant="ghost"
             size="sm"
             className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-            onClick={handleDelete}
+            onClick={() => setIsDeleteConfirmOpen(true)}
             disabled={!canManageArt || isLoading || isDeleting}
           >
             {isDeleting ? "삭제 중..." : "삭제"}
@@ -196,6 +198,38 @@ export default function MyPageDetail() {
           </div>
         )}
       </div>
+
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+          >
+            <h2 id="delete-title" className="text-xl font-semibold mb-3">
+              작품 삭제
+            </h2>
+            <p className="text-white/70 text-sm mb-6">
+              정말 이 작품을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="text-white hover:bg-white/10"
+                disabled={isDeleting}
+                autoFocus
+              >
+                취소
+              </Button>
+              <Button onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600 text-white" disabled={isDeleting}>
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
