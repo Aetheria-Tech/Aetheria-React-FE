@@ -1,0 +1,22 @@
+﻿<svg width="220" height="44" viewBox="0 0 220 44" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aetheria 로고">
+  <g transform="translate(0,2)">
+    <path d="M22 1C32.493 1 41 9.507 41 20C41 30.493 32.493 39 22 39C11.507 39 3 30.493 3 20C3 9.507 11.507 1 22 1Z"
+          stroke="currentColor" stroke-width="2" opacity="0.9"/>
+    <path d="M22 10L30 30H27.2L25.6 26H18.4L16.8 30H14L22 10Z"
+          fill="currentColor"/>
+    <path d="M19.6 23.6H24.4L22 17.4L19.6 23.6Z"
+          fill="none"/>
+    <path d="M11.5 26.5C14.8 29.8 18.3 31.4 22 31.4C28.2 31.4 33.2 26.4 33.2 20.2"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+    <circle cx="33.4" cy="19.8" r="2.2" fill="currentColor"/>
+  </g>
+
+  <g transform="translate(52, 9)" fill="currentColor">
+    <text x="0" y="18" font-size="18" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-weight="700" letter-spacing="-0.3">
+      Aetheria
+    </text>
+    <text x="0" y="34" font-size="11" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" opacity="0.75">
+      러닝 경로를 아트로
+    </text>
+  </g>
+</svg>
