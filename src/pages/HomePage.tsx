@@ -1,7 +1,6 @@
 ﻿import { Link, useNavigate } from "react-router-dom"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowUpRight, Facebook, Instagram, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import AppBackground from "@/components/layouts/app-background"
 import { useAuth } from "@/context/auth-context"
 import { isDevEnvironment } from "@/lib/runtime"
 
@@ -9,6 +8,7 @@ export default function HomePage() {
   const { isLoggedIn, logout } = useAuth()
   const navigate = useNavigate()
   const showLogout = isLoggedIn || isDevEnvironment()
+  const createEntryPath = isLoggedIn ? "/create" : "/login"
 
   const handleLogout = () => {
     logout()
@@ -16,165 +16,187 @@ export default function HomePage() {
   }
 
   return (
-    <AppBackground overlayClassName="bg-slate-950/60">
-      <header className="w-full px-4 py-4 sm:px-6 lg:px-10">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-2xl backdrop-blur-xl sm:px-6">
-          <Link to="/" className="transition-opacity hover:opacity-80" aria-label="메인페이지 이동">
-            <span className="inline-flex items-center rounded-xl border border-white/25 bg-slate-900/55 px-3 py-2 shadow-lg backdrop-blur-sm">
-              <img src="/aetheria-logo.svg" alt="Aetheria 로고" className="h-9 w-auto sm:h-10" />
-            </span>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <header className="fixed inset-x-0 top-0 z-50 bg-transparent text-white">
+        <div className="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8">
+          <Link to="/" className="text-xl font-black hover:opacity-80 sm:text-4xl" aria-label="메인페이지 이동">
+            Aetheria Logo
           </Link>
-
-          <nav className="flex items-center gap-2" aria-label="메인 상단 메뉴">
+          <span className="text-xl font-black sm:text-4xl">Running</span>
+          <div className="flex items-center gap-2 text-xs font-black sm:gap-3 sm:text-base">
+            <Link to="/gallery" className="underline-offset-4 hover:underline">
+              News
+            </Link>
+            <Link to="/mypage" aria-label="마이페이지 이동">
+              <Button variant="ghost" size="sm" className="font-black text-white hover:bg-white/10">
+                마이페이지
+              </Button>
+            </Link>
             {showLogout && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="border-white/30 bg-white/15 text-white hover:bg-white/25"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20"
               >
                 로그아웃
               </Button>
             )}
-            <Link to="/mypage" aria-label="마이페이지 이동">
-              <Button variant="outline" size="sm" className="border-white/30 bg-white/15 text-white hover:bg-white/25">
-                마이페이지
-              </Button>
-            </Link>
-          </nav>
+          </div>
         </div>
       </header>
 
-      <main className="relative flex-1 px-4 pb-16 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-        <div className="pointer-events-none absolute -left-28 top-14 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-violet-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-emerald-300/15 blur-3xl" />
-
-        <section className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-          <div className="space-y-7 rounded-3xl border border-white/15 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-10">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white/95">
-              <Sparkles className="h-4 w-4 text-cyan-200" />
-              러닝 데이터를 감각적인 아트로
-            </span>
-
-            <div className="space-y-4">
-              <h1 className="text-balance text-4xl font-bold leading-tight text-white drop-shadow-xl md:text-7xl">
-                예술이 되는 러닝 경로
+      <main className="snap-y snap-mandatory pt-16">
+        <section className="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="absolute inset-x-0 top-1/2 h-72 -translate-y-1/2 bg-black/55" />
+          <div className="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-balance text-5xl font-black leading-[0.95] text-white md:text-7xl">
+                러닝 경로, 그냥 달리기만 하세요
               </h1>
-              <p className="max-w-2xl text-pretty text-base leading-relaxed text-white/85 sm:text-lg">
-                출발지와 도착지를 고르고, 경로를 작품처럼 생성하세요.
-                매일의 러닝을 기록이 아닌 결과물로 남길 수 있습니다.
+              <p className="mx-auto mt-5 max-w-2xl text-sm text-white/85 sm:text-base">
+                아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
               </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link to="/create" aria-label="러닝아트 만들기">
-                <Button className="h-auto w-full bg-cyan-400 px-7 py-3.5 text-base font-semibold text-slate-950 shadow-xl transition-all hover:bg-cyan-300 sm:w-auto">
-                  러닝아트 만들기
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/gallery" aria-label="갤러리 보기">
-                <Button
-                  variant="outline"
-                  className="h-auto w-full border-white/40 bg-white/10 px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 sm:w-auto"
-                >
-                  갤러리 보기
+              <Link to="/login" aria-label="회원가입/로그인 페이지 이동">
+                <Button className="mt-8 h-auto rounded-full bg-[#80e87a] px-7 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                  JOIN US
+                  <ArrowUpRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
           </div>
+        </section>
 
-          <aside className="rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl sm:p-8" aria-label="미리보기 카드">
-            <div className="grid gap-4">
-              <div className="rounded-2xl border border-white/20 bg-black/25 p-5">
-                <p className="text-xs uppercase tracking-wider text-cyan-200/90">Preview</p>
-                <p className="mt-2 text-lg font-semibold text-white">오늘의 러닝 아트</p>
-                <p className="mt-2 text-sm text-white/75">출발/도착 기반 경로를 작품처럼 시각화합니다.</p>
+        <section className="relative snap-start min-h-screen overflow-hidden bg-gradient-to-br from-[#0a4ea1] via-[#0a66c2] to-[#063f86]">
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="relative flex min-h-screen flex-col">
+            <div className="mt-auto flex flex-col gap-4 px-4 pb-8 sm:px-8 sm:pb-10 md:flex-row md:items-end md:justify-between">
+              <div className="w-full rounded-xl bg-black/45 p-4 text-sm text-white/90 backdrop-blur-sm md:max-w-lg">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Location</p>
+                    <p className="mt-1">내 위치 기반 러닝</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Date</p>
+                    <p className="mt-1">매일 누적되는 기록</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Time</p>
+                    <p className="mt-1">아침 - 저녁</p>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-                  <p className="text-xs text-white/60">경로</p>
-                  <p className="mt-1 text-sm font-semibold text-white">생성</p>
-                </div>
-                <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-                  <p className="text-xs text-white/60">상세</p>
-                  <p className="mt-1 text-sm font-semibold text-white">관리</p>
-                </div>
-                <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center">
-                  <p className="text-xs text-white/60">공유</p>
-                  <p className="mt-1 text-sm font-semibold text-white">가능</p>
-                </div>
-              </div>
-              <Link to="/mypage" aria-label="마이페이지로 이동">
-                <Button variant="outline" className="w-full border-white/35 bg-white/10 text-white hover:bg-white/20">
-                  내 작품 관리하기
+              <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
+                <Button className="h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                  REGISTER
                 </Button>
               </Link>
-            </div>
-          </aside>
-        </section>
-
-        <section className="mx-auto mt-10 grid w-full max-w-6xl gap-4 md:grid-cols-3">
-          <article className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15">
-            <h2 className="text-lg font-semibold text-white">내 위치 기반 경로</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/80">
-              입력한 위치를 바탕으로 러닝 플로우를 구성합니다.
-            </p>
-          </article>
-          <article className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15">
-            <h2 className="text-lg font-semibold text-white">아트처럼 보이는 러닝</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/80">
-              단순 기록이 아닌 감상 가능한 결과물 형태로 남깁니다.
-            </p>
-          </article>
-          <article className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15">
-            <h2 className="text-lg font-semibold text-white">공유 및 관리</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/80">
-              마이페이지에서 상세 확인, 수정, 삭제, 공유를 관리합니다.
-            </p>
-          </article>
-        </section>
-
-        <section className="mx-auto mt-10 w-full max-w-6xl rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl sm:p-8">
-          <h2 className="text-xl font-semibold text-white">어떻게 동작하나요?</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-white/15 bg-black/20 p-4">
-              <p className="text-xs text-white/60">STEP 1</p>
-              <p className="mt-2 font-semibold text-white">출발/도착 선택</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-black/20 p-4">
-              <p className="text-xs text-white/60">STEP 2</p>
-              <p className="mt-2 font-semibold text-white">경로 생성</p>
-            </div>
-            <div className="rounded-xl border border-white/15 bg-black/20 p-4">
-              <p className="text-xs text-white/60">STEP 3</p>
-              <p className="mt-2 font-semibold text-white">저장/공유</p>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto mt-6 w-full max-w-6xl rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/75 sm:p-5" aria-label="안내 문구">
-          개발 중 기능은 로컬/Mock 환경에서 우선 확인할 수 있으며, 백엔드 연동 단계에서 실제 데이터 흐름이 연결됩니다.
+        <section className="snap-start grid min-h-screen grid-cols-1 md:grid-cols-2">
+          <article className="relative min-h-[50vh] overflow-hidden bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
+            <div className="absolute inset-0 bg-black/15" />
+            <div className="relative">
+              <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">초보부터 마라토너까지</h2>
+              <p className="mt-4 text-sm text-white/75">속도보다 궤적으로, 매일의 러닝을 시작하세요.</p>
+              <Link to="/gallery" aria-label="서비스 소개 보기">
+                <Button className="mt-6 h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                  ABOUT US
+                </Button>
+              </Link>
+            </div>
+          </article>
+
+          <article className="min-h-[50vh] bg-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
+            <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 공유하고 달리세요</h2>
+            <p className="mt-4 text-sm text-white/75">매번의 러닝을 하나의 작품으로 남겨보세요.</p>
+            <Link to="/gallery" aria-label="갤러리 페이지 이동">
+              <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-[#80e87a] hover:bg-zinc-600">
+                NEWSLETTER
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </article>
         </section>
+
+        <section className="snap-start min-h-screen bg-[#8cf08a] px-4 py-10 text-zinc-900 sm:px-8 sm:py-12">
+          <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-between">
+            <h2 className="max-w-4xl text-3xl font-black leading-tight sm:text-5xl">
+              아테리아는 당신의 다음 러닝 아트를 기다리고 있습니다.
+            </h2>
+            <Link to="/create" aria-label="등록하기">
+              <Button className="h-auto rounded-full bg-zinc-800 px-5 py-2.5 font-black text-[#80e87a] hover:bg-zinc-700">
+                REGISTER
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        <footer className="relative snap-start min-h-screen overflow-hidden bg-zinc-950 px-4 py-10 text-white sm:px-8 sm:py-14">
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-transparent to-black/70" />
+          <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col justify-between">
+            <div className="grid gap-8 md:grid-cols-[1fr_auto]">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs uppercase text-white/60">Email</p>
+                  <p className="text-sm text-white/85">contact@aetheria.run</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-white/60">Sponsorship</p>
+                  <p className="text-sm text-white/85">공식 파트너 문의를 받고 있습니다.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xs uppercase text-white/60">Socials</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="인스타그램"
+                  >
+                    <Instagram className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="트위터"
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="페이스북"
+                  >
+                    <Facebook className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-5xl font-black tracking-tight text-white/95 sm:text-8xl">Aetheria</p>
+          </div>
+        </footer>
       </main>
-
-      <footer className="w-full border-t border-white/10 px-4 py-7 sm:px-6 lg:px-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
-          <p className="text-sm text-white/70">(c) 2025 Aetheria. 모든 권리 보유.</p>
-          <div className="flex items-center gap-5">
-            <Link to="/about" className="text-sm text-white/70 transition-colors hover:text-white">
-              서비스 소개
-            </Link>
-            <Link to="/terms" className="text-sm text-white/70 transition-colors hover:text-white">
-              이용약관
-            </Link>
-            <Link to="/privacy" className="text-sm text-white/70 transition-colors hover:text-white">
-              개인정보처리방침
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </AppBackground>
+    </div>
   )
 }

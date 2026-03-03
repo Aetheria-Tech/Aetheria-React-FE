@@ -3,83 +3,252 @@
 exports[`UI snapshots matches the home page layout 1`] = `
 <div>
   <div
-    class="min-h-screen flex flex-col relative"
+    class="min-h-screen bg-zinc-950 text-white"
   >
-    <div
-      class="fixed inset-0 z-0"
-      style="background-image: url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png); background-size: cover; background-position: center; background-repeat: no-repeat;"
-    />
-    <div
-      class="fixed inset-0 z-0 bg-slate-950/60"
-    />
-    <div
-      class="relative z-10 min-h-screen flex flex-col"
+    <header
+      class="fixed inset-x-0 top-0 z-50 bg-transparent text-white"
     >
-      <header
-        class="w-full px-4 py-4 sm:px-6 lg:px-10"
+      <div
+        class="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8"
       >
+        <a
+          aria-label="메인페이지 이동"
+          class="text-xl font-black hover:opacity-80 sm:text-4xl"
+          data-discover="true"
+          href="/"
+        >
+          Aetheria Logo
+        </a>
+        <span
+          class="text-xl font-black sm:text-4xl"
+        >
+          Running
+        </span>
         <div
-          class="mx-auto flex w-full max-w-6xl items-center justify-between rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-2xl backdrop-blur-xl sm:px-6"
+          class="flex items-center gap-2 text-xs font-black sm:gap-3 sm:text-base"
         >
           <a
-            aria-label="메인페이지 이동"
-            class="transition-opacity hover:opacity-80"
+            class="underline-offset-4 hover:underline"
             data-discover="true"
-            href="/"
+            href="/gallery"
           >
-            <span
-              class="inline-flex items-center rounded-xl border border-white/25 bg-slate-900/55 px-3 py-2 shadow-lg backdrop-blur-sm"
-            >
-              <img
-                alt="Aetheria 로고"
-                class="h-9 w-auto sm:h-10"
-                src="/aetheria-logo.svg"
-              />
-            </span>
+            News
           </a>
-          <nav
-            aria-label="메인 상단 메뉴"
-            class="flex items-center gap-2"
+          <a
+            aria-label="마이페이지 이동"
+            data-discover="true"
+            href="/mypage"
           >
-            <a
-              aria-label="마이페이지 이동"
-              data-discover="true"
-              href="/mypage"
+            <button
+              class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 font-black text-white hover:bg-white/10"
+              data-slot="button"
             >
-              <button
-                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 border-white/30 bg-white/15 text-white hover:bg-white/25"
-                data-slot="button"
-              >
-                마이페이지
-              </button>
-            </a>
-          </nav>
+              마이페이지
+            </button>
+          </a>
         </div>
-      </header>
-      <main
-        class="relative flex-1 px-4 pb-16 pt-4 sm:px-6 sm:pt-8 lg:px-10"
+      </div>
+    </header>
+    <main
+      class="snap-y snap-mandatory pt-16"
+    >
+      <section
+        class="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8"
       >
         <div
-          class="pointer-events-none absolute -left-28 top-14 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl"
+          class="absolute inset-0"
+          style="background-image: url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png); background-size: cover; background-position: center; background-repeat: no-repeat;"
         />
         <div
-          class="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-violet-400/20 blur-3xl"
+          class="absolute inset-0 bg-black/35"
         />
         <div
-          class="pointer-events-none absolute bottom-10 left-1/3 h-56 w-56 rounded-full bg-emerald-300/15 blur-3xl"
+          class="absolute inset-x-0 top-1/2 h-72 -translate-y-1/2 bg-black/55"
         />
-        <section
-          class="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10"
+        <div
+          class="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center justify-center"
         >
           <div
-            class="space-y-7 rounded-3xl border border-white/15 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-10"
+            class="text-center"
           >
-            <span
-              class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white/95"
+            <h1
+              class="text-balance text-5xl font-black leading-[0.95] text-white md:text-7xl"
             >
+              러닝 경로, 그냥 달리기만 하세요
+            </h1>
+            <p
+              class="mx-auto mt-5 max-w-2xl text-sm text-white/85 sm:text-base"
+            >
+              아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
+            </p>
+            <a
+              aria-label="회원가입/로그인 페이지 이동"
+              data-discover="true"
+              href="/login"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-8 h-auto rounded-full bg-[#80e87a] px-7 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]"
+                data-slot="button"
+              >
+                JOIN US
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-right h-4 w-4"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M7 7h10v10"
+                  />
+                  <path
+                    d="M7 17 17 7"
+                  />
+                </svg>
+              </button>
+            </a>
+          </div>
+        </div>
+      </section>
+      <section
+        class="relative snap-start min-h-screen overflow-hidden bg-gradient-to-br from-[#0a4ea1] via-[#0a66c2] to-[#063f86]"
+      >
+        <div
+          class="absolute inset-0 bg-black/20"
+        />
+        <div
+          class="relative flex min-h-screen flex-col"
+        >
+          <div
+            class="mt-auto flex flex-col gap-4 px-4 pb-8 sm:px-8 sm:pb-10 md:flex-row md:items-end md:justify-between"
+          >
+            <div
+              class="w-full rounded-xl bg-black/45 p-4 text-sm text-white/90 backdrop-blur-sm md:max-w-lg"
+            >
+              <div
+                class="grid gap-3 sm:grid-cols-3"
+              >
+                <div>
+                  <p
+                    class="text-xs uppercase text-white/60"
+                  >
+                    Location
+                  </p>
+                  <p
+                    class="mt-1"
+                  >
+                    내 위치 기반 러닝
+                  </p>
+                </div>
+                <div>
+                  <p
+                    class="text-xs uppercase text-white/60"
+                  >
+                    Date
+                  </p>
+                  <p
+                    class="mt-1"
+                  >
+                    매일 누적되는 기록
+                  </p>
+                </div>
+                <div>
+                  <p
+                    class="text-xs uppercase text-white/60"
+                  >
+                    Time
+                  </p>
+                  <p
+                    class="mt-1"
+                  >
+                    아침 - 저녁
+                  </p>
+                </div>
+              </div>
+            </div>
+            <a
+              aria-label="회원가입/로그인 페이지 이동"
+              data-discover="true"
+              href="/login"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]"
+                data-slot="button"
+              >
+                REGISTER
+              </button>
+            </a>
+          </div>
+        </div>
+      </section>
+      <section
+        class="snap-start grid min-h-screen grid-cols-1 md:grid-cols-2"
+      >
+        <article
+          class="relative min-h-[50vh] overflow-hidden bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 px-6 py-10 sm:px-10 sm:py-12"
+        >
+          <div
+            class="absolute inset-0 bg-black/15"
+          />
+          <div
+            class="relative"
+          >
+            <h2
+              class="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl"
+            >
+              초보부터 마라토너까지
+            </h2>
+            <p
+              class="mt-4 text-sm text-white/75"
+            >
+              속도보다 궤적으로, 매일의 러닝을 시작하세요.
+            </p>
+            <a
+              aria-label="서비스 소개 보기"
+              data-discover="true"
+              href="/gallery"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-6 h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]"
+                data-slot="button"
+              >
+                ABOUT US
+              </button>
+            </a>
+          </div>
+        </article>
+        <article
+          class="min-h-[50vh] bg-zinc-900 px-6 py-10 sm:px-10 sm:py-12"
+        >
+          <h2
+            class="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl"
+          >
+            기록하고 공유하고 달리세요
+          </h2>
+          <p
+            class="mt-4 text-sm text-white/75"
+          >
+            매번의 러닝을 하나의 작품으로 남겨보세요.
+          </p>
+          <a
+            aria-label="갤러리 페이지 이동"
+            data-discover="true"
+            href="/gallery"
+          >
+            <button
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-[#80e87a] hover:bg-zinc-600"
+              data-slot="button"
+            >
+              NEWSLETTER
               <svg
                 aria-hidden="true"
-                class="lucide lucide-sparkles h-4 w-4 text-cyan-200"
+                class="lucide lucide-arrow-up-right h-4 w-4"
                 fill="none"
                 height="24"
                 stroke="currentColor"
@@ -91,52 +260,157 @@ exports[`UI snapshots matches the home page layout 1`] = `
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
+                  d="M7 7h10v10"
                 />
                 <path
-                  d="M20 2v4"
-                />
-                <path
-                  d="M22 4h-4"
-                />
-                <circle
-                  cx="4"
-                  cy="20"
-                  r="2"
+                  d="M7 17 17 7"
                 />
               </svg>
-              러닝 데이터를 감각적인 아트로
-            </span>
+            </button>
+          </a>
+        </article>
+      </section>
+      <section
+        class="snap-start min-h-screen bg-[#8cf08a] px-4 py-10 text-zinc-900 sm:px-8 sm:py-12"
+      >
+        <div
+          class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-between"
+        >
+          <h2
+            class="max-w-4xl text-3xl font-black leading-tight sm:text-5xl"
+          >
+            아테리아는 당신의 다음 러닝 아트를 기다리고 있습니다.
+          </h2>
+          <a
+            aria-label="등록하기"
+            data-discover="true"
+            href="/create"
+          >
+            <button
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 h-auto rounded-full bg-zinc-800 px-5 py-2.5 font-black text-[#80e87a] hover:bg-zinc-700"
+              data-slot="button"
+            >
+              REGISTER
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-arrow-up-right h-4 w-4"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M7 7h10v10"
+                />
+                <path
+                  d="M7 17 17 7"
+                />
+              </svg>
+            </button>
+          </a>
+        </div>
+      </section>
+      <footer
+        class="relative snap-start min-h-screen overflow-hidden bg-zinc-950 px-4 py-10 text-white sm:px-8 sm:py-14"
+      >
+        <div
+          class="absolute inset-0 bg-gradient-to-br from-black/70 via-transparent to-black/70"
+        />
+        <div
+          class="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col justify-between"
+        >
+          <div
+            class="grid gap-8 md:grid-cols-[1fr_auto]"
+          >
             <div
               class="space-y-4"
             >
-              <h1
-                class="text-balance text-4xl font-bold leading-tight text-white drop-shadow-xl md:text-7xl"
-              >
-                예술이 되는 러닝 경로
-              </h1>
-              <p
-                class="max-w-2xl text-pretty text-base leading-relaxed text-white/85 sm:text-lg"
-              >
-                출발지와 도착지를 고르고, 경로를 작품처럼 생성하세요. 매일의 러닝을 기록이 아닌 결과물로 남길 수 있습니다.
-              </p>
+              <div>
+                <p
+                  class="text-xs uppercase text-white/60"
+                >
+                  Email
+                </p>
+                <p
+                  class="text-sm text-white/85"
+                >
+                  contact@aetheria.run
+                </p>
+              </div>
+              <div>
+                <p
+                  class="text-xs uppercase text-white/60"
+                >
+                  Sponsorship
+                </p>
+                <p
+                  class="text-sm text-white/85"
+                >
+                  공식 파트너 문의를 받고 있습니다.
+                </p>
+              </div>
             </div>
             <div
-              class="flex flex-col gap-3 sm:flex-row sm:items-center"
+              class="space-y-3"
             >
-              <a
-                aria-label="러닝아트 만들기"
-                data-discover="true"
-                href="/create"
+              <p
+                class="text-xs uppercase text-white/60"
+              >
+                Socials
+              </p>
+              <div
+                class="flex items-center gap-2"
               >
                 <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 h-auto w-full bg-cyan-400 px-7 py-3.5 text-base font-semibold text-slate-950 shadow-xl transition-all hover:bg-cyan-300 sm:w-auto"
+                  aria-label="인스타그램"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
                   data-slot="button"
                 >
-                  러닝아트 만들기
                   <svg
                     aria-hidden="true"
-                    class="lucide lucide-arrow-right ml-2 h-4 w-4"
+                    class="lucide lucide-instagram h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="20"
+                      rx="5"
+                      ry="5"
+                      width="20"
+                      x="2"
+                      y="2"
+                    />
+                    <path
+                      d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                    />
+                    <line
+                      x1="17.5"
+                      x2="17.51"
+                      y1="6.5"
+                      y2="6.5"
+                    />
+                  </svg>
+                </button>
+                <button
+                  aria-label="트위터"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                  data-slot="button"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-twitter h-4 w-4"
                     fill="none"
                     height="24"
                     stroke="currentColor"
@@ -148,262 +422,44 @@ exports[`UI snapshots matches the home page layout 1`] = `
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
-                      d="M5 12h14"
-                    />
-                    <path
-                      d="m12 5 7 7-7 7"
+                      d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
                     />
                   </svg>
                 </button>
-              </a>
-              <a
-                aria-label="갤러리 보기"
-                data-discover="true"
-                href="/gallery"
-              >
                 <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 has-[>svg]:px-3 h-auto w-full border-white/40 bg-white/10 px-7 py-3.5 text-base font-semibold text-white hover:bg-white/20 sm:w-auto"
+                  aria-label="페이스북"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
                   data-slot="button"
                 >
-                  갤러리 보기
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-facebook h-4 w-4"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                    />
+                  </svg>
                 </button>
-              </a>
+              </div>
             </div>
           </div>
-          <aside
-            aria-label="미리보기 카드"
-            class="rounded-3xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
-          >
-            <div
-              class="grid gap-4"
-            >
-              <div
-                class="rounded-2xl border border-white/20 bg-black/25 p-5"
-              >
-                <p
-                  class="text-xs uppercase tracking-wider text-cyan-200/90"
-                >
-                  Preview
-                </p>
-                <p
-                  class="mt-2 text-lg font-semibold text-white"
-                >
-                  오늘의 러닝 아트
-                </p>
-                <p
-                  class="mt-2 text-sm text-white/75"
-                >
-                  출발/도착 기반 경로를 작품처럼 시각화합니다.
-                </p>
-              </div>
-              <div
-                class="grid grid-cols-3 gap-3"
-              >
-                <div
-                  class="rounded-xl border border-white/20 bg-white/10 p-3 text-center"
-                >
-                  <p
-                    class="text-xs text-white/60"
-                  >
-                    경로
-                  </p>
-                  <p
-                    class="mt-1 text-sm font-semibold text-white"
-                  >
-                    생성
-                  </p>
-                </div>
-                <div
-                  class="rounded-xl border border-white/20 bg-white/10 p-3 text-center"
-                >
-                  <p
-                    class="text-xs text-white/60"
-                  >
-                    상세
-                  </p>
-                  <p
-                    class="mt-1 text-sm font-semibold text-white"
-                  >
-                    관리
-                  </p>
-                </div>
-                <div
-                  class="rounded-xl border border-white/20 bg-white/10 p-3 text-center"
-                >
-                  <p
-                    class="text-xs text-white/60"
-                  >
-                    공유
-                  </p>
-                  <p
-                    class="mt-1 text-sm font-semibold text-white"
-                  >
-                    가능
-                  </p>
-                </div>
-              </div>
-              <a
-                aria-label="마이페이지로 이동"
-                data-discover="true"
-                href="/mypage"
-              >
-                <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 w-full border-white/35 bg-white/10 text-white hover:bg-white/20"
-                  data-slot="button"
-                >
-                  내 작품 관리하기
-                </button>
-              </a>
-            </div>
-          </aside>
-        </section>
-        <section
-          class="mx-auto mt-10 grid w-full max-w-6xl gap-4 md:grid-cols-3"
-        >
-          <article
-            class="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15"
-          >
-            <h2
-              class="text-lg font-semibold text-white"
-            >
-              내 위치 기반 경로
-            </h2>
-            <p
-              class="mt-2 text-sm leading-relaxed text-white/80"
-            >
-              입력한 위치를 바탕으로 러닝 플로우를 구성합니다.
-            </p>
-          </article>
-          <article
-            class="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15"
-          >
-            <h2
-              class="text-lg font-semibold text-white"
-            >
-              아트처럼 보이는 러닝
-            </h2>
-            <p
-              class="mt-2 text-sm leading-relaxed text-white/80"
-            >
-              단순 기록이 아닌 감상 가능한 결과물 형태로 남깁니다.
-            </p>
-          </article>
-          <article
-            class="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15"
-          >
-            <h2
-              class="text-lg font-semibold text-white"
-            >
-              공유 및 관리
-            </h2>
-            <p
-              class="mt-2 text-sm leading-relaxed text-white/80"
-            >
-              마이페이지에서 상세 확인, 수정, 삭제, 공유를 관리합니다.
-            </p>
-          </article>
-        </section>
-        <section
-          class="mx-auto mt-10 w-full max-w-6xl rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-xl sm:p-8"
-        >
-          <h2
-            class="text-xl font-semibold text-white"
-          >
-            어떻게 동작하나요?
-          </h2>
-          <div
-            class="mt-5 grid gap-4 md:grid-cols-3"
-          >
-            <div
-              class="rounded-xl border border-white/15 bg-black/20 p-4"
-            >
-              <p
-                class="text-xs text-white/60"
-              >
-                STEP 1
-              </p>
-              <p
-                class="mt-2 font-semibold text-white"
-              >
-                출발/도착 선택
-              </p>
-            </div>
-            <div
-              class="rounded-xl border border-white/15 bg-black/20 p-4"
-            >
-              <p
-                class="text-xs text-white/60"
-              >
-                STEP 2
-              </p>
-              <p
-                class="mt-2 font-semibold text-white"
-              >
-                경로 생성
-              </p>
-            </div>
-            <div
-              class="rounded-xl border border-white/15 bg-black/20 p-4"
-            >
-              <p
-                class="text-xs text-white/60"
-              >
-                STEP 3
-              </p>
-              <p
-                class="mt-2 font-semibold text-white"
-              >
-                저장/공유
-              </p>
-            </div>
-          </div>
-        </section>
-        <section
-          aria-label="안내 문구"
-          class="mx-auto mt-6 w-full max-w-6xl rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/75 sm:p-5"
-        >
-          개발 중 기능은 로컬/Mock 환경에서 우선 확인할 수 있으며, 백엔드 연동 단계에서 실제 데이터 흐름이 연결됩니다.
-        </section>
-      </main>
-      <footer
-        class="w-full border-t border-white/10 px-4 py-7 sm:px-6 lg:px-10"
-      >
-        <div
-          class="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left"
-        >
           <p
-            class="text-sm text-white/70"
+            class="text-5xl font-black tracking-tight text-white/95 sm:text-8xl"
           >
-            (c) 2025 Aetheria. 모든 권리 보유.
+            Aetheria
           </p>
-          <div
-            class="flex items-center gap-5"
-          >
-            <a
-              class="text-sm text-white/70 transition-colors hover:text-white"
-              data-discover="true"
-              href="/about"
-            >
-              서비스 소개
-            </a>
-            <a
-              class="text-sm text-white/70 transition-colors hover:text-white"
-              data-discover="true"
-              href="/terms"
-            >
-              이용약관
-            </a>
-            <a
-              class="text-sm text-white/70 transition-colors hover:text-white"
-              data-discover="true"
-              href="/privacy"
-            >
-              개인정보처리방침
-            </a>
-          </div>
         </div>
       </footer>
-    </div>
+    </main>
   </div>
   <div
     class="fixed bottom-6 right-6 z-[1000] flex flex-col gap-2"
