@@ -93,7 +93,7 @@ export default function LoginPage() {
 
   return (
     <AppBackground overlayClassName="bg-black/60">
-      <GlobalHeader />
+      <GlobalHeader hideGuestLoginButton />
 
       <main className="flex-1 flex items-center justify-center px-6 pb-12 pt-24">
         <div className="w-full max-w-md">

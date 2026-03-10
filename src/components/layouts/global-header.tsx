@@ -2,7 +2,11 @@
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 
-export default function GlobalHeader() {
+interface GlobalHeaderProps {
+  hideGuestLoginButton?: boolean
+}
+
+export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHeaderProps) {
   const { isLoggedIn, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -38,13 +42,13 @@ export default function GlobalHeader() {
                 로그아웃
               </Button>
             </>
-          ) : (
+          ) : !hideGuestLoginButton ? (
             <Link to="/login" aria-label="로그인 페이지 이동">
               <Button variant="outline" size="sm" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
                 로그인
               </Button>
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
