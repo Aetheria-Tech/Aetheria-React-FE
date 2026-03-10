@@ -57,6 +57,10 @@ describe("MyPage", () => {
   beforeEach(() => {
     ;(withdrawMe as jest.Mock).mockReset()
     ;(isDevEnvironment as jest.Mock).mockReturnValue(false)
+    ;(getMyRunningArts as jest.Mock).mockReset()
+    ;(getRunningArtDetail as jest.Mock).mockReset()
+    ;(deleteRunningArt as jest.Mock).mockReset()
+    ;(patchRunningArt as jest.Mock).mockReset()
   })
 
   it("shows logout button for authenticated users", async () => {
@@ -210,6 +214,8 @@ describe("MyPage", () => {
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "삭제" }))
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: "삭제" }))
 
     await waitFor(() => expect(deleteRunningArt).toHaveBeenCalledWith("1"))
     expect(await screen.findByText("작품이 삭제되었습니다.")).toBeInTheDocument()
@@ -231,9 +237,32 @@ describe("MyPage", () => {
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "삭제" }))
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: "삭제" }))
 
     expect(await screen.findByText("작품 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
     expect(screen.queryByText("마이페이지 목록")).not.toBeInTheDocument()
+  })
+
+  it("closes delete confirm modal without calling API when canceled", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+    ;(deleteRunningArt as jest.Mock).mockResolvedValue(undefined)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "삭제" }))
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: "취소" }))
+
+    expect(deleteRunningArt).not.toHaveBeenCalled()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 
   it("disables delete button when current user is not the owner", async () => {
