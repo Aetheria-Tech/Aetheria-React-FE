@@ -1,50 +1,16 @@
-﻿import { Link, useNavigate } from "react-router-dom"
+﻿import { Link } from "react-router-dom"
 import { ArrowUpRight, Facebook, Instagram, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
-import { isDevEnvironment } from "@/lib/runtime"
+import GlobalHeader from "@/components/layouts/global-header"
 
 export default function HomePage() {
-  const { isLoggedIn, logout } = useAuth()
-  const navigate = useNavigate()
-  const showLogout = isLoggedIn || isDevEnvironment()
+  const { isLoggedIn } = useAuth()
   const createEntryPath = isLoggedIn ? "/create" : "/login"
-
-  const handleLogout = () => {
-    logout()
-    navigate("/", { replace: true })
-  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <header className="fixed inset-x-0 top-0 z-50 bg-transparent text-white">
-        <div className="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8">
-          <Link to="/" className="text-xl font-black hover:opacity-80 sm:text-4xl" aria-label="메인페이지 이동">
-            Aetheria Logo
-          </Link>
-          <span className="text-xl font-black sm:text-4xl">Running</span>
-          <div className="flex items-center gap-2 text-xs font-black sm:gap-3 sm:text-base">
-            <Link to="/gallery" className="underline-offset-4 hover:underline">
-              News
-            </Link>
-            <Link to="/mypage" aria-label="마이페이지 이동">
-              <Button variant="ghost" size="sm" className="font-black text-white hover:bg-white/10">
-                마이페이지
-              </Button>
-            </Link>
-            {showLogout && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="border-white/30 bg-white/10 text-white hover:bg-white/20"
-              >
-                로그아웃
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+      <GlobalHeader />
 
       <main className="snap-y snap-mandatory pt-16">
         <section className="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8">
