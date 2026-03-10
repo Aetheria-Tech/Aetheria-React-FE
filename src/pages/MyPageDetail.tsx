@@ -2,6 +2,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Link as LinkIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
@@ -81,8 +82,9 @@ export default function MyPageDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0f29] text-white px-6 py-10">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#0a0f29] text-white">
+      <GlobalHeader />
+      <div className="mx-auto max-w-3xl space-y-6 px-6 pb-10 pt-24">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/mypage">

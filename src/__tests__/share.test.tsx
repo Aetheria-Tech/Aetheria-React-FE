@@ -7,6 +7,10 @@ import ForbiddenPage from "@/pages/ForbiddenPage"
 import { renderWithProviders } from "@/test/test-utils"
 import { getRunningArtDetail } from "@/services/art-service"
 
+jest.mock("@/lib/runtime", () => ({
+  isDevEnvironment: jest.fn(() => false),
+}))
+
 jest.mock("@/services/art-service", () => ({
   createArt: jest.fn(),
   saveArt: jest.fn(),

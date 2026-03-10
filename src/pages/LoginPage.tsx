@@ -1,8 +1,8 @@
 ﻿import { useEffect } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
+import GlobalHeader from "@/components/layouts/global-header"
 import { env } from "@/services/env"
 import { kakaoLogin } from "@/services/auth-service"
 import { useAuth } from "@/context/auth-context"
@@ -93,23 +93,9 @@ export default function LoginPage() {
 
   return (
     <AppBackground overlayClassName="bg-black/60">
-      <header className="w-full px-6 py-4 flex items-center justify-between">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
-            <ArrowLeft className="w-4 h-4" />
-            뒤로
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logoimage-If0HzkvmbETUJ7bKqfpBGjkd2faQfr.png"
-            alt="러닝 아트 로고"
-            className="w-10 h-10 object-contain"
-          />
-        </div>
-      </header>
+      <GlobalHeader />
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
+      <main className="flex-1 flex items-center justify-center px-6 pb-12 pt-24">
         <div className="w-full max-w-md">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
             <div className="text-center mb-8">
