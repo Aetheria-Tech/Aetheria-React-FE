@@ -1,4 +1,4 @@
-﻿import axios, { type AxiosError, type AxiosInstance } from "axios"
+import axios, { AxiosHeaders, type AxiosError, type AxiosInstance } from "axios"
 import { authStorage } from "@/services/auth-storage"
 import { refreshTokens } from "@/services/auth-service"
 import { env } from "@/services/env"
@@ -6,6 +6,7 @@ import { env } from "@/services/env"
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
     baseURL: env.apiBaseUrl,
+    withCredentials: true,
     headers: {
       "Content-Type": "application/json",
     },
@@ -14,10 +15,9 @@ const createApiClient = (): AxiosInstance => {
   client.interceptors.request.use((config) => {
     const tokens = authStorage.getTokens()
     if (tokens?.accessToken) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${tokens.accessToken}`,
-      }
+      const headers = AxiosHeaders.from(config.headers)
+      headers.set("Authorization", `Bearer ${tokens.accessToken}`)
+      config.headers = headers
     }
     return config
   })
@@ -33,7 +33,7 @@ const createApiClient = (): AxiosInstance => {
       }
 
       const tokens = authStorage.getTokens()
-      if (!tokens?.refreshToken) {
+      if (!tokens?.accessToken) {
         authStorage.clear()
         return Promise.reject(error)
       }
@@ -41,7 +41,7 @@ const createApiClient = (): AxiosInstance => {
       originalRequest._retry = true
 
       if (!refreshPromise) {
-        // Single-flight refresh prevents reusing a stale refresh token in parallel requests.
+        // Single-flight refresh prevents reusing stale credentials in parallel requests.
         refreshPromise = refreshTokens(tokens.refreshToken)
           .then((nextTokens) => {
             authStorage.setTokens(nextTokens)
@@ -61,10 +61,9 @@ const createApiClient = (): AxiosInstance => {
         return Promise.reject(error)
       }
 
-      originalRequest.headers = {
-        ...originalRequest.headers,
-        Authorization: `Bearer ${newAccessToken}`,
-      }
+      const headers = AxiosHeaders.from(originalRequest.headers)
+      headers.set("Authorization", `Bearer ${newAccessToken}`)
+      originalRequest.headers = headers
 
       return client(originalRequest)
     },
