@@ -1,4 +1,4 @@
-const authClientPost = jest.fn()
+﻿const authClientPost = jest.fn()
 const authClientGet = jest.fn()
 const apiClientPost = jest.fn()
 const apiClientDelete = jest.fn()
@@ -28,6 +28,7 @@ jest.mock("@/services/api-client", () => ({
 
 import {
   completeOAuthLogin,
+  completeOAuthLoginWithAccessToken,
   exchangeOAuthCode,
   fetchMyProfile,
   logoutFromServer,
@@ -44,7 +45,7 @@ describe("auth-service", () => {
     localStorage.clear()
   })
 
-  it("refreshes access token using swagger reissue endpoint", async () => {
+  it("refreshes the access token using the swagger reissue endpoint", async () => {
     authClientPost.mockResolvedValue({
       data: {
         success: true,
@@ -64,7 +65,7 @@ describe("auth-service", () => {
     })
   })
 
-  it("treats 401 logout response as idempotent success", async () => {
+  it("treats a 401 logout response as an idempotent success", async () => {
     apiClientPost.mockRejectedValue({
       isAxiosError: true,
       response: { status: 401 },
@@ -83,7 +84,7 @@ describe("auth-service", () => {
     await expect(logoutFromServer()).rejects.toBeDefined()
   })
 
-  it("calls withdraw endpoint using swagger contract", async () => {
+  it("calls the withdraw endpoint using the swagger contract", async () => {
     apiClientDelete.mockResolvedValue({
       data: {
         success: true,
@@ -95,7 +96,7 @@ describe("auth-service", () => {
     expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
   })
 
-  it("exchanges oauth code with backend callback endpoint", async () => {
+  it("exchanges the oauth code with the backend callback endpoint", async () => {
     authClientGet.mockResolvedValue({
       data: {
         success: true,
@@ -117,13 +118,13 @@ describe("auth-service", () => {
     })
   })
 
-  it("fetches my profile with authorization header", async () => {
+  it("fetches my profile with the authorization header", async () => {
     authClientGet.mockResolvedValue({
       data: {
         success: true,
         data: {
           email: "runner@example.com",
-          nickname: "테스터",
+          nickname: "테스트 러너",
           statusMessage: "러닝 테스트",
         },
       },
@@ -136,13 +137,13 @@ describe("auth-service", () => {
     })
     expect(user).toEqual({
       id: "runner@example.com",
-      name: "테스터",
+      name: "테스트 러너",
       email: "runner@example.com",
       profileImage: undefined,
     })
   })
 
-  it("processes oauth json and stores auth data in local storage", async () => {
+  it("processes an oauth code response and stores auth data", async () => {
     authClientGet
       .mockResolvedValueOnce({
         data: {
@@ -158,26 +159,41 @@ describe("auth-service", () => {
           success: true,
           data: {
             email: "runner@example.com",
-            nickname: "테스터",
+            nickname: "테스트 러너",
           },
         },
       })
 
     const payload = await completeOAuthLogin("kakao", "auth-code")
 
-    expect(payload).toEqual({
-      user: {
-        id: "runner@example.com",
-        name: "테스터",
-        email: "runner@example.com",
-        profileImage: undefined,
-      },
-      tokens: {
-        accessToken: "oauth-access-token",
-        refreshToken: "cookie",
-      },
+    expect(payload.tokens).toEqual({
+      accessToken: "oauth-access-token",
+      refreshToken: "cookie",
     })
     expect(localStorage.getItem("auth.tokens")).toContain("oauth-access-token")
     expect(localStorage.getItem("auth.user")).toContain("runner@example.com")
+  })
+
+  it("stores auth data from an access token delivered by the backend redirect", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          email: "runner@example.com",
+          nickname: "테스트 러너",
+        },
+      },
+    })
+
+    const payload = await completeOAuthLoginWithAccessToken("redirected-access-token")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/users/me", {
+      headers: { Authorization: "Bearer redirected-access-token" },
+    })
+    expect(payload.tokens).toEqual({
+      accessToken: "redirected-access-token",
+      refreshToken: "cookie",
+    })
+    expect(localStorage.getItem("auth.tokens")).toContain("redirected-access-token")
   })
 })

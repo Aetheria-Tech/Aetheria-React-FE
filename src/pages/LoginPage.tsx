@@ -1,12 +1,12 @@
 ﻿import { useCallback, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
-import { env } from "@/services/env"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { redirectTo } from "@/lib/navigation"
-import { useAuth } from "@/context/auth-context"
+import { env } from "@/services/env"
 import type { AuthPayload } from "@/types/auth"
 
 type SocialProvider = "kakao" | "google"
@@ -18,11 +18,15 @@ export default function LoginPage() {
   const popupRef = useRef<Window | null>(null)
 
   const getSocialLoginUrl = useCallback((provider: SocialProvider) => {
-    if (provider === "google" && env.googleLoginUrl) return env.googleLoginUrl
+    if (provider === "google" && env.googleLoginUrl) {
+      return env.googleLoginUrl
+    }
 
     const defaultPath = `/api/v1/auth/login/${provider}`
     const baseUrl = env.apiBaseUrl
-    if (!baseUrl) return defaultPath
+    if (!baseUrl) {
+      return defaultPath
+    }
 
     try {
       return new URL(defaultPath, baseUrl).href
@@ -46,7 +50,6 @@ export default function LoginPage() {
     )
 
     if (!popup) {
-      // 팝업 차단 환경에서는 기존 전체 리다이렉트로 폴백합니다.
       redirectTo(loginUrl)
       return
     }
@@ -56,7 +59,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleOAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
+      if (event.origin !== window.location.origin) {
+        return
+      }
 
       const data = event.data as
         | { type?: string; payload?: AuthPayload; message?: string }
@@ -85,18 +90,18 @@ export default function LoginPage() {
     <AppBackground overlayClassName="bg-black/60">
       <GlobalHeader hideGuestLoginButton />
 
-      <main className="flex-1 flex items-center justify-center px-6 pb-12 pt-24">
+      <main className="flex flex-1 items-center justify-center px-6 pb-12 pt-24">
         <div className="w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">로그인</h1>
+          <div className="rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
+            <div className="mb-8 text-center">
+              <h1 className="mb-2 text-3xl font-bold text-white">로그인</h1>
               <p className="text-white/70">러닝 아트를 생성하고 공유하려면 로그인해주세요.</p>
             </div>
 
             <div className="space-y-4">
               <Button
                 onClick={() => handleSocialLogin("kakao")}
-                className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#000000] py-6 text-lg font-semibold flex items-center justify-center gap-3"
+                className="flex w-full items-center justify-center gap-3 bg-[#FEE500] py-6 text-lg font-semibold text-[#000000] hover:bg-[#FDD835]"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -110,15 +115,9 @@ export default function LoginPage() {
               <Button
                 onClick={() => handleSocialLogin("google")}
                 variant="outline"
-                className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
+                className="flex w-full items-center justify-center gap-3 border border-white/30 bg-white/10 py-6 text-lg font-semibold text-white hover:bg-white/20"
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path
                     d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
                     fill="#4285F4"
@@ -139,14 +138,14 @@ export default function LoginPage() {
                 Google로 로그인
               </Button>
 
-              <p className="text-white/50 text-xs text-center leading-relaxed">
+              <p className="text-center text-xs leading-relaxed text-white/50">
                 로그인하면 이용약관과 개인정보처리방침에 동의한 것으로 간주됩니다.
               </p>
             </div>
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-white/60 text-sm">소셜 계정으로 빠르게 로그인해주세요.</p>
+            <p className="text-sm text-white/60">소셜 계정으로 빠르게 로그인해주세요.</p>
           </div>
         </div>
       </main>
