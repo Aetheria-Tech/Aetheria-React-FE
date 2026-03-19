@@ -1,6 +1,7 @@
 ﻿import { Link, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
+import { useCallback } from "react"
 
 interface GlobalHeaderProps {
   hideGuestLoginButton?: boolean
@@ -10,10 +11,10 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
   const { isLoggedIn, logout } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout()
     navigate("/", { replace: true })
-  }
+  }, [logout, navigate])
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-transparent text-white">
