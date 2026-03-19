@@ -1,20 +1,19 @@
 ﻿import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, Edit2, Grid3x3, List, Plus, User, Mail } from "lucide-react"
+import { Edit2, Grid3x3, List, Plus, User, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
+import GlobalHeader from "@/components/layouts/global-header"
 import { useMyArts } from "@/hooks/use-my-arts"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
-import { isDevEnvironment } from "@/lib/runtime"
 import { withdrawMe } from "@/services/auth-service"
 
 export default function MyPage() {
-  const { user, isLoggedIn, logout } = useAuth()
+  const { user, logout } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
-  const showLogout = isLoggedIn || isDevEnvironment()
   const { arts, isLoading, loadArts } = useMyArts()
   const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
   const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -74,38 +73,9 @@ export default function MyPage() {
 
   return (
     <AppBackground overlayClassName="bg-black/50">
-      <header className="w-full px-6 py-4 flex items-center justify-between">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 transition-all duration-300">
-            <ArrowLeft className="w-4 h-4" />
-            뒤로
-          </Button>
-        </Link>
-        <div className="flex items-center gap-2">
-          {showLogout && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                logout()
-                navigate("/", { replace: true })
-              }}
-              className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40 transition-all duration-300"
-            >
-              로그아웃
-            </Button>
-          )}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
-              alt="Aetheria 로고"
-              className="h-8 object-contain"
-            />
-          </Link>
-        </div>
-      </header>
+      <GlobalHeader />
 
-      <main className="flex-1 px-6 py-8">
+      <main className="flex-1 px-6 pb-8 pt-24">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">

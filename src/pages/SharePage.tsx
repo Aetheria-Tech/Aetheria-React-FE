@@ -2,6 +2,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
@@ -28,23 +29,30 @@ export default function SharePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0f29] text-white px-6 py-10">
-        <p className="text-white/70">작품을 불러오는 중...</p>
+      <div className="min-h-screen bg-[#0a0f29] text-white">
+        <GlobalHeader />
+        <div className="px-6 pb-10 pt-24">
+          <p className="text-white/70">작품을 불러오는 중...</p>
+        </div>
       </div>
     )
   }
 
   if (!art) {
     return (
-      <div className="min-h-screen bg-[#0a0f29] text-white px-6 py-10">
-        <p className="text-white/70">작품을 찾을 수 없습니다.</p>
+      <div className="min-h-screen bg-[#0a0f29] text-white">
+        <GlobalHeader />
+        <div className="px-6 pb-10 pt-24">
+          <p className="text-white/70">작품을 찾을 수 없습니다.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0f29] text-white px-6 py-10">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#0a0f29] text-white">
+      <GlobalHeader />
+      <div className="mx-auto max-w-3xl space-y-6 px-6 pb-10 pt-24">
         <div className="flex items-center gap-3">
           <Link to="/gallery">
             <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">

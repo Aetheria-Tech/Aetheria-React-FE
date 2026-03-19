@@ -78,15 +78,16 @@ describe("MyPage", () => {
 
     await screen.findByText("아직 작품이 없습니다.")
     expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument()
   })
 
-  it("shows logout button for unauthenticated users in dev mode", async () => {
-    ;(isDevEnvironment as jest.Mock).mockReturnValue(true)
+  it("shows only login button for unauthenticated users", async () => {
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
 
     renderWithProviders(<MyPage />, { auth: null })
 
-    expect(await screen.findByRole("button", { name: "로그아웃" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "로그인" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument()
   })
 
   it("logs out and navigates home when clicking logout button", async () => {

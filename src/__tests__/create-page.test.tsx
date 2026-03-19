@@ -93,7 +93,7 @@ describe("CreatePage", () => {
     expect(screen.getByLabelText("테마")).toBeInTheDocument()
     expect(screen.getByLabelText("출발지")).toBeInTheDocument()
     expect(screen.getByLabelText("도착지")).toBeInTheDocument()
-    expect(screen.queryByText("경로 지도")).not.toBeInTheDocument()
+    expect(screen.queryByText("지도 미리보기")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /지도에 표시/i })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /초기화/i })).not.toBeInTheDocument()
   })
