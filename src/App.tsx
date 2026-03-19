@@ -7,6 +7,7 @@ const HomePage = lazy(() => import("@/pages/HomePage"))
 const CreatePage = lazy(() => import("@/pages/CreatePage"))
 const GalleryPage = lazy(() => import("@/pages/GalleryPage"))
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
+const OAuthCallbackPage = lazy(() => import("@/pages/OAuthCallbackPage"))
 const MyPage = lazy(() => import("@/pages/MyPage"))
 const MyPageDetail = lazy(() => import("@/pages/MyPageDetail"))
 const SharePage = lazy(() => import("@/pages/SharePage"))
@@ -28,6 +29,7 @@ function App() {
         />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
         <Route
           path="/mypage"
           element={

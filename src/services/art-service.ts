@@ -1,5 +1,6 @@
 import { apiClient } from "@/services/api-client"
 import { env } from "@/services/env"
+import { toArtFromRunningArt } from "@/lib/running-art"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
 import type { RunningArtDetail, RunningArtPatchRequest, RunningArtSummary } from "@/types/running-art"
@@ -98,9 +99,8 @@ export async function createArt(payload: CreateArtPayload): Promise<CreateArtRes
     mockArts = [art, ...mockArts]
     return { art, gpxData, imageUrl: art.imageUrl }
   }
-  // Keep create + AI generation in one request for a single user action.
-  const response = await apiClient.post<CreateArtResponse>("/arts", payload)
-  return response.data
+  // Backend create contract is not available in current Swagger/implementation.
+  throw new Error("작품 생성 API 계약이 확정되지 않았습니다.")
 }
 
 export async function saveArt(artId: string): Promise<Art> {
@@ -111,16 +111,17 @@ export async function saveArt(artId: string): Promise<Art> {
     }
     return art
   }
-  const response = await apiClient.post<Art>(`/arts/${artId}/save`)
-  return response.data
+  const parsedId = Number(artId)
+  const detail = await getRunningArtDetail(Number.isFinite(parsedId) ? parsedId : artId)
+  return toArtFromRunningArt(detail)
 }
 
 export async function fetchMyArts(): Promise<Art[]> {
   if (isMockEnabled()) {
     return [...mockArts]
   }
-  const response = await apiClient.get<Art[]>("/arts/mine")
-  return response.data
+  const data = await getMyRunningArts()
+  return data.map(toArtFromRunningArt)
 }
 
 export async function fetchArtById(artId: string): Promise<Art> {
@@ -131,8 +132,9 @@ export async function fetchArtById(artId: string): Promise<Art> {
     }
     return art
   }
-  const response = await apiClient.get<Art>(`/arts/${artId}`)
-  return response.data
+  const parsedId = Number(artId)
+  const detail = await getRunningArtDetail(Number.isFinite(parsedId) ? parsedId : artId)
+  return toArtFromRunningArt(detail)
 }
 
 export async function deleteArt(artId: string): Promise<void> {
@@ -140,7 +142,8 @@ export async function deleteArt(artId: string): Promise<void> {
     mockArts = mockArts.filter((item) => item.id !== artId)
     return
   }
-  await apiClient.delete(`/arts/${artId}`)
+  const parsedId = Number(artId)
+  await deleteRunningArt(Number.isFinite(parsedId) ? parsedId : artId)
 }
 
 export async function updateShareStatus(artId: string, isPublic: boolean): Promise<Art> {
@@ -153,16 +156,14 @@ export async function updateShareStatus(artId: string, isPublic: boolean): Promi
     mockArts = mockArts.map((item) => (item.id === artId ? updated : item))
     return updated
   }
-  const response = await apiClient.patch<Art>(`/arts/${artId}/share`, { isPublic })
-  return response.data
+  throw new Error("공유 토글 API 계약이 확정되지 않았습니다.")
 }
 
 export async function fetchGalleryArts(): Promise<Art[]> {
   if (isMockEnabled()) {
     return mockArts.filter((item) => item.isPublic)
   }
-  const response = await apiClient.get<Art[]>("/arts")
-  return response.data
+  throw new Error("갤러리 목록 API 계약이 확정되지 않았습니다.")
 }
 
 export async function getMyRunningArts(): Promise<RunningArtSummary[]> {

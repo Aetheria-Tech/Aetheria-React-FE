@@ -1,4 +1,5 @@
 const authClientPost = jest.fn()
+const authClientGet = jest.fn()
 const apiClientPost = jest.fn()
 const apiClientDelete = jest.fn()
 
@@ -11,6 +12,7 @@ jest.mock("axios", () => {
       ...actual.default,
       create: jest.fn(() => ({
         post: authClientPost,
+        get: authClientGet,
       })),
       isAxiosError: (error: unknown) => Boolean((error as { isAxiosError?: boolean })?.isAxiosError),
     },
@@ -24,13 +26,22 @@ jest.mock("@/services/api-client", () => ({
   },
 }))
 
-import { logoutFromServer, refreshTokens, withdrawMe } from "@/services/auth-service"
+import {
+  completeOAuthLogin,
+  exchangeOAuthCode,
+  fetchMyProfile,
+  logoutFromServer,
+  refreshTokens,
+  withdrawMe,
+} from "@/services/auth-service"
 
 describe("auth-service", () => {
   beforeEach(() => {
     authClientPost.mockReset()
+    authClientGet.mockReset()
     apiClientPost.mockReset()
     apiClientDelete.mockReset()
+    localStorage.clear()
   })
 
   it("refreshes access token using swagger reissue endpoint", async () => {
@@ -82,5 +93,91 @@ describe("auth-service", () => {
     await withdrawMe()
 
     expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
+  })
+
+  it("exchanges oauth code with backend callback endpoint", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          accessToken: "oauth-access-token",
+          expireIn: 3600,
+        },
+      },
+    })
+
+    const data = await exchangeOAuthCode("kakao", "auth-code")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/auth/callback/kakao", {
+      params: { code: "auth-code" },
+    })
+    expect(data).toEqual({
+      accessToken: "oauth-access-token",
+      expireIn: 3600,
+    })
+  })
+
+  it("fetches my profile with authorization header", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          email: "runner@example.com",
+          nickname: "테스터",
+          statusMessage: "러닝 테스트",
+        },
+      },
+    })
+
+    const user = await fetchMyProfile("access-token")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/users/me", {
+      headers: { Authorization: "Bearer access-token" },
+    })
+    expect(user).toEqual({
+      id: "runner@example.com",
+      name: "테스터",
+      email: "runner@example.com",
+      profileImage: undefined,
+    })
+  })
+
+  it("processes oauth json and stores auth data in local storage", async () => {
+    authClientGet
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            accessToken: "oauth-access-token",
+            expireIn: 3600,
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            email: "runner@example.com",
+            nickname: "테스터",
+          },
+        },
+      })
+
+    const payload = await completeOAuthLogin("kakao", "auth-code")
+
+    expect(payload).toEqual({
+      user: {
+        id: "runner@example.com",
+        name: "테스터",
+        email: "runner@example.com",
+        profileImage: undefined,
+      },
+      tokens: {
+        accessToken: "oauth-access-token",
+        refreshToken: "cookie",
+      },
+    })
+    expect(localStorage.getItem("auth.tokens")).toContain("oauth-access-token")
+    expect(localStorage.getItem("auth.user")).toContain("runner@example.com")
   })
 })
