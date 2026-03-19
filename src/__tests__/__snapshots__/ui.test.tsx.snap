@@ -38,7 +38,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
       </div>
     </header>
     <main
-      class="snap-y snap-mandatory pt-16"
+      class="snap-y snap-mandatory pt-24"
     >
       <section
         class="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8"

@@ -12,7 +12,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-zinc-950 text-white">
       <GlobalHeader />
 
-      <main className="snap-y snap-mandatory pt-16">
+      <main className="snap-y snap-mandatory pt-24">
         <section className="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8">
           <div
             className="absolute inset-0"
