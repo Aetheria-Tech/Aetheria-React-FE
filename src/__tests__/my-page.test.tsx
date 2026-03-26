@@ -426,7 +426,17 @@ describe("MyPage", () => {
   it("shows toast and does not logout on withdraw failure", async () => {
     const user = userEvent.setup()
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(withdrawMe as jest.Mock).mockRejectedValue(new Error("fail"))
+    ;(withdrawMe as jest.Mock).mockRejectedValue({
+      message: "Request failed with status code 502",
+      response: {
+        data: {
+          success: false,
+          error: {
+            message: "카카오 연결 해제에 실패했습니다.",
+          },
+        },
+      },
+    })
     const clearSpy = jest.spyOn(authStorage, "clear")
 
     renderWithProviders(
@@ -444,9 +454,7 @@ describe("MyPage", () => {
       await user.click(within(dialog).getByRole("button", { name: "회원탈퇴" }))
     })
 
-    expect(
-      await screen.findByText("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("카카오 연결 해제에 실패했습니다.")).toBeInTheDocument()
     expect(clearSpy).not.toHaveBeenCalled()
     expect(screen.queryByText("홈")).not.toBeInTheDocument()
     clearSpy.mockRestore()

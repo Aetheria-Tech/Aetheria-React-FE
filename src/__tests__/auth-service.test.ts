@@ -96,6 +96,15 @@ describe("auth-service", () => {
     expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
   })
 
+  it("treats an empty withdraw response body as a successful void response", async () => {
+    apiClientDelete.mockResolvedValue({
+      data: undefined,
+    })
+
+    await expect(withdrawMe()).resolves.toBeUndefined()
+    expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
+  })
+
   it("exchanges the oauth code with the backend callback endpoint", async () => {
     authClientGet.mockResolvedValue({
       data: {

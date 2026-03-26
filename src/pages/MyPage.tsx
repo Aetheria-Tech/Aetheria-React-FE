@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
 import { withdrawMe } from "@/services/auth-service"
+import { getApiErrorMessage } from "@/types/api"
 
 export default function MyPage() {
   const { user, logout } = useAuth()
@@ -65,7 +66,7 @@ export default function MyPage() {
       navigate("/", { replace: true })
     } catch (error) {
       console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
-      notify("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
+      notify(getApiErrorMessage(error, "회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요."), "error")
     } finally {
       setIsWithdrawing(false)
     }
