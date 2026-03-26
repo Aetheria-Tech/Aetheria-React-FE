@@ -11,7 +11,7 @@ interface AccessTokenResponse {
 }
 
 interface UserProfileResponse {
-  email: string
+  email?: string
   nickname?: string
   statusMessage?: string
 }
@@ -72,11 +72,16 @@ export async function fetchMyProfile(accessToken: string): Promise<User> {
     },
   })
   const data = unwrapApiResponse<UserProfileResponse>(response.data)
+  const email = data.email?.trim()
+
+  if (!email) {
+    throw new Error("User profile missing stable identifier")
+  }
 
   return {
-    id: data.email || data.nickname || "me",
-    name: data.nickname || data.email || "사용자",
-    email: data.email,
+    id: email,
+    name: data.nickname || email || "사용자",
+    email,
     profileImage: undefined,
   }
 }

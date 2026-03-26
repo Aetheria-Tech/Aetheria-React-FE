@@ -152,6 +152,19 @@ describe("auth-service", () => {
     })
   })
 
+  it("throws when the profile response is missing a stable email identifier", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          nickname: "테스트 러너",
+        },
+      },
+    })
+
+    await expect(fetchMyProfile("access-token")).rejects.toThrow("User profile missing stable identifier")
+  })
+
   it("processes an oauth code response and stores auth data", async () => {
     authClientGet
       .mockResolvedValueOnce({
