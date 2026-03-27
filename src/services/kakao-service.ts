@@ -98,7 +98,7 @@ export async function addressToCoords(address: string): Promise<KakaoAddressResu
   const normalized = address.trim()
   if (!normalized) return null
 
-  if (!isMockEnabled() && env.apiBaseUrl) {
+  if (!isMockEnabled()) {
     try {
       const response = await apiClient.get("/api/v1/geocode", { params: { address: normalized } })
       const data = unwrapApiResponse<GeocodeResponse>(response.data)

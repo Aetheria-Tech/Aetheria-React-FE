@@ -1,112 +1,107 @@
-﻿import { useEffect } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
+﻿import { useCallback, useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
-import { env } from "@/services/env"
-import { kakaoLogin } from "@/services/auth-service"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { redirectTo } from "@/lib/navigation"
+import { env } from "@/services/env"
+import type { AuthPayload } from "@/types/auth"
+
+type SocialProvider = "kakao" | "google"
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { login } = useAuth()
   const { notify } = useToast()
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const popupRef = useRef<Window | null>(null)
 
-  const getGoogleLoginUrl = () => {
-    if (env.googleLoginUrl) return env.googleLoginUrl
+  const getSocialLoginUrl = useCallback((provider: SocialProvider) => {
+    if (provider === "google" && env.googleLoginUrl) {
+      return env.googleLoginUrl
+    }
 
-    const defaultPath = "/api/v1/auth/login/google"
+    const defaultPath = `/api/v1/auth/login/${provider}`
     const baseUrl = env.apiBaseUrl
-    if (!baseUrl) return defaultPath
+    if (!baseUrl) {
+      return defaultPath
+    }
 
     try {
       return new URL(defaultPath, baseUrl).href
     } catch (error) {
-      console.error("Google 로그인 URL 생성에 실패했습니다:", baseUrl, error)
+      console.error(`${provider} 로그인 URL 생성에 실패했습니다:`, baseUrl, error)
       return defaultPath
     }
+  }, [])
+
+  const handleSocialLogin = (provider: SocialProvider) => {
+    const loginUrl = getSocialLoginUrl(provider)
+    if (!loginUrl) {
+      notify("로그인 URL이 없습니다.", "error")
+      return
+    }
+
+    const popup = window.open(
+      loginUrl,
+      "aetheria-social-login",
+      "width=520,height=720,left=200,top=120,resizable=yes,scrollbars=yes",
+    )
+
+    if (!popup) {
+      redirectTo(loginUrl)
+      return
+    }
+
+    popupRef.current = popup
   }
 
   useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://developers.kakao.com/sdk/js/kakao.js"
-    script.async = true
-    document.body.appendChild(script)
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return
+      }
 
-    script.onload = () => {
-      if (window.Kakao && !window.Kakao.isInitialized()) {
-        if (!env.kakaoJsKey) {
-          notify("Kakao JS 키가 없습니다.", "error")
-          return
-        }
-        window.Kakao.init(env.kakaoJsKey)
+      const data = event.data as
+        | { type?: string; payload?: AuthPayload; message?: string }
+        | undefined
+
+      if (data?.type === "AETHERIA_OAUTH_SUCCESS" && data.payload) {
+        login(data.payload)
+        popupRef.current?.close()
+        navigate("/", { replace: true })
+        return
+      }
+
+      if (data?.type === "AETHERIA_OAUTH_ERROR") {
+        notify(data.message ?? "로그인 처리에 실패했습니다. 다시 시도해주세요.", "error")
+        popupRef.current?.close()
       }
     }
 
+    window.addEventListener("message", handleOAuthMessage)
     return () => {
-      document.body.removeChild(script)
+      window.removeEventListener("message", handleOAuthMessage)
     }
-  }, [notify])
-
-  const handleKakaoLogin = () => {
-    if (!window.Kakao) {
-      notify("Kakao SDK가 준비되지 않았습니다.", "error")
-      return
-    }
-
-    window.Kakao.Auth.login({
-      success: async (authObj: { access_token?: string; accessToken?: string }) => {
-        try {
-          const kakaoAccessToken = authObj.access_token ?? authObj.accessToken
-          if (!kakaoAccessToken) {
-            notify("Kakao 액세스 토큰이 없습니다.", "error")
-            return
-          }
-
-          const payload = await kakaoLogin(kakaoAccessToken)
-          login(payload)
-
-          const redirectTo = (location.state as { from?: string } | null)?.from ?? "/mypage"
-          navigate(redirectTo)
-        } catch {
-          notify("로그인에 실패했습니다. 다시 시도해 주세요.", "error")
-        }
-      },
-      fail: () => {
-        notify("로그인에 실패했습니다. 다시 시도해 주세요.", "error")
-      },
-    })
-  }
-
-  const handleGoogleLogin = () => {
-    const loginUrl = getGoogleLoginUrl()
-    if (!loginUrl) {
-      notify("Google 로그인 URL이 없습니다.", "error")
-      return
-    }
-
-    redirectTo(loginUrl)
-  }
+  }, [login, navigate, notify])
 
   return (
     <AppBackground overlayClassName="bg-black/60">
       <GlobalHeader hideGuestLoginButton />
 
-      <main className="flex-1 flex items-center justify-center px-6 pb-12 pt-24">
+      <main className="flex flex-1 items-center justify-center px-6 pb-12 pt-24">
         <div className="w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">로그인</h1>
-              <p className="text-white/70">러닝 아트를 생성하고 공유하려면 로그인하세요.</p>
+          <div className="rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
+            <div className="mb-8 text-center">
+              <h1 className="mb-2 text-3xl font-bold text-white">로그인</h1>
+              <p className="text-white/70">러닝 아트를 생성하고 공유하려면 로그인해주세요.</p>
             </div>
 
             <div className="space-y-4">
               <Button
-                onClick={handleKakaoLogin}
-                className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#000000] py-6 text-lg font-semibold flex items-center justify-center gap-3"
+                onClick={() => handleSocialLogin("kakao")}
+                className="flex w-full items-center justify-center gap-3 bg-[#FEE500] py-6 text-lg font-semibold text-[#000000] hover:bg-[#FDD835]"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -118,17 +113,11 @@ export default function LoginPage() {
               </Button>
 
               <Button
-                onClick={handleGoogleLogin}
+                onClick={() => handleSocialLogin("google")}
                 variant="outline"
-                className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
+                className="flex w-full items-center justify-center gap-3 border border-white/30 bg-white/10 py-6 text-lg font-semibold text-white hover:bg-white/20"
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path
                     d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
                     fill="#4285F4"
@@ -149,14 +138,14 @@ export default function LoginPage() {
                 Google로 로그인
               </Button>
 
-              <p className="text-white/50 text-xs text-center leading-relaxed">
+              <p className="text-center text-xs leading-relaxed text-white/50">
                 로그인하면 이용약관과 개인정보처리방침에 동의한 것으로 간주됩니다.
               </p>
             </div>
           </div>
 
           <div className="mt-6 text-center">
-            <p className="text-white/60 text-sm">소셜 계정으로 빠르게 로그인하세요.</p>
+            <p className="text-sm text-white/60">소셜 계정으로 빠르게 로그인해주세요.</p>
           </div>
         </div>
       </main>

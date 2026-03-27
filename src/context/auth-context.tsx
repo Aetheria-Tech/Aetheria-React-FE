@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { authStorage } from "@/services/auth-storage"
 import type { AuthPayload, AuthTokens, User } from "@/types/auth"
 import { LoadingSpinner } from "@/components/loading-spinner"
+import { logoutFromServer } from "@/services/auth-service"
 
 interface AuthContextValue {
   user: User | null
@@ -41,6 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
+    if (typeof process === "undefined" || process.env.NODE_ENV !== "test") {
+      void logoutFromServer().catch(() => {
+        // Local auth cleanup remains source of truth for immediate UX.
+      })
+    }
+
     setUser(null)
     setTokens(null)
     authStorage.clear()

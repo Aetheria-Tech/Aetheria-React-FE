@@ -1,0 +1,221 @@
+﻿const authClientPost = jest.fn()
+const authClientGet = jest.fn()
+const apiClientPost = jest.fn()
+const apiClientDelete = jest.fn()
+
+jest.mock("axios", () => {
+  const actual = jest.requireActual("axios")
+  return {
+    __esModule: true,
+    ...actual,
+    default: {
+      ...actual.default,
+      create: jest.fn(() => ({
+        post: authClientPost,
+        get: authClientGet,
+      })),
+      isAxiosError: (error: unknown) => Boolean((error as { isAxiosError?: boolean })?.isAxiosError),
+    },
+  }
+})
+
+jest.mock("@/services/api-client", () => ({
+  apiClient: {
+    post: apiClientPost,
+    delete: apiClientDelete,
+  },
+}))
+
+import {
+  completeOAuthLogin,
+  completeOAuthLoginWithAccessToken,
+  exchangeOAuthCode,
+  fetchMyProfile,
+  logoutFromServer,
+  refreshTokens,
+  withdrawMe,
+} from "@/services/auth-service"
+
+describe("auth-service", () => {
+  beforeEach(() => {
+    authClientPost.mockReset()
+    authClientGet.mockReset()
+    apiClientPost.mockReset()
+    apiClientDelete.mockReset()
+    localStorage.clear()
+  })
+
+  it("refreshes the access token using the swagger reissue endpoint", async () => {
+    authClientPost.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          accessToken: "next-access-token",
+          expireIn: 3600,
+        },
+      },
+    })
+
+    const tokens = await refreshTokens("legacy-refresh-token")
+
+    expect(authClientPost).toHaveBeenCalledWith("/api/v1/auth/reissue")
+    expect(tokens).toEqual({
+      accessToken: "next-access-token",
+      refreshToken: "legacy-refresh-token",
+    })
+  })
+
+  it("treats a 401 logout response as an idempotent success", async () => {
+    apiClientPost.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 401 },
+    })
+
+    await expect(logoutFromServer()).resolves.toBeUndefined()
+    expect(apiClientPost).toHaveBeenCalledWith("/api/v1/auth/logout")
+  })
+
+  it("throws when logout fails for non-401 errors", async () => {
+    apiClientPost.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 500 },
+    })
+
+    await expect(logoutFromServer()).rejects.toBeDefined()
+  })
+
+  it("calls the withdraw endpoint using the swagger contract", async () => {
+    apiClientDelete.mockResolvedValue({
+      data: {
+        success: true,
+      },
+    })
+
+    await withdrawMe()
+
+    expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
+  })
+
+  it("treats an empty withdraw response body as a successful void response", async () => {
+    apiClientDelete.mockResolvedValue({
+      data: undefined,
+    })
+
+    await expect(withdrawMe()).resolves.toBeUndefined()
+    expect(apiClientDelete).toHaveBeenCalledWith("/api/v1/auth/me")
+  })
+
+  it("exchanges the oauth code with the backend callback endpoint", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          accessToken: "oauth-access-token",
+          expireIn: 3600,
+        },
+      },
+    })
+
+    const data = await exchangeOAuthCode("kakao", "auth-code")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/auth/callback/kakao", {
+      params: { code: "auth-code" },
+    })
+    expect(data).toEqual({
+      accessToken: "oauth-access-token",
+      expireIn: 3600,
+    })
+  })
+
+  it("fetches my profile with the authorization header", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          email: "runner@example.com",
+          nickname: "테스트 러너",
+          statusMessage: "러닝 테스트",
+        },
+      },
+    })
+
+    const user = await fetchMyProfile("access-token")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/users/me", {
+      headers: { Authorization: "Bearer access-token" },
+    })
+    expect(user).toEqual({
+      id: "runner@example.com",
+      name: "테스트 러너",
+      email: "runner@example.com",
+      profileImage: undefined,
+    })
+  })
+
+  it("throws when the profile response is missing a stable email identifier", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          nickname: "테스트 러너",
+        },
+      },
+    })
+
+    await expect(fetchMyProfile("access-token")).rejects.toThrow("User profile missing stable identifier")
+  })
+
+  it("processes an oauth code response and stores auth data", async () => {
+    authClientGet
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            accessToken: "oauth-access-token",
+            expireIn: 3600,
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            email: "runner@example.com",
+            nickname: "테스트 러너",
+          },
+        },
+      })
+
+    const payload = await completeOAuthLogin("kakao", "auth-code")
+
+    expect(payload.tokens).toEqual({
+      accessToken: "oauth-access-token",
+      refreshToken: "cookie",
+    })
+    expect(localStorage.getItem("auth.tokens")).toContain("oauth-access-token")
+    expect(localStorage.getItem("auth.user")).toContain("runner@example.com")
+  })
+
+  it("stores auth data from an access token delivered by the backend redirect", async () => {
+    authClientGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          email: "runner@example.com",
+          nickname: "테스트 러너",
+        },
+      },
+    })
+
+    const payload = await completeOAuthLoginWithAccessToken("redirected-access-token")
+
+    expect(authClientGet).toHaveBeenCalledWith("/api/v1/users/me", {
+      headers: { Authorization: "Bearer redirected-access-token" },
+    })
+    expect(payload.tokens).toEqual({
+      accessToken: "redirected-access-token",
+      refreshToken: "cookie",
+    })
+    expect(localStorage.getItem("auth.tokens")).toContain("redirected-access-token")
+  })
+})

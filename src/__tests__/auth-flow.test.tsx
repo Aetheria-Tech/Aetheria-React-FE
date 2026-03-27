@@ -1,65 +1,103 @@
-﻿import { screen } from "@testing-library/react"
+﻿import { act, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
-import LoginPage from "@/pages/LoginPage"
-import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
-import { kakaoLogin } from "@/services/auth-service"
+import { useAuth } from "@/context/auth-context"
 import { redirectTo } from "@/lib/navigation"
-
-jest.mock("@/services/auth-service", () => ({
-  kakaoLogin: jest.fn(),
-}))
+import LoginPage from "@/pages/LoginPage"
+import { renderWithProviders } from "@/test/test-utils"
 
 jest.mock("@/lib/navigation", () => ({
   redirectTo: jest.fn(),
 }))
 
+const HomeProbe = () => {
+  const { isLoggedIn } = useAuth()
+  return <div>{isLoggedIn ? "메인 페이지" : "비로그인"}</div>
+}
+
 describe("login flow", () => {
+  const originalOpen = window.open
+
   beforeEach(() => {
     localStorage.clear()
-    process.env.VITE_KAKAO_JS_KEY = "test-key"
-    window.Kakao = {
-      isInitialized: () => true,
-      init: jest.fn(),
-      Auth: {
-        login: jest.fn(),
-        logout: jest.fn(),
-      },
-    }
   })
 
   afterEach(() => {
-    delete window.Kakao
     delete process.env.VITE_GOOGLE_LOGIN_URL
     delete process.env.VITE_API_BASE_URL
+    window.open = originalOpen
     jest.clearAllMocks()
   })
 
-  it("stores auth payload after Kakao login", async () => {
+  it("opens popup with Kakao login endpoint when clicking the button", async () => {
     const user = userEvent.setup()
-    ;(window.Kakao?.Auth.login as jest.Mock).mockImplementation(({ success }) =>
-      success({ access_token: "kakao-token" }),
-    )
-    ;(kakaoLogin as jest.Mock).mockResolvedValue(mockAuthPayload)
+    delete process.env.VITE_API_BASE_URL
+    window.open = jest.fn(() => ({ closed: false } as unknown as Window))
 
     renderWithProviders(
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/mypage" element={<div>마이페이지</div>} />
       </Routes>,
       { route: "/login" },
     )
 
-    await user.click(screen.getByRole("button", { name: /카카오로 로그인/i }))
+    await user.click(screen.getByRole("button", { name: "카카오로 로그인" }))
 
-    expect(kakaoLogin).toHaveBeenCalledWith("kakao-token")
-    expect(await screen.findByText("마이페이지")).toBeInTheDocument()
-    expect(localStorage.getItem("auth.user")).toBeTruthy()
+    expect(window.open).toHaveBeenCalledWith(
+      "/api/v1/auth/login/kakao",
+      "aetheria-social-login",
+      expect.stringContaining("width=520"),
+    )
+    expect(redirectTo).not.toHaveBeenCalled()
   })
 
-  it("redirects to Google login URL when clicking the button", async () => {
+  it("updates auth state after receiving a success message from the popup", async () => {
+    const user = userEvent.setup()
+    const popupClose = jest.fn()
+    const popup = { closed: false, close: popupClose } as unknown as Window
+    window.open = jest.fn(() => popup)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<HomeProbe />} />
+      </Routes>,
+      { route: "/login" },
+    )
+
+    await user.click(screen.getByRole("button", { name: "카카오로 로그인" }))
+
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: window.location.origin,
+          data: {
+            type: "AETHERIA_OAUTH_SUCCESS",
+            payload: {
+              user: {
+                id: "user-1",
+                name: "테스트 러너",
+                email: "runner@example.com",
+              },
+              tokens: {
+                accessToken: "popup-access-token",
+                refreshToken: "cookie",
+              },
+            },
+          },
+        }),
+      )
+    })
+
+    expect(await screen.findByText("메인 페이지")).toBeInTheDocument()
+    expect(localStorage.getItem("auth.tokens")).toContain("popup-access-token")
+    expect(popupClose).toHaveBeenCalled()
+  })
+
+  it("opens popup with Google login URL when env is provided", async () => {
     const user = userEvent.setup()
     process.env.VITE_GOOGLE_LOGIN_URL = "https://example.com/auth/google"
+    window.open = jest.fn(() => ({ closed: false } as unknown as Window))
 
     renderWithProviders(
       <Routes>
@@ -68,15 +106,21 @@ describe("login flow", () => {
       { route: "/login" },
     )
 
-    await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
+    await user.click(screen.getByRole("button", { name: "Google로 로그인" }))
 
-    expect(redirectTo).toHaveBeenCalledWith("https://example.com/auth/google")
+    expect(window.open).toHaveBeenCalledWith(
+      "https://example.com/auth/google",
+      "aetheria-social-login",
+      expect.any(String),
+    )
+    expect(redirectTo).not.toHaveBeenCalled()
   })
 
-  it("falls back to the default Google login path when env is missing", async () => {
+  it("falls back to full redirect when popup is blocked", async () => {
     const user = userEvent.setup()
     delete process.env.VITE_GOOGLE_LOGIN_URL
     delete process.env.VITE_API_BASE_URL
+    window.open = jest.fn(() => null)
 
     renderWithProviders(
       <Routes>
@@ -85,15 +129,17 @@ describe("login flow", () => {
       { route: "/login" },
     )
 
-    await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
+    await user.click(screen.getByRole("button", { name: "Google로 로그인" }))
 
+    expect(window.open).toHaveBeenCalled()
     expect(redirectTo).toHaveBeenCalledWith("/api/v1/auth/login/google")
   })
 
-  it("builds a safe Google login URL when VITE_API_BASE_URL includes /api", async () => {
+  it("builds a safe provider login URL when VITE_API_BASE_URL includes /api", async () => {
     const user = userEvent.setup()
     delete process.env.VITE_GOOGLE_LOGIN_URL
     process.env.VITE_API_BASE_URL = "http://myapi.com/api"
+    window.open = jest.fn(() => ({ closed: false } as unknown as Window))
 
     renderWithProviders(
       <Routes>
@@ -102,8 +148,13 @@ describe("login flow", () => {
       { route: "/login" },
     )
 
-    await user.click(screen.getByRole("button", { name: /google로 로그인/i }))
+    await user.click(screen.getByRole("button", { name: "Google로 로그인" }))
 
-    expect(redirectTo).toHaveBeenCalledWith("http://myapi.com/api/v1/auth/login/google")
+    expect(window.open).toHaveBeenCalledWith(
+      "http://myapi.com/api/v1/auth/login/google",
+      "aetheria-social-login",
+      expect.any(String),
+    )
+    expect(redirectTo).not.toHaveBeenCalled()
   })
 })
