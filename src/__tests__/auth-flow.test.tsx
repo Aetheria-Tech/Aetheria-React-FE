@@ -44,7 +44,7 @@ describe("login flow", () => {
     await user.click(screen.getByRole("button", { name: "카카오로 로그인" }))
 
     expect(window.open).toHaveBeenCalledWith(
-      "/api/v1/auth/login/kakao",
+      "http://localhost:8080/api/v1/auth/login/kakao",
       "aetheria-social-login",
       expect.stringContaining("width=520"),
     )
@@ -132,7 +132,7 @@ describe("login flow", () => {
     await user.click(screen.getByRole("button", { name: "Google로 로그인" }))
 
     expect(window.open).toHaveBeenCalled()
-    expect(redirectTo).toHaveBeenCalledWith("/api/v1/auth/login/google")
+    expect(redirectTo).toHaveBeenCalledWith("http://localhost:8080/api/v1/auth/login/google")
   })
 
   it("builds a safe provider login URL when VITE_API_BASE_URL includes /api", async () => {
