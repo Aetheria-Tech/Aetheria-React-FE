@@ -1,90 +1,34 @@
-﻿import { useEffect } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
-import { env } from "@/services/env"
-import { kakaoLogin } from "@/services/auth-service"
-import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { redirectTo } from "@/lib/navigation"
+import { env } from "@/services/env"
+
+type SocialProvider = "kakao" | "google"
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { login } = useAuth()
   const { notify } = useToast()
 
-  const getGoogleLoginUrl = () => {
-    if (env.googleLoginUrl) return env.googleLoginUrl
+  const getSocialLoginUrl = (provider: SocialProvider) => {
+    if (provider === "google" && env.googleLoginUrl) return env.googleLoginUrl
 
-    const defaultPath = "/api/v1/auth/login/google"
+    const defaultPath = `/api/v1/auth/login/${provider}`
     const baseUrl = env.apiBaseUrl
     if (!baseUrl) return defaultPath
 
     try {
       return new URL(defaultPath, baseUrl).href
     } catch (error) {
-      console.error("Google 로그인 URL 생성에 실패했습니다:", baseUrl, error)
+      console.error(`${provider} 로그인 URL 생성에 실패했습니다:`, baseUrl, error)
       return defaultPath
     }
   }
 
-  useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://developers.kakao.com/sdk/js/kakao.js"
-    script.async = true
-    document.body.appendChild(script)
-
-    script.onload = () => {
-      if (window.Kakao && !window.Kakao.isInitialized()) {
-        if (!env.kakaoJsKey) {
-          notify("Kakao JS 키가 없습니다.", "error")
-          return
-        }
-        window.Kakao.init(env.kakaoJsKey)
-      }
-    }
-
-    return () => {
-      document.body.removeChild(script)
-    }
-  }, [notify])
-
-  const handleKakaoLogin = () => {
-    if (!window.Kakao) {
-      notify("Kakao SDK가 준비되지 않았습니다.", "error")
-      return
-    }
-
-    window.Kakao.Auth.login({
-      success: async (authObj: { access_token?: string; accessToken?: string }) => {
-        try {
-          const kakaoAccessToken = authObj.access_token ?? authObj.accessToken
-          if (!kakaoAccessToken) {
-            notify("Kakao 액세스 토큰이 없습니다.", "error")
-            return
-          }
-
-          const payload = await kakaoLogin(kakaoAccessToken)
-          login(payload)
-
-          const redirectTo = (location.state as { from?: string } | null)?.from ?? "/mypage"
-          navigate(redirectTo)
-        } catch {
-          notify("로그인에 실패했습니다. 다시 시도해 주세요.", "error")
-        }
-      },
-      fail: () => {
-        notify("로그인에 실패했습니다. 다시 시도해 주세요.", "error")
-      },
-    })
-  }
-
-  const handleGoogleLogin = () => {
-    const loginUrl = getGoogleLoginUrl()
+  const handleSocialLogin = (provider: SocialProvider) => {
+    const loginUrl = getSocialLoginUrl(provider)
     if (!loginUrl) {
-      notify("Google 로그인 URL이 없습니다.", "error")
+      notify("로그인 URL이 없습니다.", "error")
       return
     }
 
@@ -105,7 +49,7 @@ export default function LoginPage() {
 
             <div className="space-y-4">
               <Button
-                onClick={handleKakaoLogin}
+                onClick={() => handleSocialLogin("kakao")}
                 className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#000000] py-6 text-lg font-semibold flex items-center justify-center gap-3"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -118,7 +62,7 @@ export default function LoginPage() {
               </Button>
 
               <Button
-                onClick={handleGoogleLogin}
+                onClick={() => handleSocialLogin("google")}
                 variant="outline"
                 className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
               >
