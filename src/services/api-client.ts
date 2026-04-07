@@ -1,7 +1,9 @@
 import axios, { AxiosHeaders, type AxiosError, type AxiosInstance } from "axios"
 import { authStorage } from "@/services/auth-storage"
+import { shouldRefreshAccessToken } from "@/services/auth-token"
 import { refreshTokens } from "@/services/auth-service"
 import { env } from "@/services/env"
+import type { AuthTokens } from "@/types/auth"
 
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
@@ -12,8 +14,34 @@ const createApiClient = (): AxiosInstance => {
     },
   })
 
-  client.interceptors.request.use((config) => {
-    const tokens = authStorage.getTokens()
+  let refreshPromise: Promise<AuthTokens | null> | null = null
+
+  const refreshStoredTokens = async (tokens: AuthTokens): Promise<AuthTokens | null> => {
+    if (!refreshPromise) {
+      refreshPromise = refreshTokens(tokens.accessToken)
+        .then((nextTokens) => {
+          authStorage.setTokens(nextTokens)
+          return nextTokens
+        })
+        .catch(() => {
+          authStorage.clear()
+          return null
+        })
+        .finally(() => {
+          refreshPromise = null
+        })
+    }
+
+    return refreshPromise
+  }
+
+  client.interceptors.request.use(async (config) => {
+    let tokens = authStorage.getTokens()
+
+    if (tokens?.accessToken && shouldRefreshAccessToken(tokens)) {
+      tokens = await refreshStoredTokens(tokens)
+    }
+
     if (tokens?.accessToken) {
       const headers = AxiosHeaders.from(config.headers)
       headers.set("Authorization", `Bearer ${tokens.accessToken}`)
@@ -21,8 +49,6 @@ const createApiClient = (): AxiosInstance => {
     }
     return config
   })
-
-  let refreshPromise: Promise<string | null> | null = null
 
   client.interceptors.response.use(
     (response) => response,
@@ -40,28 +66,13 @@ const createApiClient = (): AxiosInstance => {
 
       originalRequest._retry = true
 
-      if (!refreshPromise) {
-        refreshPromise = refreshTokens(tokens.accessToken)
-          .then((nextTokens) => {
-            authStorage.setTokens(nextTokens)
-            return nextTokens.accessToken
-          })
-          .catch(() => {
-            authStorage.clear()
-            return null
-          })
-          .finally(() => {
-            refreshPromise = null
-          })
-      }
-
-      const newAccessToken = await refreshPromise
-      if (!newAccessToken) {
+      const nextTokens = await refreshStoredTokens(tokens)
+      if (!nextTokens?.accessToken) {
         return Promise.reject(error)
       }
 
       const headers = AxiosHeaders.from(originalRequest.headers)
-      headers.set("Authorization", `Bearer ${newAccessToken}`)
+      headers.set("Authorization", `Bearer ${nextTokens.accessToken}`)
       originalRequest.headers = headers
 
       return client(originalRequest)

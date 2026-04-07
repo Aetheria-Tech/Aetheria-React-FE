@@ -2,6 +2,7 @@ import axios from "axios"
 import type { AuthPayload, AuthTokens, User } from "@/types/auth"
 import { apiClient } from "@/services/api-client"
 import { authStorage } from "@/services/auth-storage"
+import { buildAuthTokens } from "@/services/auth-token"
 import { env } from "@/services/env"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 
@@ -31,10 +32,7 @@ export async function refreshTokens(accessToken: string): Promise<AuthTokens> {
     },
   })
   const data = unwrapApiResponse<AccessTokenResponse>(response.data)
-  return {
-    accessToken: data.accessToken,
-    refreshToken: "cookie",
-  }
+  return buildAuthTokens(data.accessToken, "cookie", data.expireIn)
 }
 
 export async function exchangeOAuthCode(provider: "kakao" | "google", code: string): Promise<AccessTokenResponse> {
@@ -44,12 +42,9 @@ export async function exchangeOAuthCode(provider: "kakao" | "google", code: stri
   return unwrapApiResponse<AccessTokenResponse>(response.data)
 }
 
-async function storeAuthPayload(accessToken: string, refreshToken = "cookie"): Promise<AuthPayload> {
+async function storeAuthPayload(accessToken: string, refreshToken = "cookie", expireIn?: number): Promise<AuthPayload> {
   const user = await fetchMyProfile(accessToken)
-  const tokens: AuthTokens = {
-    accessToken,
-    refreshToken,
-  }
+  const tokens = buildAuthTokens(accessToken, refreshToken, expireIn)
 
   authStorage.setTokens(tokens)
   authStorage.setUser(user)
@@ -62,7 +57,7 @@ async function storeAuthPayload(accessToken: string, refreshToken = "cookie"): P
 
 export async function completeOAuthLogin(provider: "kakao" | "google", code: string): Promise<AuthPayload> {
   const tokenData = await exchangeOAuthCode(provider, code)
-  return storeAuthPayload(tokenData.accessToken)
+  return storeAuthPayload(tokenData.accessToken, "cookie", tokenData.expireIn)
 }
 
 export async function completeOAuthLoginWithAccessToken(accessToken: string): Promise<AuthPayload> {
