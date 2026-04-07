@@ -1,27 +1,29 @@
-﻿import { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Edit2, Grid3x3, List, Plus, User, Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Edit2, Grid3x3, List, Mail, MessageSquareText, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
-import { useMyArts } from "@/hooks/use-my-arts"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
-import { useToast } from "@/context/toast-context"
+import { useMyArts } from "@/hooks/use-my-arts"
 import { formatDate, formatDateTime, formatDistance } from "@/lib/formatters"
-import { withdrawMe } from "@/services/auth-service"
+import { updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { useToast } from "@/context/toast-context"
 
 export default function MyPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
   const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
+    statusMessage: "",
     profileImage: "",
   })
 
@@ -29,6 +31,7 @@ export default function MyPage() {
     setUserProfile({
       name: user?.name ?? "",
       email: user?.email ?? "",
+      statusMessage: user?.statusMessage ?? "",
       profileImage: user?.profileImage ?? "",
     })
   }, [user])
@@ -48,10 +51,54 @@ export default function MyPage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isWithdrawOpen, isWithdrawing])
 
-  const handleSaveProfile = () => {
+  const handleCancelProfileEdit = () => {
+    if (isSavingProfile) return
+    setUserProfile({
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      statusMessage: user?.statusMessage ?? "",
+      profileImage: user?.profileImage ?? "",
+    })
     setIsEditingProfile(false)
-    // Profile edits are local until backend support is added.
-    notify("프로필 변경 사항이 로컬에 저장되었습니다.", "info")
+  }
+
+  const handleSaveProfile = async () => {
+    if (isSavingProfile) return
+
+    const nickname = userProfile.name.trim()
+    const statusMessage = userProfile.statusMessage.trim()
+
+    if (nickname.length < 2 || nickname.length > 20) {
+      notify("닉네임은 2자 이상 20자 이하로 입력해주세요.", "error")
+      return
+    }
+
+    if (statusMessage.length > 100) {
+      notify("상태 메시지는 100자 이하로 입력해주세요.", "error")
+      return
+    }
+
+    setIsSavingProfile(true)
+    try {
+      const updatedUser = await updateMyProfile({
+        nickname,
+        statusMessage,
+      })
+      updateUser(updatedUser)
+      setUserProfile({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        statusMessage: updatedUser.statusMessage ?? "",
+        profileImage: updatedUser.profileImage ?? "",
+      })
+      setIsEditingProfile(false)
+      notify("프로필이 저장되었습니다.", "success")
+    } catch (error) {
+      console.error("프로필 저장 실패:", error)
+      notify("프로필 저장에 실패했습니다. 입력값을 확인한 뒤 다시 시도해주세요.", "error")
+    } finally {
+      setIsSavingProfile(false)
+    }
   }
 
   const handleWithdraw = async () => {
@@ -95,14 +142,16 @@ export default function MyPage() {
                   <Button
                     onClick={handleSaveProfile}
                     size="sm"
+                    disabled={isSavingProfile}
                     className="bg-indigo-500 hover:bg-indigo-600 text-white transition-all duration-300"
                   >
-                    저장
+                    {isSavingProfile ? "저장 중..." : "저장"}
                   </Button>
                   <Button
-                    onClick={() => setIsEditingProfile(false)}
+                    onClick={handleCancelProfileEdit}
                     variant="ghost"
                     size="sm"
+                    disabled={isSavingProfile}
                     className="text-white hover:bg-white/10 transition-all duration-300"
                   >
                     취소
@@ -127,8 +176,10 @@ export default function MyPage() {
                   {isEditingProfile ? (
                     <input
                       type="text"
+                      aria-label="닉네임 입력"
                       value={userProfile.name}
                       onChange={(event) => setUserProfile({ ...userProfile, name: event.target.value })}
+                      maxLength={20}
                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
                     />
                   ) : (
@@ -140,15 +191,24 @@ export default function MyPage() {
                 <Mail className="w-5 h-5 text-indigo-300" />
                 <div className="flex-1">
                   <p className="text-gray-300 text-sm">이메일</p>
+                  <p className="text-white text-lg">{userProfile.email || "-"}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 md:col-span-2">
+                <MessageSquareText className="w-5 h-5 text-indigo-300 mt-1" />
+                <div className="flex-1">
+                  <p className="text-gray-300 text-sm">상태 메시지</p>
                   {isEditingProfile ? (
-                    <input
-                      type="email"
-                      value={userProfile.email}
-                      onChange={(event) => setUserProfile({ ...userProfile, email: event.target.value })}
+                    <textarea
+                      aria-label="상태 메시지 입력"
+                      value={userProfile.statusMessage}
+                      onChange={(event) => setUserProfile({ ...userProfile, statusMessage: event.target.value })}
+                      rows={3}
+                      maxLength={100}
                       className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
                     />
                   ) : (
-                    <p className="text-white text-lg">{userProfile.email || "-"}</p>
+                    <p className="text-white text-lg whitespace-pre-wrap">{userProfile.statusMessage?.trim() || "-"}</p>
                   )}
                 </div>
               </div>

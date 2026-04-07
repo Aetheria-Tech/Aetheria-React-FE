@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { LoadingSpinner } from "@/components/loading-spinner"
 import { authStorage } from "@/services/auth-storage"
 import type { AuthPayload, AuthTokens, User } from "@/types/auth"
-import { LoadingSpinner } from "@/components/loading-spinner"
 
 interface AuthContextValue {
   user: User | null
@@ -11,6 +11,7 @@ interface AuthContextValue {
   isLoggedIn: boolean
   isLoading: boolean
   login: (payload: AuthPayload) => void
+  updateUser: (user: User) => void
   logout: () => void
 }
 
@@ -40,6 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authStorage.setTokens(payload.tokens)
   }
 
+  const updateUser = (nextUser: User) => {
+    setUser(nextUser)
+    authStorage.setUser(nextUser)
+  }
+
   const logout = () => {
     setUser(null)
     setTokens(null)
@@ -59,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoggedIn: Boolean(user && tokens?.accessToken),
       isLoading,
       login,
+      updateUser,
       logout,
     }),
     [user, tokens, isLoading],

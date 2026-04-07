@@ -1,9 +1,9 @@
 import axios from "axios"
-import type { AuthPayload, AuthTokens, User } from "@/types/auth"
 import { apiClient } from "@/services/api-client"
 import { authStorage } from "@/services/auth-storage"
 import { buildAuthTokens } from "@/services/auth-token"
 import { env } from "@/services/env"
+import type { AuthPayload, AuthTokens, User } from "@/types/auth"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 
 interface AccessTokenResponse {
@@ -17,6 +17,11 @@ interface UserProfileResponse {
   statusMessage?: string
 }
 
+interface UpdateMyProfileRequest {
+  nickname: string
+  statusMessage: string
+}
+
 const authClient = axios.create({
   baseURL: env.apiBaseUrl,
   withCredentials: true,
@@ -24,6 +29,22 @@ const authClient = axios.create({
     "Content-Type": "application/json",
   },
 })
+
+const mapUserProfile = (data: UserProfileResponse): User => {
+  const email = data.email?.trim()
+
+  if (!email) {
+    throw new Error("User profile missing stable identifier")
+  }
+
+  return {
+    id: email,
+    name: data.nickname || email,
+    email,
+    statusMessage: data.statusMessage?.trim() || "",
+    profileImage: undefined,
+  }
+}
 
 export async function refreshTokens(accessToken: string): Promise<AuthTokens> {
   const response = await authClient.post("/api/v1/auth/reissue", undefined, {
@@ -71,18 +92,15 @@ export async function fetchMyProfile(accessToken: string): Promise<User> {
     },
   })
   const data = unwrapApiResponse<UserProfileResponse>(response.data)
-  const email = data.email?.trim()
+  return mapUserProfile(data)
+}
 
-  if (!email) {
-    throw new Error("User profile missing stable identifier")
-  }
-
-  return {
-    id: email,
-    name: data.nickname || email,
-    email,
-    profileImage: undefined,
-  }
+export async function updateMyProfile(request: UpdateMyProfileRequest): Promise<User> {
+  const response = await apiClient.patch("/api/v1/users/me", request)
+  const data = unwrapApiResponse<UserProfileResponse>(response.data)
+  const user = mapUserProfile(data)
+  authStorage.setUser(user)
+  return user
 }
 
 export async function withdrawMe(): Promise<void> {

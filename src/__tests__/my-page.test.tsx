@@ -3,13 +3,14 @@ import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
 import MyPage from "@/pages/MyPage"
 import MyPageDetail from "@/pages/MyPageDetail"
-import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { deleteRunningArt, getMyRunningArts, getRunningArtDetail, patchRunningArt } from "@/services/art-service"
-import { withdrawMe } from "@/services/auth-service"
 import { authStorage } from "@/services/auth-storage"
+import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
+import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
 
 jest.mock("@/services/auth-service", () => ({
+  updateMyProfile: jest.fn(),
   withdrawMe: jest.fn(),
 }))
 
@@ -55,6 +56,7 @@ const detailArt = {
 
 describe("MyPage", () => {
   beforeEach(() => {
+    ;(updateMyProfile as jest.Mock).mockReset()
     ;(withdrawMe as jest.Mock).mockReset()
     ;(isDevEnvironment as jest.Mock).mockReturnValue(false)
     ;(getMyRunningArts as jest.Mock).mockReset()
@@ -108,6 +110,55 @@ describe("MyPage", () => {
     await waitFor(() => expect(clearSpy).toHaveBeenCalled())
     expect(await screen.findByText("홈")).toBeInTheDocument()
     clearSpy.mockRestore()
+  })
+
+  it("saves edited profile via patch and updates the rendered profile", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(updateMyProfile as jest.Mock).mockResolvedValue({
+      id: "user@example.com",
+      name: "수정된 닉네임",
+      email: "user@example.com",
+      statusMessage: "오늘도 달립니다.",
+    })
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
+    await user.clear(nameInput)
+    await user.type(nameInput, "수정된 닉네임")
+    const statusTextarea = screen.getByRole("textbox", { name: "상태 메시지 입력" })
+    await user.type(statusTextarea, "오늘도 달립니다.")
+    await user.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() =>
+      expect(updateMyProfile).toHaveBeenCalledWith({
+        nickname: "수정된 닉네임",
+        statusMessage: "오늘도 달립니다.",
+      }),
+    )
+    expect(await screen.findByText("프로필이 저장되었습니다.")).toBeInTheDocument()
+    expect(screen.getByText("수정된 닉네임")).toBeInTheDocument()
+    expect(screen.getByText("오늘도 달립니다.")).toBeInTheDocument()
+  })
+
+  it("keeps edit mode when profile save fails", async () => {
+    const user = userEvent.setup()
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(updateMyProfile as jest.Mock).mockRejectedValue(new Error("save-fail"))
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    await user.click(await screen.findByRole("button", { name: "수정" }))
+    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
+    await user.clear(nameInput)
+    await user.type(nameInput, "실패한 닉네임")
+    await user.click(screen.getByRole("button", { name: "저장" }))
+
+    expect(await screen.findByText("프로필 저장에 실패했습니다. 입력값을 확인한 뒤 다시 시도해주세요.")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("실패한 닉네임")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument()
   })
 
   it("loads and displays artworks", async () => {
