@@ -1,9 +1,15 @@
-﻿import { act, screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
 import MyPage from "@/pages/MyPage"
 import MyPageDetail from "@/pages/MyPageDetail"
-import { deleteRunningArt, getMyRunningArts, getRunningArtDetail, patchRunningArt } from "@/services/art-service"
+import {
+  deleteRunningArt,
+  getMyRunningArts,
+  getRunningArtDetail,
+  getRunningArtSample,
+  patchRunningArt,
+} from "@/services/art-service"
 import { authStorage } from "@/services/auth-storage"
 import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
@@ -28,8 +34,19 @@ jest.mock("@/services/art-service", () => ({
   fetchGalleryArts: jest.fn(),
   getMyRunningArts: jest.fn(),
   getRunningArtDetail: jest.fn(),
+  getRunningArtSample: jest.fn(),
   deleteRunningArt: jest.fn(),
   patchRunningArt: jest.fn(),
+}))
+
+jest.mock("@/components/map-component", () => ({
+  __esModule: true,
+  default: ({ gpxData }: { gpxData?: string | null }) => <div data-testid="map-component">{gpxData ?? "no-route"}</div>,
+}))
+
+jest.mock("@/components/route-thumbnail", () => ({
+  __esModule: true,
+  default: ({ gpxData }: { gpxData?: string | null }) => <div data-testid="route-thumbnail">{gpxData ?? "no-route"}</div>,
 }))
 
 const detailAuth = {
@@ -61,6 +78,8 @@ describe("MyPage", () => {
     ;(isDevEnvironment as jest.Mock).mockReturnValue(false)
     ;(getMyRunningArts as jest.Mock).mockReset()
     ;(getRunningArtDetail as jest.Mock).mockReset()
+    ;(getRunningArtSample as jest.Mock).mockReset()
+    ;(getRunningArtSample as jest.Mock).mockResolvedValue(undefined)
     ;(deleteRunningArt as jest.Mock).mockReset()
     ;(patchRunningArt as jest.Mock).mockReset()
   })
@@ -156,7 +175,7 @@ describe("MyPage", () => {
     await user.type(nameInput, "실패한 닉네임")
     await user.click(screen.getByRole("button", { name: "저장" }))
 
-    expect(await screen.findByText("프로필 저장에 실패했습니다. 입력값을 확인한 뒤 다시 시도해주세요.")).toBeInTheDocument()
+    expect(await screen.findByText("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.")).toBeInTheDocument()
     expect(screen.getByDisplayValue("실패한 닉네임")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument()
   })
@@ -179,6 +198,84 @@ describe("MyPage", () => {
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
+  })
+
+  it("renders route maps inside artwork cards", async () => {
+    const arts = [
+      {
+        id: 1,
+        title: "Morning run",
+        content: "아침 러닝",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+        userId: 10,
+      },
+      {
+        id: 2,
+        title: "Evening run",
+        content: "저녁 러닝",
+        shape: "STAR",
+        proficiency: "BEGINNER",
+        gpx: "_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI",
+        userId: 10,
+      },
+    ]
+
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue(arts)
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    expect(within(screen.getByTestId("art-card-map-1")).getByTestId("route-thumbnail")).toHaveTextContent(arts[0].gpx)
+    expect(within(screen.getByTestId("art-card-map-2")).getByTestId("route-thumbnail")).toHaveTextContent(arts[1].gpx)
+  })
+
+  it("prepends sample artwork for authenticated users", async () => {
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(getRunningArtSample as jest.Mock).mockResolvedValue({
+      id: -1,
+      title: "샘플 작품",
+      content: "샘플 경로",
+      shape: "SAMPLE",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+      userId: 0,
+    })
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByText("샘플 작품")).toBeInTheDocument()
+    await waitFor(() =>
+      expect(within(screen.getByTestId("art-card-map--1")).getByTestId("route-thumbnail")).toHaveTextContent(
+        "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+      ),
+    )
+  })
+
+  it("keeps sample artwork detail read-only even in dev mode", async () => {
+    ;(isDevEnvironment as jest.Mock).mockReturnValue(true)
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue({
+      id: -1,
+      title: "샘플 작품",
+      content: "샘플 경로",
+      shape: "SAMPLE",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+      userId: 0,
+    })
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/-1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("샘플 작품")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
+    expect(screen.queryByRole("button", { name: "설명 수정" })).not.toBeInTheDocument()
+    expect(screen.getByText("샘플 작품은 읽기 전용으로 제공됩니다.")).toBeInTheDocument()
   })
 
   it("shows empty state when there are no artworks", async () => {
@@ -265,6 +362,8 @@ describe("MyPage", () => {
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    expect(screen.getAllByTestId("map-component")).toHaveLength(1)
+    expect(screen.getByTestId("map-component")).toHaveTextContent(detailArt.gpx)
     await user.click(screen.getByRole("button", { name: "삭제" }))
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: "삭제" }))
@@ -426,9 +525,7 @@ describe("MyPage", () => {
     await user.click(button)
 
     expect(screen.getByRole("heading", { name: "회원탈퇴" })).toBeInTheDocument()
-    expect(
-      screen.getByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다."),
-    ).toBeInTheDocument()
+    expect(screen.getByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.")).toBeInTheDocument()
   })
 
   it("closes withdraw modal on cancel", async () => {
@@ -442,9 +539,7 @@ describe("MyPage", () => {
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: "취소" }))
 
-    expect(
-      screen.queryByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다."),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText("정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.")).not.toBeInTheDocument()
   })
 
   it("withdraws account, clears auth, and navigates home on success", async () => {
@@ -495,9 +590,7 @@ describe("MyPage", () => {
       await user.click(within(dialog).getByRole("button", { name: "회원탈퇴" }))
     })
 
-    expect(
-      await screen.findByText("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
     expect(clearSpy).not.toHaveBeenCalled()
     expect(screen.queryByText("홈")).not.toBeInTheDocument()
     clearSpy.mockRestore()

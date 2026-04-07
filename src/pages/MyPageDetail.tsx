@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Link as LinkIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import MapComponent from "@/components/map-component"
 import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useAuth } from "@/context/auth-context"
@@ -28,8 +29,9 @@ export default function MyPageDetail() {
     }
   }, [id, loadArt])
 
+  const isSampleArt = useMemo(() => String(art?.id ?? "") === "-1", [art])
   const isOwner = useMemo(() => Boolean(art && user && art.ownerId === user.id), [art, user])
-  const canManageArt = isOwner || isDevEnvironment()
+  const canManageArt = !isSampleArt && (isOwner || isDevEnvironment())
   const shareUrl = typeof window !== "undefined" && art ? `${window.location.origin}/share/${art.id}` : ""
 
   useEffect(() => {
@@ -170,7 +172,25 @@ export default function MyPageDetail() {
               )}
             </div>
 
-            <img src={art.imageUrl || "/placeholder.svg"} alt={art.title} className="w-full rounded-lg" />
+
+            <div className="space-y-3">
+              <span className="text-white/80">경로</span>
+              <div className="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:h-[420px]">
+                {art.gpxData ? (
+                  <MapComponent
+                    center={[37.5665, 126.978]}
+                    gpxData={art.gpxData}
+                    onLocationFound={() => undefined}
+                    showLocationButton={false}
+                    displayOnly
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl bg-white/5 text-sm text-white/60">
+                    표시할 경로 데이터가 없습니다.
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -186,6 +206,7 @@ export default function MyPageDetail() {
                   {art.isPublic ? "공개" : "비공개"}
                 </label>
               </div>
+              {isSampleArt && <p className="text-white/60 text-sm">샘플 작품은 읽기 전용으로 제공됩니다.</p>}
               {!canManageArt && <p className="text-white/60 text-sm">공유 설정은 소유자만 변경할 수 있습니다.</p>}
             </div>
 

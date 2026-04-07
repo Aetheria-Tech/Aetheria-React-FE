@@ -4,6 +4,13 @@ import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
 import type { RunningArtDetail, RunningArtPatchRequest, RunningArtSummary } from "@/types/running-art"
 
+const SAMPLE_RUNNING_ART_ID = -1
+const SAMPLE_ROUTE_ID = String(SAMPLE_RUNNING_ART_ID)
+
+type PagedResponse<T> = {
+  content?: T[]
+}
+
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Aetheria">
   <trk>
@@ -75,6 +82,21 @@ const mapArtToRunningArt = (art: Art, index: number): RunningArtSummary => ({
   gpx: art.gpxData ?? "",
   userId: Number.isFinite(Number(art.ownerId)) ? Number(art.ownerId) : 0,
 })
+
+const normalizeSampleRunningArt = (runningArt: RunningArtDetail): RunningArtDetail => ({
+  ...runningArt,
+  id: SAMPLE_RUNNING_ART_ID,
+})
+
+const unwrapRunningArtList = (value: unknown): RunningArtSummary[] => {
+  const data = unwrapApiResponse<RunningArtSummary[] | PagedResponse<RunningArtSummary>>(value)
+
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  return Array.isArray(data.content) ? data.content : []
+}
 
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
   if (isMockEnabled()) {
@@ -170,7 +192,27 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
     return mockArts.map((art, index) => mapArtToRunningArt(art, index))
   }
   const response = await apiClient.get("/api/v1/running-arts/me")
-  return unwrapApiResponse<RunningArtSummary[]>(response.data)
+  return unwrapRunningArtList(response.data)
+}
+
+export async function getRunningArtSample(): Promise<RunningArtDetail> {
+  if (isMockEnabled()) {
+    return normalizeSampleRunningArt({
+      id: SAMPLE_RUNNING_ART_ID,
+      title: "샘플 작품",
+      content: "로그인한 사용자가 바로 확인할 수 있는 polyline 샘플 경로입니다.",
+      shape: "SAMPLE",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
+      userId: 0,
+      imageUrl: "/placeholder.svg",
+      distanceKm: 3.2,
+      isPublic: false,
+      createdAt: new Date(0).toISOString(),
+    })
+  }
+  const response = await apiClient.get("/api/v1/running-arts/sample")
+  return normalizeSampleRunningArt(unwrapApiResponse<RunningArtDetail>(response.data))
 }
 
 export async function getRunningArtDetail(runningArtId: number | string): Promise<RunningArtDetail> {
@@ -183,11 +225,17 @@ export async function getRunningArtDetail(runningArtId: number | string): Promis
     }
     return mapArtToRunningArt(art, index)
   }
+  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
+    return getRunningArtSample()
+  }
   const response = await apiClient.get(`/api/v1/running-arts/${runningArtId}`)
   return unwrapApiResponse<RunningArtDetail>(response.data)
 }
 
 export async function deleteRunningArt(runningArtId: number | string): Promise<void> {
+  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
+    throw new Error("샘플 작품은 삭제할 수 없습니다.")
+  }
   if (isMockEnabled()) {
     const numericId = Number(runningArtId)
     const index = Number.isFinite(numericId) ? numericId - 1 : -1
@@ -205,6 +253,9 @@ export async function patchRunningArt(
   runningArtId: number | string,
   payload: RunningArtPatchRequest,
 ): Promise<void> {
+  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
+    throw new Error("샘플 작품은 수정할 수 없습니다.")
+  }
   if (isMockEnabled()) {
     const numericId = Number(runningArtId)
     const index = Number.isFinite(numericId) ? numericId - 1 : -1

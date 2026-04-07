@@ -1,6 +1,6 @@
 ﻿import { useCallback, useState } from "react"
 import type { Art } from "@/types/art"
-import { getRunningArtDetail } from "@/services/art-service"
+import { getRunningArtDetail, updateShareStatus } from "@/services/art-service"
 import { useToast } from "@/context/toast-context"
 import { toArtFromRunningArt } from "@/lib/running-art"
 
@@ -31,14 +31,19 @@ export function useArtDetail() {
   )
 
   const updateShare = useCallback(
-    (artId: string, isPublic: boolean) => {
+    async (artId: string, isPublic: boolean) => {
       if (!art || String(art.id) !== artId) return null
       setError(null)
-      // TODO: 백엔드 공유 토글 API가 준비되면 로컬 업데이트 대신 서버 상태를 기준으로 갱신해야 합니다.
-      const updated = { ...art, isPublic }
-      setArt(updated)
-      notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
-      return updated
+      try {
+        const updated = await updateShareStatus(artId, isPublic)
+        setArt(updated)
+        notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
+        return updated
+      } catch (err) {
+        setError("공유 상태를 변경하는 데 실패했습니다")
+        notify("공유 상태를 변경하는 데 실패했습니다.", "error")
+        throw err
+      }
     },
     [notify, art],
   )
