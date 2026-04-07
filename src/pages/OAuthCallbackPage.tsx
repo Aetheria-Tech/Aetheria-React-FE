@@ -12,6 +12,8 @@ type SocialProvider = "kakao" | "google"
 const isSocialProvider = (value: string | undefined): value is SocialProvider =>
   value === "kakao" || value === "google"
 
+const oauthCompletionRequests = new Map<string, Promise<Awaited<ReturnType<typeof completeOAuthLogin>>>>()
+
 const getAccessTokenFromHash = () => {
   const hash = window.location.hash.replace(/^#/, "")
   if (!hash) {
@@ -39,13 +41,26 @@ export default function OAuthCallbackPage() {
       return
     }
 
+    const attemptKey = `${provider}:${code ?? ""}:${accessToken ?? ""}`
+
     let cancelled = false
 
     const completeLogin = async () => {
       try {
-        const payload = accessToken
-          ? await completeOAuthLoginWithAccessToken(accessToken)
-          : await completeOAuthLogin(provider, code as string)
+        // React StrictMode는 개발 환경에서 callback 화면을 mount/unmount/remount 할 수 있으므로
+        // 동일한 인가 코드를 사용하는 요청은 한 번만 보내고, remount 된 화면은 같은 Promise를 공유합니다.
+        const existingRequest = oauthCompletionRequests.get(attemptKey)
+        const completionRequest =
+          existingRequest ??
+          (accessToken
+            ? completeOAuthLoginWithAccessToken(accessToken)
+            : completeOAuthLogin(provider, code as string))
+
+        if (!existingRequest) {
+          oauthCompletionRequests.set(attemptKey, completionRequest)
+        }
+
+        const payload = await completionRequest
 
         if (cancelled) {
           return
@@ -79,7 +94,7 @@ export default function OAuthCallbackPage() {
             <h1 className="mb-3 text-2xl font-bold">로그인 처리 실패</h1>
             <p className="mb-6 text-sm leading-relaxed text-white/75">{errorMessage}</p>
             <div className="flex gap-3">
-              <Button className="flex-1" onClick={() => window.location.reload()}>
+              <Button className="flex-1" onClick={() => navigate("/login", { replace: true })}>
                 다시 시도
               </Button>
               <Button

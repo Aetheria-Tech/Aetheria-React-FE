@@ -1,4 +1,5 @@
-import { screen, waitFor } from "@testing-library/react"
+import { StrictMode } from "react"
+import { fireEvent, screen, waitFor } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import OAuthCallbackPage from "@/pages/OAuthCallbackPage"
 import { completeOAuthLogin, completeOAuthLoginWithAccessToken } from "@/services/auth-service"
@@ -86,6 +87,80 @@ describe("oauth callback page", () => {
     expect(localStorage.getItem("auth.tokens")).toContain("oauth-access-token")
   })
 
+  it("exchanges the oauth code only once in strict mode", async () => {
+    mockedCompleteOAuthLogin.mockResolvedValue({
+      user: {
+        id: "user-1",
+        name: "테스트 러너",
+        email: "runner@example.com",
+      },
+      tokens: {
+        accessToken: "oauth-access-token",
+        refreshToken: "cookie",
+      },
+    })
+
+    renderWithProviders(
+      <StrictMode>
+        <Routes>
+          <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
+          <Route path="/" element={<div>메인 페이지</div>} />
+          <Route path="/login" element={<div>로그인 페이지</div>} />
+        </Routes>
+      </StrictMode>,
+      { route: "/auth/callback/kakao?code=strict-mode-code" },
+    )
+
+    expect(await screen.findByText("메인 페이지")).toBeInTheDocument()
+    expect(mockedCompleteOAuthLogin).toHaveBeenCalledTimes(1)
+    expect(mockedCompleteOAuthLogin).toHaveBeenCalledWith("kakao", "strict-mode-code")
+  })
+
+  it("reuses the in-flight oauth completion request across remounts", async () => {
+    let resolveLogin: ((value: Awaited<ReturnType<typeof completeOAuthLogin>>) => void) | undefined
+    const loginPromise = new Promise<Awaited<ReturnType<typeof completeOAuthLogin>>>((resolve) => {
+      resolveLogin = resolve
+    })
+
+    mockedCompleteOAuthLogin.mockReturnValue(loginPromise)
+
+    const firstRender = renderWithProviders(
+      <Routes>
+        <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
+        <Route path="/" element={<div>메인 페이지</div>} />
+        <Route path="/login" element={<div>로그인 페이지</div>} />
+      </Routes>,
+      { route: "/auth/callback/kakao?code=shared-code" },
+    )
+
+    firstRender.unmount()
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
+        <Route path="/" element={<div>메인 페이지</div>} />
+        <Route path="/login" element={<div>로그인 페이지</div>} />
+      </Routes>,
+      { route: "/auth/callback/kakao?code=shared-code" },
+    )
+
+    resolveLogin?.({
+      user: {
+        id: "user-1",
+        name: "테스트 러너",
+        email: "runner@example.com",
+      },
+      tokens: {
+        accessToken: "shared-access-token",
+        refreshToken: "cookie",
+      },
+    })
+
+    expect(await screen.findByText("메인 페이지")).toBeInTheDocument()
+    expect(mockedCompleteOAuthLogin).toHaveBeenCalledTimes(1)
+    expect(mockedCompleteOAuthLogin).toHaveBeenCalledWith("kakao", "shared-code")
+  })
+
   it("redirects to login when callback data is missing", async () => {
     renderWithProviders(
       <Routes>
@@ -118,5 +193,11 @@ describe("oauth callback page", () => {
     expect(await screen.findByText("로그인 처리 실패")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument()
     expect(screen.queryByText("로그인 페이지")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }))
+
+    await waitFor(() => {
+      expect(screen.getByText("로그인 페이지")).toBeInTheDocument()
+    })
   })
 })
