@@ -14,6 +14,7 @@ import { authStorage } from "@/services/auth-storage"
 import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
+import { listTrackedGenerationTasks } from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
   updateMyProfile: jest.fn(),
@@ -22,6 +23,46 @@ jest.mock("@/services/auth-service", () => ({
 
 jest.mock("@/lib/runtime", () => ({
   isDevEnvironment: jest.fn(() => false),
+}))
+
+jest.mock("@/services/generation-service", () => ({
+  GENERATION_STATUS_POLLING_INTERVAL_MS: 5000,
+  getRunningArtTaskStatus: jest.fn(),
+  getTrackedGenerationTask: jest.fn(),
+  isGeneratingTaskStatus: jest.fn((status: string) => status === "PENDING" || status === "PROCESSING"),
+  listTrackedGenerationTasks: jest.fn(() => []),
+  syncTrackedGenerationTask: jest.fn((taskId: string, response: { status: string; resultArtId?: number | null; errorMessage?: string | null }, previous?: { startPosition?: string; shape?: string; proficiency?: string; createdAt?: string }) => {
+    if (response.status === "COMPLETED" && response.resultArtId) {
+      return null
+    }
+
+    return {
+      taskId,
+      startPosition: previous?.startPosition ?? "",
+      shape: previous?.shape ?? "러닝아트",
+      proficiency: previous?.proficiency ?? "BEGINNER",
+      createdAt: previous?.createdAt ?? new Date(0).toISOString(),
+      status: response.status === "COMPLETED" && !response.resultArtId ? "PROCESSING" : response.status,
+      resultArtId: response.resultArtId ?? null,
+      errorMessage: response.errorMessage ?? null,
+    }
+  }),
+  toTrackedGenerationArt: jest.fn((task: { taskId: string; startPosition: string; shape: string; createdAt: string; status: string; errorMessage?: string | null }) => ({
+    id: `task:${task.taskId}`,
+    title: `${task.shape} 러닝아트`,
+    content: task.errorMessage ?? `${task.startPosition}에서 경로를 만들고 있습니다.`,
+    imageUrl: "/placeholder.svg",
+    distanceKm: 0,
+    theme: task.shape,
+    isPublic: false,
+    createdAt: task.createdAt,
+    ownerId: "",
+    startAddress: task.startPosition,
+    generationState: task.status === "FAILED" ? "FAILED" : "GENERATING",
+    taskId: task.taskId,
+    generationErrorMessage: task.errorMessage ?? null,
+    isGenerationTask: true,
+  })),
 }))
 
 jest.mock("@/services/art-service", () => ({
@@ -82,6 +123,7 @@ describe("MyPage", () => {
     ;(getRunningArtSample as jest.Mock).mockResolvedValue(undefined)
     ;(deleteRunningArt as jest.Mock).mockReset()
     ;(patchRunningArt as jest.Mock).mockReset()
+    ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([])
   })
 
   it("shows logout button for authenticated users", async () => {
@@ -198,6 +240,41 @@ describe("MyPage", () => {
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    expect(screen.getByText("생성 완료")).toBeInTheDocument()
+  })
+
+  it("shows tracked generation tasks with status badges", async () => {
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([
+      {
+        taskId: "task-1",
+        startPosition: "서울시청",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        createdAt: new Date(0).toISOString(),
+        status: "PROCESSING",
+        resultArtId: null,
+        errorMessage: null,
+      },
+      {
+        taskId: "task-2",
+        startPosition: "광화문",
+        shape: "STAR",
+        proficiency: "BEGINNER",
+        createdAt: new Date(0).toISOString(),
+        status: "FAILED",
+        resultArtId: null,
+        errorMessage: "생성 실패",
+      },
+    ])
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByText("HEART 러닝아트")).toBeInTheDocument()
+    expect(screen.getByText("STAR 러닝아트")).toBeInTheDocument()
+    expect(screen.getByText("생성 중")).toBeInTheDocument()
+    expect(screen.getAllByText("생성 실패").length).toBeGreaterThan(0)
+    expect(screen.getByRole("link", { name: "HEART 러닝아트" })).toHaveAttribute("href", "/mypage/tasks/task-1")
   })
 
   it("renders route maps inside artwork cards", async () => {

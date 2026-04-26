@@ -1,14 +1,15 @@
-﻿import { useCallback, useState } from "react"
-import type { Art, CreateArtPayload, CreateArtResponse } from "@/types/art"
-import { createArt as createArtRequest, saveArt as saveArtRequest } from "@/services/art-service"
+import { useCallback, useState } from "react"
 import { useToast } from "@/context/toast-context"
+import {
+  createRunningArtTask,
+  upsertTrackedGenerationTask,
+} from "@/services/generation-service"
+import type { CreateRunningArtTaskRequest, CreateRunningArtTaskResponse } from "@/types/generation"
 
 interface CreateArtState {
-  data: CreateArtResponse | null
+  data: CreateRunningArtTaskResponse | null
   isLoading: boolean
-  isSaving: boolean
   error: string | null
-  savedArt: Art | null
 }
 
 export function useCreateArt() {
@@ -16,16 +17,25 @@ export function useCreateArt() {
   const [state, setState] = useState<CreateArtState>({
     data: null,
     isLoading: false,
-    isSaving: false,
     error: null,
-    savedArt: null,
   })
 
-  const createArt = useCallback(async (payload: CreateArtPayload) => {
+  const createArt = useCallback(async (payload: CreateRunningArtTaskRequest) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }))
+
     try {
-      const data = await createArtRequest(payload)
-      setState((prev) => ({ ...prev, data, savedArt: data.art }))
+      const data = await createRunningArtTask(payload)
+      upsertTrackedGenerationTask({
+        taskId: data.taskId,
+        startPosition: payload.startPosition,
+        shape: payload.shape,
+        proficiency: payload.proficiency,
+        createdAt: new Date().toISOString(),
+        status: "PENDING",
+        resultArtId: null,
+        errorMessage: null,
+      })
+      setState((prev) => ({ ...prev, data }))
       return data
     } catch (error) {
       setState((prev) => ({ ...prev, error: "작품 생성에 실패했습니다" }))
@@ -36,30 +46,10 @@ export function useCreateArt() {
     }
   }, [notify])
 
-  const saveArt = useCallback(async () => {
-    if (!state.data?.art.id) return null
-    setState((prev) => ({ ...prev, isSaving: true, error: null }))
-    try {
-      const saved = await saveArtRequest(state.data.art.id)
-      setState((prev) => ({ ...prev, savedArt: saved }))
-      notify("작품이 저장되었습니다.", "success")
-      return saved
-    } catch (error) {
-      setState((prev) => ({ ...prev, error: "작품 저장에 실패했습니다" }))
-      notify("작품 저장에 실패했습니다.", "error")
-      throw error
-    } finally {
-      setState((prev) => ({ ...prev, isSaving: false }))
-    }
-  }, [notify, state.data?.art.id])
-
   return {
     data: state.data,
-    savedArt: state.savedArt,
     isLoading: state.isLoading,
-    isSaving: state.isSaving,
     error: state.error,
     createArt,
-    saveArt,
   }
 }
