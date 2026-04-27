@@ -102,7 +102,8 @@ export default function MyPage() {
       }),
     )
 
-    setTrackedArts(syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task)).map(toTrackedGenerationArt))
+    const validTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
+    setTrackedArts(validTasks.map(toTrackedGenerationArt))
 
     if (hasCompletedTask) {
       await loadArts({ includeSample: Boolean(user) }).catch(() => undefined)

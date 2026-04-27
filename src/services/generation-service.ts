@@ -21,9 +21,11 @@ import type { RunningArtProficiency } from "@/types/running-art"
 
 const STORAGE_KEY = "aetheria-running-art-task-history"
 const DEFAULT_PROFICIENCY: RunningArtProficiency = "BEGINNER"
+const FAILED_TASK_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 let refreshPromise: Promise<AuthTokens | null> | null = null
 
 export const GENERATION_STATUS_POLLING_INTERVAL_MS = 5000
+export const DEFAULT_TRACKED_TASK_SHAPE = "러닝아트"
 
 const isBrowser = () => typeof window !== "undefined"
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
@@ -80,6 +82,15 @@ const isTrackedRunningArtTask = (value: unknown): value is TrackedRunningArtTask
 const sortTasks = (tasks: TrackedRunningArtTask[]) =>
   [...tasks].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
 
+const shouldRetainTrackedTask = (task: TrackedRunningArtTask, now = Date.now()) => {
+  if (task.status !== "FAILED") return true
+
+  const createdAtTime = new Date(task.createdAt).getTime()
+  if (Number.isNaN(createdAtTime)) return true
+
+  return now - createdAtTime < FAILED_TASK_RETENTION_MS
+}
+
 const readTrackedTasks = (): TrackedRunningArtTask[] => {
   if (!isBrowser()) return []
 
@@ -90,7 +101,14 @@ const readTrackedTasks = (): TrackedRunningArtTask[] => {
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
 
-    return sortTasks(parsed.filter(isTrackedRunningArtTask))
+    const trackedTasks = parsed.filter(isTrackedRunningArtTask)
+    const retainedTasks = trackedTasks.filter((task) => shouldRetainTrackedTask(task))
+
+    if (retainedTasks.length !== trackedTasks.length) {
+      writeTrackedTasks(retainedTasks)
+    }
+
+    return sortTasks(retainedTasks)
   } catch {
     return []
   }
@@ -108,7 +126,7 @@ const toTrackedTask = (
 ): TrackedRunningArtTask => ({
   taskId,
   startPosition: previous?.startPosition ?? "",
-  shape: previous?.shape ?? "러닝아트",
+  shape: previous?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
   proficiency: previous?.proficiency ?? DEFAULT_PROFICIENCY,
   createdAt: previous?.createdAt ?? new Date().toISOString(),
   status: statusResponse.status,

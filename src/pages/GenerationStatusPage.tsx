@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import generationLoaderMascot from "@/assets/generation-loader.png"
 import { formatDateTime } from "@/lib/formatters"
 import {
+  DEFAULT_TRACKED_TASK_SHAPE,
   GENERATION_STATUS_POLLING_INTERVAL_MS,
   getRunningArtTaskStatus,
   getTrackedGenerationTask,
@@ -37,41 +38,13 @@ const normalizeTaskStatus = (response: RunningArtTaskStatusResponse): RunningArt
 function LoadingMotion() {
   return (
     <div className="flex justify-center">
-      <style>
-        {`
-          @keyframes generation-loader-float {
-            0%, 100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-10px);
-            }
-          }
-
-          @keyframes generation-loader-shadow {
-            0%, 100% {
-              transform: scaleX(1);
-              opacity: 0.22;
-            }
-            50% {
-              transform: scaleX(0.88);
-              opacity: 0.12;
-            }
-          }
-        `}
-      </style>
-
       <div className="flex items-center justify-center">
         <div className="relative flex h-28 w-28 items-center justify-center">
-          <div
-            className="absolute bottom-1 h-3 w-14 rounded-full bg-black/35 blur-sm"
-            style={{ animation: "generation-loader-shadow 2.4s ease-in-out infinite" }}
-          />
+          <div className="generation-loader-shadow absolute bottom-1 h-3 w-14 rounded-full bg-black/35 blur-sm" />
           <img
             src={generationLoaderMascot}
             alt="Generation mascot"
-            className="relative z-10 h-11 w-11 object-contain drop-shadow-[0_0_10px_rgba(128,232,122,0.18)]"
-            style={{ animation: "generation-loader-float 2.4s ease-in-out infinite" }}
+            className="generation-loader-float relative z-10 h-11 w-11 object-contain drop-shadow-[0_0_10px_rgba(128,232,122,0.18)]"
           />
         </div>
       </div>
@@ -134,7 +107,7 @@ export default function GenerationStatusPage() {
       const nextTask: TrackedRunningArtTask = {
         taskId,
         startPosition: current?.startPosition ?? "",
-        shape: current?.shape ?? "RUNNING_ART",
+        shape: current?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
         proficiency: current?.proficiency ?? DEFAULT_PROFICIENCY,
         createdAt: current?.createdAt ?? new Date().toISOString(),
         status: "FAILED",
