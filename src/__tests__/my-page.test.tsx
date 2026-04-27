@@ -14,7 +14,7 @@ import { authStorage } from "@/services/auth-storage"
 import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
-import { listTrackedGenerationTasks } from "@/services/generation-service"
+import { getRunningArtTaskStatus, listTrackedGenerationTasks } from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
   updateMyProfile: jest.fn(),
@@ -112,6 +112,17 @@ const detailArt = {
   userId: 10,
 }
 
+const createDeferred = <T,>() => {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+
+  return { promise, resolve, reject }
+}
+
 describe("MyPage", () => {
   beforeEach(() => {
     ;(updateMyProfile as jest.Mock).mockReset()
@@ -124,6 +135,7 @@ describe("MyPage", () => {
     ;(deleteRunningArt as jest.Mock).mockReset()
     ;(patchRunningArt as jest.Mock).mockReset()
     ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([])
+    ;(getRunningArtTaskStatus as jest.Mock).mockReset()
   })
 
   it("shows logout button for authenticated users", async () => {
@@ -275,6 +287,63 @@ describe("MyPage", () => {
     expect(screen.getByText("생성 중")).toBeInTheDocument()
     expect(screen.getAllByText("생성 실패").length).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: "HEART 러닝아트" })).toHaveAttribute("href", "/mypage/tasks/task-1")
+  })
+
+  it("keeps a completed tracked task visible until refreshed artwork data is loaded", async () => {
+    const refreshArts = createDeferred<
+      Array<{
+        id: number
+        title: string
+        content: string
+        shape: string
+        proficiency: string
+        gpx: string
+        userId: number
+      }>
+    >()
+
+    ;(getMyRunningArts as jest.Mock).mockResolvedValueOnce([]).mockReturnValueOnce(refreshArts.promise)
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
+      taskId: "task-1",
+      status: "COMPLETED",
+      resultArtId: 1,
+      errorMessage: null,
+    })
+    ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([
+      {
+        taskId: "task-1",
+        startPosition: "?쒖슱?쒖껌",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        createdAt: new Date(0).toISOString(),
+        status: "PROCESSING",
+        resultArtId: null,
+        errorMessage: null,
+      },
+    ])
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    expect(await screen.findByText(/HEART/)).toBeInTheDocument()
+    expect(getMyRunningArts).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      refreshArts.resolve([
+        {
+          id: 1,
+          title: "Completed run",
+          content: "?꾨즺??寃쎈줈",
+          shape: "HEART",
+          proficiency: "BEGINNER",
+          gpx: "_p~iF~ps|U",
+          userId: 10,
+        },
+      ])
+      await refreshArts.promise
+    })
+
+    expect(await screen.findByText("Completed run")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(/HEART/)).not.toBeInTheDocument())
   })
 
   it("renders route maps inside artwork cards", async () => {

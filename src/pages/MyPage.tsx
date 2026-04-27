@@ -79,7 +79,10 @@ export default function MyPage() {
       return
     }
 
-    let hasCompletedTask = false
+    const completedTaskUpdates: Array<{
+      trackedTask: (typeof trackedTasks)[number]
+      response: Awaited<ReturnType<typeof getRunningArtTaskStatus>>
+    }> = []
 
     const syncedTasks = await Promise.all(
       trackedTasks.map(async (trackedTask) => {
@@ -90,9 +93,8 @@ export default function MyPage() {
         try {
           const response = await getRunningArtTaskStatus(trackedTask.taskId)
           if (response.status === "COMPLETED" && response.resultArtId !== null) {
-            syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
-            hasCompletedTask = true
-            return null
+            completedTaskUpdates.push({ trackedTask, response })
+            return trackedTask
           }
 
           return syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
@@ -102,12 +104,25 @@ export default function MyPage() {
       }),
     )
 
-    const validTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
-    setTrackedArts(validTasks.map(toTrackedGenerationArt))
+    const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 
-    if (hasCompletedTask) {
-      await loadArts({ includeSample: Boolean(user) }).catch(() => undefined)
+    if (completedTaskUpdates.length > 0) {
+      setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
+
+      const didRefreshArts = await loadArts({ includeSample: Boolean(user) })
+        .then(() => true)
+        .catch(() => false)
+
+      if (!didRefreshArts) return
+
+      completedTaskUpdates.forEach(({ trackedTask, response }) => {
+        syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
+      })
     }
+
+    const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
+    const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
+    setTrackedArts(validTasks.map(toTrackedGenerationArt))
   }, [loadArts, user])
 
   useEffect(() => {
