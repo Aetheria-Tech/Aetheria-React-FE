@@ -330,11 +330,11 @@ export function subscribeRunningArtTaskEvents(
       throw new Error("SSE endpoint did not return an event-stream response.")
     }
 
-    const reader = response.body?.getReader()
-    if (!reader) {
-      throw new Error("SSE response body is not readable.")
+    if (!response.body || typeof response.body.getReader !== "function") {
+      throw new Error("ReadableStream is not supported for SSE subscription.")
     }
 
+    const reader = response.body.getReader()
     const decoder = new TextDecoder("utf-8")
     let buffer = ""
 

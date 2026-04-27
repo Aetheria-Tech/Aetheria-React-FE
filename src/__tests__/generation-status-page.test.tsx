@@ -60,6 +60,10 @@ describe("GenerationStatusPage", () => {
     ;(subscribeRunningArtTaskEvents as jest.Mock).mockReturnValue({ close: jest.fn() })
   })
 
+  afterEach(() => {
+    delete process.env.VITE_GENERATION_SSE_CONNECT_TIMEOUT_MS
+  })
+
   it("auto-navigates to detail when the task is already completed", async () => {
     ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
       taskId: "task-1",
@@ -120,6 +124,36 @@ describe("GenerationStatusPage", () => {
 
     view.unmount()
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it("uses the configured SSE connect timeout before switching to polling", async () => {
+    process.env.VITE_GENERATION_SSE_CONNECT_TIMEOUT_MS = "12000"
+    const setTimeoutSpy = jest.spyOn(window, "setTimeout")
+
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
+      taskId: "task-1",
+      status: "PROCESSING",
+      resultArtId: null,
+      errorMessage: null,
+    })
+
+    try {
+      renderWithProviders(
+        <Routes>
+          <Route path="/mypage/tasks/:taskId" element={<GenerationStatusPage />} />
+        </Routes>,
+        { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+      )
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      expect(subscribeRunningArtTaskEvents).toHaveBeenCalledTimes(1)
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 12000)
+    } finally {
+      setTimeoutSpy.mockRestore()
+    }
   })
 
   it("falls back to polling when the SSE subscription fails", async () => {

@@ -6,6 +6,7 @@ import GlobalHeader from "@/components/layouts/global-header"
 import { Button } from "@/components/ui/button"
 import generationLoaderMascot from "@/assets/generation-loader.png"
 import { formatDateTime } from "@/lib/formatters"
+import { env } from "@/services/env"
 import {
   DEFAULT_TRACKED_TASK_SHAPE,
   GENERATION_STATUS_POLLING_INTERVAL_MS,
@@ -23,8 +24,13 @@ import type {
   TrackedRunningArtTask,
 } from "@/types/generation"
 
-const SSE_CONNECT_TIMEOUT_MS = 5000
+const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
+
+const getSseConnectTimeoutMs = () => {
+  const timeoutMs = Number(env.generationSseConnectTimeoutMs)
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_SSE_CONNECT_TIMEOUT_MS
+}
 
 const getGuideMessage = (status: RunningArtTaskStatus | null) => {
   if (status === "PROCESSING") return "경로가 만들어지고 있습니다. 잠시만 기다려주세요."
@@ -206,7 +212,7 @@ export default function GenerationStatusPage() {
 
     sseConnectTimeoutRef.current = setTimeout(() => {
       startPollingFallback("실시간 연결을 확인하지 못해 상태 조회로 전환했습니다.")
-    }, SSE_CONNECT_TIMEOUT_MS)
+    }, getSseConnectTimeoutMs())
 
     sseSubscriptionRef.current = subscribeRunningArtTaskEvents(taskId, {
       onConnect: () => {

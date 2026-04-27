@@ -19,4 +19,7 @@ export const env = {
   get useMockApi() {
     return readEnv("VITE_USE_MOCK_API")
   },
+  get generationSseConnectTimeoutMs() {
+    return readEnv("VITE_GENERATION_SSE_CONNECT_TIMEOUT_MS")
+  },
 }
