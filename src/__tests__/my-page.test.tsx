@@ -312,7 +312,7 @@ describe("MyPage", () => {
     ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([
       {
         taskId: "task-1",
-        startPosition: "?쒖슱?쒖껌",
+        startPosition: "서울시청",
         shape: "HEART",
         proficiency: "BEGINNER",
         createdAt: new Date(0).toISOString(),
@@ -332,7 +332,7 @@ describe("MyPage", () => {
         {
           id: 1,
           title: "Completed run",
-          content: "?꾨즺??寃쎈줈",
+          content: "완료된 경로",
           shape: "HEART",
           proficiency: "BEGINNER",
           gpx: "_p~iF~ps|U",
