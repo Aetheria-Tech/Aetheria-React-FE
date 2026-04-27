@@ -22,6 +22,7 @@ import {
 } from "@/services/generation-service"
 
 const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
+const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
 
 const getArtworkStatus = (artwork: Art) => {
   if (artwork.generationState === "FAILED") {
@@ -51,6 +52,7 @@ export default function MyPage() {
   const { arts, isLoading, loadArts } = useMyArts()
   const [trackedArts, setTrackedArts] = useState<Art[]>([])
   const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const taskRefreshErrorNotifiedAtRef = useRef(0)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
@@ -131,7 +133,16 @@ export default function MyPage() {
         .then(() => true)
         .catch(() => false)
 
-      if (!didRefreshArts) return
+      if (!didRefreshArts) {
+        const now = Date.now()
+        if (now - taskRefreshErrorNotifiedAtRef.current >= TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS) {
+          taskRefreshErrorNotifiedAtRef.current = now
+          notify("생성 완료된 작품 목록을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.", "error")
+        }
+        return
+      }
+
+      taskRefreshErrorNotifiedAtRef.current = 0
 
       completedTaskUpdates.forEach(({ trackedTask, response }) => {
         syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
@@ -141,7 +152,7 @@ export default function MyPage() {
     const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
     const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
     setTrackedArts(validTasks.map(toTrackedGenerationArt))
-  }, [loadArts, user])
+  }, [loadArts, notify, user])
 
   useEffect(() => {
     let disposed = false

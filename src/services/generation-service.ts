@@ -139,7 +139,7 @@ export const isFinalTaskStatus = (status: RunningArtTaskStatus) => status === "C
 export const isGeneratingTaskStatus = (status: RunningArtTaskStatus) =>
   status === "PENDING" || status === "PROCESSING"
 
-const resolveDefaultSseEventName = (
+const resolveFallbackSseEventName = (
   notification: RunningArtTaskSseNotification | null,
 ): RunningArtTaskSseEventName | null => {
   if (notification?.status === "COMPLETED") return "COMPLETED"
@@ -177,7 +177,8 @@ const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandl
 
   const payload = dataLines.join("\n")
   const notification = parseSseNotification(payload)
-  const resolvedEventName = eventName ?? resolveDefaultSseEventName(notification)
+  // The backend sends explicit event names; this fallback only covers default message events defensively.
+  const resolvedEventName = eventName ?? resolveFallbackSseEventName(notification)
 
   if (!resolvedEventName) return
 
@@ -361,6 +362,9 @@ export function subscribeRunningArtTaskEvents(
         }
       }
     }
+
+    // Flush any pending bytes TextDecoder kept from the final chunk.
+    buffer += decoder.decode()
 
     if (buffer.trim()) {
       dispatchTaskSseEvent(buffer, handlers)
