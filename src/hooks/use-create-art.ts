@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react"
+import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import {
   createRunningArtTask,
@@ -14,6 +15,7 @@ interface CreateArtState {
 
 export function useCreateArt() {
   const { notify } = useToast()
+  const { user } = useAuth()
   const [state, setState] = useState<CreateArtState>({
     data: null,
     isLoading: false,
@@ -27,6 +29,7 @@ export function useCreateArt() {
       const data = await createRunningArtTask(payload)
       upsertTrackedGenerationTask({
         taskId: data.taskId,
+        userId: user?.id ?? "",
         startPosition: payload.startPosition,
         shape: payload.shape,
         proficiency: payload.proficiency,
@@ -44,7 +47,7 @@ export function useCreateArt() {
     } finally {
       setState((prev) => ({ ...prev, isLoading: false }))
     }
-  }, [notify])
+  }, [notify, user?.id])
 
   return {
     data: state.data,

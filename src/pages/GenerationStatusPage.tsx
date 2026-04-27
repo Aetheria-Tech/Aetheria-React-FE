@@ -106,6 +106,7 @@ export default function GenerationStatusPage() {
       const current = taskRef.current
       const nextTask: TrackedRunningArtTask = {
         taskId,
+        userId: current?.userId ?? "",
         startPosition: current?.startPosition ?? "",
         shape: current?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
         proficiency: current?.proficiency ?? DEFAULT_PROFICIENCY,
@@ -115,12 +116,13 @@ export default function GenerationStatusPage() {
         errorMessage: message ?? current?.errorMessage ?? null,
       }
 
+      const storedTask = upsertTrackedGenerationTask(nextTask)
+
       setIsChecking(false)
       setStatus("FAILED")
-      setTask(nextTask)
-      taskRef.current = nextTask
+      setTask(storedTask)
+      taskRef.current = storedTask
       statusRef.current = "FAILED"
-      upsertTrackedGenerationTask(nextTask)
     },
     [taskId],
   )

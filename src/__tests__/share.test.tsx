@@ -5,7 +5,7 @@ import MyPageDetail from "@/pages/MyPageDetail"
 import SharePage from "@/pages/SharePage"
 import ForbiddenPage from "@/pages/ForbiddenPage"
 import { renderWithProviders } from "@/test/test-utils"
-import { getRunningArtDetail } from "@/services/art-service"
+import { getRunningArtDetail, updateShareStatus } from "@/services/art-service"
 
 jest.mock("@/lib/runtime", () => ({
   isDevEnvironment: jest.fn(() => false),
@@ -50,6 +50,20 @@ describe("sharing", () => {
     }
 
     ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(updateShareStatus as jest.Mock).mockImplementation((_artId: string, isPublic: boolean) =>
+      Promise.resolve({
+        id: "1",
+        title: art.title,
+        content: art.content,
+        imageUrl: "/placeholder.svg",
+        distanceKm: 0,
+        theme: art.shape,
+        isPublic,
+        createdAt: "",
+        ownerId: String(art.userId),
+        gpxData: art.gpx,
+      }),
+    )
 
     renderWithProviders(
       <Routes>

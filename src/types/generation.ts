@@ -21,6 +21,7 @@ export interface RunningArtTaskStatusResponse {
 
 export interface TrackedRunningArtTask {
   taskId: string
+  userId: string
   startPosition: string
   shape: string
   proficiency: RunningArtProficiency

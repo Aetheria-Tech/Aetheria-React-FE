@@ -19,7 +19,7 @@ jest.mock("@/services/generation-service", () => ({
     (
       taskId: string,
       response: { status: string; resultArtId?: number | null; errorMessage?: string | null },
-      previous?: { startPosition?: string; shape?: string; proficiency?: string; createdAt?: string },
+      previous?: { userId?: string; startPosition?: string; shape?: string; proficiency?: string; createdAt?: string },
     ) => {
       if (response.status === "COMPLETED" && response.resultArtId !== null) {
         return null
@@ -27,6 +27,7 @@ jest.mock("@/services/generation-service", () => ({
 
       return {
         taskId,
+        userId: previous?.userId ?? "user-1",
         startPosition: previous?.startPosition ?? "서울시청",
         shape: previous?.shape ?? "HEART",
         proficiency: previous?.proficiency ?? "BEGINNER",
@@ -37,7 +38,7 @@ jest.mock("@/services/generation-service", () => ({
       }
     },
   ),
-  upsertTrackedGenerationTask: jest.fn(),
+  upsertTrackedGenerationTask: jest.fn((task) => task),
 }))
 
 describe("GenerationStatusPage", () => {
@@ -45,6 +46,7 @@ describe("GenerationStatusPage", () => {
     jest.useRealTimers()
     ;(getTrackedGenerationTask as jest.Mock).mockReturnValue({
       taskId: "task-1",
+      userId: "user-1",
       startPosition: "서울시청",
       shape: "HEART",
       proficiency: "BEGINNER",

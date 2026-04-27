@@ -6,6 +6,7 @@ module.exports = {
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     "\\.(gif|ttf|eot|svg|png|jpg|jpeg|webp)$": "<rootDir>/test/fileMock.ts",
+    "^@/services/env$": "<rootDir>/test/envMock.ts",
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   transform: {

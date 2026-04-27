@@ -40,18 +40,18 @@ function App() {
           }
         />
         <Route
-          path="/mypage/:id"
-          element={
-            <ProtectedRoute>
-              <MyPageDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/mypage/tasks/:taskId"
           element={
             <ProtectedRoute>
               <GenerationStatusPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mypage/:id"
+          element={
+            <ProtectedRoute>
+              <MyPageDetail />
             </ProtectedRoute>
           }
         />

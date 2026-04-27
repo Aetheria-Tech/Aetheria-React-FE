@@ -1,5 +1,6 @@
 import { apiClient } from "@/services/api-client"
 import { getAuthorizedAccessToken, refreshCurrentStoredTokens } from "@/services/auth-session"
+import { authStorage } from "@/services/auth-storage"
 import { env } from "@/services/env"
 import { unwrapApiResponse } from "@/types/api"
 import type { Art } from "@/types/art"
@@ -31,12 +32,18 @@ const buildApiUrl = (path: string) => {
   return baseUrl ? `${trimTrailingSlash(baseUrl)}${path}` : path
 }
 
+const getCurrentTrackedTaskUserId = () => {
+  if (!isBrowser()) return ""
+  return authStorage.getUser()?.id ?? ""
+}
+
 const isTrackedRunningArtTask = (value: unknown): value is TrackedRunningArtTask => {
   if (!value || typeof value !== "object") return false
 
   const candidate = value as Partial<TrackedRunningArtTask>
   return (
     typeof candidate.taskId === "string" &&
+    typeof candidate.userId === "string" &&
     typeof candidate.startPosition === "string" &&
     typeof candidate.shape === "string" &&
     typeof candidate.proficiency === "string" &&
@@ -80,6 +87,11 @@ const readStoredTrackedTasks = (): TrackedRunningArtTask[] => {
 const readRetainedTrackedTasks = () =>
   sortTasks(readStoredTrackedTasks().filter((task) => shouldRetainTrackedTask(task)))
 
+const readCurrentUserTrackedTasks = () => {
+  const currentUserId = getCurrentTrackedTaskUserId()
+  return readRetainedTrackedTasks().filter((task) => task.userId === currentUserId)
+}
+
 const writeTrackedTasks = (tasks: TrackedRunningArtTask[]) => {
   if (!isBrowser()) return
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sortTasks(tasks)))
@@ -91,6 +103,7 @@ const toTrackedTask = (
   previous?: Partial<TrackedRunningArtTask>,
 ): TrackedRunningArtTask => ({
   taskId,
+  userId: previous?.userId ?? getCurrentTrackedTaskUserId(),
   startPosition: previous?.startPosition ?? "",
   shape: previous?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
   proficiency: previous?.proficiency ?? DEFAULT_PROFICIENCY,
@@ -200,22 +213,29 @@ const parseSseNotification = (payload: string): RunningArtTaskSseNotification | 
 }
 
 export function listTrackedGenerationTasks(): TrackedRunningArtTask[] {
-  return readRetainedTrackedTasks()
+  return readCurrentUserTrackedTasks()
 }
 
 export function getTrackedGenerationTask(taskId: string): TrackedRunningArtTask | null {
-  return readRetainedTrackedTasks().find((task) => task.taskId === taskId) ?? null
+  return readCurrentUserTrackedTasks().find((task) => task.taskId === taskId) ?? null
 }
 
 export function upsertTrackedGenerationTask(task: TrackedRunningArtTask): TrackedRunningArtTask {
-  const nextTasks = readRetainedTrackedTasks().filter((candidate) => candidate.taskId !== task.taskId)
-  nextTasks.unshift(task)
+  const normalizedTask = {
+    ...task,
+    userId: task.userId || getCurrentTrackedTaskUserId(),
+  }
+  const nextTasks = readRetainedTrackedTasks().filter(
+    (candidate) => candidate.taskId !== normalizedTask.taskId || candidate.userId !== normalizedTask.userId,
+  )
+  nextTasks.unshift(normalizedTask)
   writeTrackedTasks(nextTasks)
-  return task
+  return normalizedTask
 }
 
 export function removeTrackedGenerationTask(taskId: string) {
-  writeTrackedTasks(readStoredTrackedTasks().filter((task) => task.taskId !== taskId))
+  const currentUserId = getCurrentTrackedTaskUserId()
+  writeTrackedTasks(readStoredTrackedTasks().filter((task) => task.taskId !== taskId || task.userId !== currentUserId))
 }
 
 export function cleanupExpiredTrackedGenerationTasks(): TrackedRunningArtTask[] {
@@ -226,7 +246,7 @@ export function cleanupExpiredTrackedGenerationTasks(): TrackedRunningArtTask[] 
     writeTrackedTasks(retainedTasks)
   }
 
-  return sortTasks(retainedTasks)
+  return sortTasks(retainedTasks.filter((task) => task.userId === getCurrentTrackedTaskUserId()))
 }
 
 export function syncTrackedGenerationTask(
