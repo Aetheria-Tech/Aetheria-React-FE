@@ -58,8 +58,8 @@ export default function GenerationStatusPage() {
   const navigateOnceRef = useRef(false)
   const failureCountRef = useRef(0)
   const sseSubscriptionRef = useRef<RunningArtTaskSseSubscription | null>(null)
-  const pollingTimeoutRef = useRef<number | null>(null)
-  const sseConnectTimeoutRef = useRef<number | null>(null)
+  const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sseConnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [task, setTask] = useState<TrackedRunningArtTask | null>(() =>
     taskId ? getTrackedGenerationTask(taskId) : null,
@@ -81,14 +81,14 @@ export default function GenerationStatusPage() {
 
   const clearSseConnectTimeout = useCallback(() => {
     if (sseConnectTimeoutRef.current !== null) {
-      window.clearTimeout(sseConnectTimeoutRef.current)
+      clearTimeout(sseConnectTimeoutRef.current)
       sseConnectTimeoutRef.current = null
     }
   }, [])
 
   const stopPolling = useCallback(() => {
     if (pollingTimeoutRef.current !== null) {
-      window.clearTimeout(pollingTimeoutRef.current)
+      clearTimeout(pollingTimeoutRef.current)
       pollingTimeoutRef.current = null
     }
   }, [])
@@ -190,11 +190,11 @@ export default function GenerationStatusPage() {
             return
           }
 
-          pollingTimeoutRef.current = window.setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
+          pollingTimeoutRef.current = setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
         })
       }
 
-      pollingTimeoutRef.current = window.setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
+      pollingTimeoutRef.current = setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
     },
     [closeSseSubscription, stopPolling, syncTaskStatus],
   )
@@ -202,7 +202,7 @@ export default function GenerationStatusPage() {
   const openSseSubscription = useCallback(() => {
     if (!taskId || sseSubscriptionRef.current || navigateOnceRef.current) return
 
-    sseConnectTimeoutRef.current = window.setTimeout(() => {
+    sseConnectTimeoutRef.current = setTimeout(() => {
       startPollingFallback("실시간 연결을 확인하지 못해 상태 조회로 전환했습니다.")
     }, SSE_CONNECT_TIMEOUT_MS)
 

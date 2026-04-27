@@ -140,7 +140,7 @@ export const isGeneratingTaskStatus = (status: RunningArtTaskStatus) =>
   status === "PENDING" || status === "PROCESSING"
 
 const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandlers) => {
-  const lines = rawEvent.split(/\r?\n/)
+  const lines = rawEvent.split(/\r\n|\r|\n/)
   let eventName: RunningArtTaskSseEventName | null = null
   const dataLines: string[] = []
 
@@ -331,7 +331,7 @@ export function subscribeRunningArtTaskEvents(
       if (done) break
 
       buffer += decoder.decode(value, { stream: true })
-      const chunks = buffer.split(/\r?\n\r?\n/)
+      const chunks = buffer.split(/\r\n\r\n|\r\r|\n\n/)
       buffer = chunks.pop() ?? ""
 
       for (const chunk of chunks) {

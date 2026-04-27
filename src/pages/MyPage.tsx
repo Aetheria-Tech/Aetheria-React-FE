@@ -47,7 +47,7 @@ export default function MyPage() {
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
   const [trackedArts, setTrackedArts] = useState<Art[]>([])
-  const trackedPollingTimeoutRef = useRef<number | null>(null)
+  const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
@@ -130,14 +130,14 @@ export default function MyPage() {
 
     const clearPollingTimeout = () => {
       if (trackedPollingTimeoutRef.current !== null) {
-        window.clearTimeout(trackedPollingTimeoutRef.current)
+        clearTimeout(trackedPollingTimeoutRef.current)
         trackedPollingTimeoutRef.current = null
       }
     }
 
     const scheduleNextSync = () => {
       if (disposed) return
-      trackedPollingTimeoutRef.current = window.setTimeout(() => {
+      trackedPollingTimeoutRef.current = setTimeout(() => {
         void syncTrackedArtStatuses().finally(scheduleNextSync)
       }, GENERATION_STATUS_POLLING_INTERVAL_MS)
     }
