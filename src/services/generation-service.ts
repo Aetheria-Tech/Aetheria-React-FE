@@ -162,7 +162,7 @@ const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandl
     }
 
     if (line.startsWith("data:")) {
-      dataLines.push(line.slice("data:".length).trimStart())
+      dataLines.push(line.slice(line.startsWith("data: ") ? 6 : 5))
     }
   }
 
