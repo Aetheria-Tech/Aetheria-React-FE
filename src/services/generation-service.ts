@@ -310,7 +310,7 @@ export async function createRunningArtTask(
 }
 
 export async function getRunningArtTaskStatus(taskId: string): Promise<RunningArtTaskStatusResponse> {
-  const response = await apiClient.get(`/api/v1/running-arts/tasks/${taskId}`)
+  const response = await apiClient.get(`/api/v1/running-arts/tasks/${encodeURIComponent(taskId)}`)
   const data = unwrapApiResponse<{
     taskId: string
     status: RunningArtTaskStatus
