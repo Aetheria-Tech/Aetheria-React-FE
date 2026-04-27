@@ -1,10 +1,7 @@
 import { apiClient } from "@/services/api-client"
-import { refreshTokens } from "@/services/auth-service"
-import { authStorage } from "@/services/auth-storage"
-import { shouldRefreshAccessToken } from "@/services/auth-token"
+import { getAuthorizedAccessToken, refreshCurrentStoredTokens } from "@/services/auth-session"
 import { env } from "@/services/env"
 import { unwrapApiResponse } from "@/types/api"
-import type { AuthTokens } from "@/types/auth"
 import type { Art } from "@/types/art"
 import type {
   CreateRunningArtTaskRequest,
@@ -22,7 +19,6 @@ import type { RunningArtProficiency } from "@/types/running-art"
 const STORAGE_KEY = "aetheria-running-art-task-history"
 const DEFAULT_PROFICIENCY: RunningArtProficiency = "BEGINNER"
 const FAILED_TASK_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
-let refreshPromise: Promise<AuthTokens | null> | null = null
 
 export const GENERATION_STATUS_POLLING_INTERVAL_MS = 5000
 export const DEFAULT_TRACKED_TASK_SHAPE = "러닝아트"
@@ -33,36 +29,6 @@ const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
 const buildApiUrl = (path: string) => {
   const baseUrl = env.apiBaseUrl.trim()
   return baseUrl ? `${trimTrailingSlash(baseUrl)}${path}` : path
-}
-
-const refreshStoredTokens = async (tokens: AuthTokens): Promise<AuthTokens | null> => {
-  if (!refreshPromise) {
-    refreshPromise = refreshTokens(tokens.accessToken)
-      .then((nextTokens) => {
-        authStorage.setTokens(nextTokens)
-        return nextTokens
-      })
-      .catch(() => {
-        authStorage.clear()
-        return null
-      })
-      .finally(() => {
-        refreshPromise = null
-      })
-  }
-
-  return refreshPromise
-}
-
-const getAuthorizedAccessToken = async (): Promise<string | null> => {
-  let tokens = authStorage.getTokens()
-  if (!tokens?.accessToken) return null
-
-  if (shouldRefreshAccessToken(tokens)) {
-    tokens = await refreshStoredTokens(tokens)
-  }
-
-  return tokens?.accessToken ?? null
 }
 
 const isTrackedRunningArtTask = (value: unknown): value is TrackedRunningArtTask => {
@@ -392,12 +358,7 @@ export function subscribeRunningArtTaskEvents(
       let response = await requestStream(accessToken)
 
       if (response.status === 401) {
-        const storedTokens = authStorage.getTokens()
-        if (!storedTokens) {
-          throw new Error("Authentication is required to subscribe to task updates.")
-        }
-
-        const nextTokens = await refreshStoredTokens(storedTokens)
+        const nextTokens = await refreshCurrentStoredTokens()
         if (!nextTokens?.accessToken) {
           throw new Error("Authentication is required to subscribe to task updates.")
         }

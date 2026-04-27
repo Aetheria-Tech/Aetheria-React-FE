@@ -1,9 +1,6 @@
 import axios, { AxiosHeaders, type AxiosError, type AxiosInstance } from "axios"
-import { authStorage } from "@/services/auth-storage"
-import { shouldRefreshAccessToken } from "@/services/auth-token"
-import { refreshTokens } from "@/services/auth-service"
+import { getStoredAuthTokens, refreshCurrentStoredTokens } from "@/services/auth-session"
 import { env } from "@/services/env"
-import type { AuthTokens } from "@/types/auth"
 
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
@@ -14,33 +11,8 @@ const createApiClient = (): AxiosInstance => {
     },
   })
 
-  let refreshPromise: Promise<AuthTokens | null> | null = null
-
-  const refreshStoredTokens = async (tokens: AuthTokens): Promise<AuthTokens | null> => {
-    if (!refreshPromise) {
-      refreshPromise = refreshTokens(tokens.accessToken)
-        .then((nextTokens) => {
-          authStorage.setTokens(nextTokens)
-          return nextTokens
-        })
-        .catch(() => {
-          authStorage.clear()
-          return null
-        })
-        .finally(() => {
-          refreshPromise = null
-        })
-    }
-
-    return refreshPromise
-  }
-
   client.interceptors.request.use(async (config) => {
-    let tokens = authStorage.getTokens()
-
-    if (tokens?.accessToken && shouldRefreshAccessToken(tokens)) {
-      tokens = await refreshStoredTokens(tokens)
-    }
+    const tokens = await getStoredAuthTokens()
 
     if (tokens?.accessToken) {
       const headers = AxiosHeaders.from(config.headers)
@@ -58,15 +30,9 @@ const createApiClient = (): AxiosInstance => {
         return Promise.reject(error)
       }
 
-      const tokens = authStorage.getTokens()
-      if (!tokens?.accessToken) {
-        authStorage.clear()
-        return Promise.reject(error)
-      }
-
       originalRequest._retry = true
 
-      const nextTokens = await refreshStoredTokens(tokens)
+      const nextTokens = await refreshCurrentStoredTokens()
       if (!nextTokens?.accessToken) {
         return Promise.reject(error)
       }
