@@ -137,7 +137,11 @@ const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandl
     }
 
     if (line.startsWith("data:")) {
-      dataLines.push(line.slice(line.startsWith("data: ") ? 6 : 5))
+      let dataContent = line.slice("data:".length)
+      if (dataContent.startsWith(" ")) {
+        dataContent = dataContent.slice(1)
+      }
+      dataLines.push(dataContent)
     }
   }
 
@@ -319,7 +323,7 @@ export function subscribeRunningArtTaskEvents(
       if (done) break
 
       buffer += decoder.decode(value, { stream: true })
-      const chunks = buffer.split(/\r\n\r\n|\r\r|\n\n/)
+      const chunks = buffer.split(/(?:\r\n|\r|\n){2,}/)
       buffer = chunks.pop() ?? ""
 
       for (const chunk of chunks) {
