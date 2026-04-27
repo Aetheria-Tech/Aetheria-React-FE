@@ -139,6 +139,15 @@ export const isFinalTaskStatus = (status: RunningArtTaskStatus) => status === "C
 export const isGeneratingTaskStatus = (status: RunningArtTaskStatus) =>
   status === "PENDING" || status === "PROCESSING"
 
+const resolveDefaultSseEventName = (
+  notification: RunningArtTaskSseNotification | null,
+): RunningArtTaskSseEventName | null => {
+  if (notification?.status === "COMPLETED") return "COMPLETED"
+  if (notification?.status === "FAILED") return "FAILED"
+  if (notification?.status === "PENDING" || notification?.status === "PROCESSING") return "PROCESSING"
+  return null
+}
+
 const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandlers) => {
   const lines = rawEvent.split(/\r\n|\r|\n/)
   let eventName: RunningArtTaskSseEventName | null = null
@@ -166,22 +175,23 @@ const dispatchTaskSseEvent = (rawEvent: string, handlers: RunningArtTaskSseHandl
     }
   }
 
-  if (!eventName) return
-
   const payload = dataLines.join("\n")
   const notification = parseSseNotification(payload)
+  const resolvedEventName = eventName ?? resolveDefaultSseEventName(notification)
 
-  if (eventName === "CONNECT" || eventName === "CONNECTED") {
+  if (!resolvedEventName) return
+
+  if (resolvedEventName === "CONNECT" || resolvedEventName === "CONNECTED") {
     handlers.onConnect?.(notification)
     return
   }
 
-  if (eventName === "PROCESSING") {
+  if (resolvedEventName === "PROCESSING") {
     handlers.onProcessing?.(notification)
     return
   }
 
-  if (eventName === "COMPLETED") {
+  if (resolvedEventName === "COMPLETED") {
     handlers.onCompleted?.(notification)
     return
   }

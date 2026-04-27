@@ -239,7 +239,20 @@ export default function MyPage() {
     }
   }
 
-  const visibleArts = useMemo(() => [...trackedArts, ...arts], [arts, trackedArts])
+  const visibleArts = useMemo(() => {
+    const fetchedArtIds = new Set(arts.map((artwork) => artwork.id))
+    const fetchedTaskIds = new Set(
+      arts
+        .map((artwork) => artwork.taskId)
+        .filter((taskId): taskId is string => typeof taskId === "string" && taskId.length > 0),
+    )
+    const filteredTrackedArts = trackedArts.filter((artwork) => {
+      if (fetchedArtIds.has(artwork.id)) return false
+      return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
+    })
+
+    return [...filteredTrackedArts, ...arts]
+  }, [arts, trackedArts])
 
   return (
     <AppBackground overlayClassName="bg-black/50">
