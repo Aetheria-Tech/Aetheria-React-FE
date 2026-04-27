@@ -411,7 +411,8 @@ export default function MyPage() {
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {visibleArts.map((artwork) => {
                 const status = getArtworkStatus(artwork)
-                const artworkPath = artwork.taskId ? `/mypage/tasks/${artwork.taskId}` : `/mypage/${artwork.id}`
+                const artworkPath =
+                  artwork.isGenerationTask && artwork.taskId ? `/mypage/tasks/${artwork.taskId}` : `/mypage/${artwork.id}`
 
                 return (
                   <article
