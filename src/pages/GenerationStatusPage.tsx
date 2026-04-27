@@ -32,7 +32,7 @@ const getGuideMessage = (status: RunningArtTaskStatus | null) => {
 }
 
 const normalizeTaskStatus = (response: RunningArtTaskStatusResponse): RunningArtTaskStatus =>
-  response.status === "COMPLETED" && !response.resultArtId ? "PROCESSING" : response.status
+  response.status === "COMPLETED" && response.resultArtId === null ? "PROCESSING" : response.status
 
 function LoadingMotion() {
   return (
@@ -85,7 +85,7 @@ export default function GenerationStatusPage() {
   const navigateOnceRef = useRef(false)
   const failureCountRef = useRef(0)
   const sseSubscriptionRef = useRef<RunningArtTaskSseSubscription | null>(null)
-  const pollingIntervalRef = useRef<number | null>(null)
+  const pollingTimeoutRef = useRef<number | null>(null)
   const sseConnectTimeoutRef = useRef<number | null>(null)
 
   const [task, setTask] = useState<TrackedRunningArtTask | null>(() =>
@@ -114,9 +114,9 @@ export default function GenerationStatusPage() {
   }, [])
 
   const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current !== null) {
-      window.clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
+    if (pollingTimeoutRef.current !== null) {
+      window.clearTimeout(pollingTimeoutRef.current)
+      pollingTimeoutRef.current = null
     }
   }, [])
 
@@ -130,25 +130,24 @@ export default function GenerationStatusPage() {
     (message: string | null) => {
       if (!taskId) return
 
+      const current = taskRef.current
+      const nextTask: TrackedRunningArtTask = {
+        taskId,
+        startPosition: current?.startPosition ?? "",
+        shape: current?.shape ?? "RUNNING_ART",
+        proficiency: current?.proficiency ?? DEFAULT_PROFICIENCY,
+        createdAt: current?.createdAt ?? new Date().toISOString(),
+        status: "FAILED",
+        resultArtId: current?.resultArtId ?? null,
+        errorMessage: message ?? current?.errorMessage ?? null,
+      }
+
       setIsChecking(false)
       setStatus("FAILED")
-      setTask((current) => {
-        const nextTask: TrackedRunningArtTask = {
-          taskId,
-          startPosition: current?.startPosition ?? "",
-          shape: current?.shape ?? "RUNNING_ART",
-          proficiency: current?.proficiency ?? DEFAULT_PROFICIENCY,
-          createdAt: current?.createdAt ?? new Date().toISOString(),
-          status: "FAILED",
-          resultArtId: current?.resultArtId ?? null,
-          errorMessage: message ?? current?.errorMessage ?? null,
-        }
-
-        taskRef.current = nextTask
-        statusRef.current = "FAILED"
-        upsertTrackedGenerationTask(nextTask)
-        return nextTask
-      })
+      setTask(nextTask)
+      taskRef.current = nextTask
+      statusRef.current = "FAILED"
+      upsertTrackedGenerationTask(nextTask)
     },
     [taskId],
   )
@@ -176,7 +175,7 @@ export default function GenerationStatusPage() {
         stopPolling()
       }
 
-      if (response.status === "COMPLETED" && response.resultArtId && !navigateOnceRef.current) {
+      if (response.status === "COMPLETED" && response.resultArtId !== null && !navigateOnceRef.current) {
         navigateOnceRef.current = true
         closeSseSubscription()
         stopPolling()
@@ -198,7 +197,7 @@ export default function GenerationStatusPage() {
 
   const startPollingFallback = useCallback(
     (message?: string) => {
-      if (navigateOnceRef.current || pollingIntervalRef.current !== null) return
+      if (navigateOnceRef.current || pollingTimeoutRef.current !== null) return
 
       closeSseSubscription()
 
@@ -206,14 +205,23 @@ export default function GenerationStatusPage() {
         setSyncError(message)
       }
 
-      pollingIntervalRef.current = window.setInterval(() => {
+      const pollOnce = () => {
         if (navigateOnceRef.current || statusRef.current === "FAILED") {
           stopPolling()
           return
         }
 
-        void syncTaskStatus()
-      }, GENERATION_STATUS_POLLING_INTERVAL_MS)
+        void syncTaskStatus().finally(() => {
+          if (navigateOnceRef.current || statusRef.current === "FAILED" || pollingTimeoutRef.current === null) {
+            stopPolling()
+            return
+          }
+
+          pollingTimeoutRef.current = window.setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
+        })
+      }
+
+      pollingTimeoutRef.current = window.setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
     },
     [closeSseSubscription, stopPolling, syncTaskStatus],
   )
@@ -236,7 +244,7 @@ export default function GenerationStatusPage() {
         closeSseSubscription()
 
         void syncTaskStatus().then((response) => {
-          if (!response || response.status !== "COMPLETED" || !response.resultArtId) {
+          if (!response || response.status !== "COMPLETED" || response.resultArtId === null) {
             startPollingFallback()
           }
         })

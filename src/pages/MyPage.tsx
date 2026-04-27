@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Edit2, Mail, MessageSquareText, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
@@ -47,6 +47,7 @@ export default function MyPage() {
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
   const [trackedArts, setTrackedArts] = useState<Art[]>([])
+  const trackedPollingTimeoutRef = useRef<number | null>(null)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
@@ -88,7 +89,7 @@ export default function MyPage() {
 
         try {
           const response = await getRunningArtTaskStatus(trackedTask.taskId)
-          if (response.status === "COMPLETED" && response.resultArtId) {
+          if (response.status === "COMPLETED" && response.resultArtId !== null) {
             syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
             hasCompletedTask = true
             return null
@@ -109,13 +110,28 @@ export default function MyPage() {
   }, [loadArts, user])
 
   useEffect(() => {
-    void syncTrackedArtStatuses()
+    let disposed = false
 
-    const intervalId = window.setInterval(() => {
-      void syncTrackedArtStatuses()
-    }, GENERATION_STATUS_POLLING_INTERVAL_MS)
+    const clearPollingTimeout = () => {
+      if (trackedPollingTimeoutRef.current !== null) {
+        window.clearTimeout(trackedPollingTimeoutRef.current)
+        trackedPollingTimeoutRef.current = null
+      }
+    }
 
-    return () => window.clearInterval(intervalId)
+    const scheduleNextSync = () => {
+      if (disposed) return
+      trackedPollingTimeoutRef.current = window.setTimeout(() => {
+        void syncTrackedArtStatuses().finally(scheduleNextSync)
+      }, GENERATION_STATUS_POLLING_INTERVAL_MS)
+    }
+
+    void syncTrackedArtStatuses().finally(scheduleNextSync)
+
+    return () => {
+      disposed = true
+      clearPollingTimeout()
+    }
   }, [syncTrackedArtStatuses])
 
   useEffect(() => {

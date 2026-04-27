@@ -225,11 +225,11 @@ export function syncTrackedGenerationTask(
   previous?: Partial<TrackedRunningArtTask>,
 ): TrackedRunningArtTask | null {
   const effectiveResponse =
-    statusResponse.status === "COMPLETED" && !statusResponse.resultArtId
+    statusResponse.status === "COMPLETED" && statusResponse.resultArtId === null
       ? { ...statusResponse, status: "PROCESSING" as const }
       : statusResponse
 
-  if (effectiveResponse.status === "COMPLETED" && effectiveResponse.resultArtId) {
+  if (effectiveResponse.status === "COMPLETED" && effectiveResponse.resultArtId !== null) {
     removeTrackedGenerationTask(taskId)
     return null
   }

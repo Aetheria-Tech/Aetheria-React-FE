@@ -32,7 +32,7 @@ jest.mock("@/services/generation-service", () => ({
   isGeneratingTaskStatus: jest.fn((status: string) => status === "PENDING" || status === "PROCESSING"),
   listTrackedGenerationTasks: jest.fn(() => []),
   syncTrackedGenerationTask: jest.fn((taskId: string, response: { status: string; resultArtId?: number | null; errorMessage?: string | null }, previous?: { startPosition?: string; shape?: string; proficiency?: string; createdAt?: string }) => {
-    if (response.status === "COMPLETED" && response.resultArtId) {
+    if (response.status === "COMPLETED" && response.resultArtId !== null) {
       return null
     }
 
@@ -42,7 +42,7 @@ jest.mock("@/services/generation-service", () => ({
       shape: previous?.shape ?? "러닝아트",
       proficiency: previous?.proficiency ?? "BEGINNER",
       createdAt: previous?.createdAt ?? new Date(0).toISOString(),
-      status: response.status === "COMPLETED" && !response.resultArtId ? "PROCESSING" : response.status,
+      status: response.status === "COMPLETED" && response.resultArtId === null ? "PROCESSING" : response.status,
       resultArtId: response.resultArtId ?? null,
       errorMessage: response.errorMessage ?? null,
     }

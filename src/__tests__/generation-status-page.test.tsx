@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { act, screen, waitFor } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import GenerationStatusPage from "@/pages/GenerationStatusPage"
 import {
@@ -21,7 +21,7 @@ jest.mock("@/services/generation-service", () => ({
       response: { status: string; resultArtId?: number | null; errorMessage?: string | null },
       previous?: { startPosition?: string; shape?: string; proficiency?: string; createdAt?: string },
     ) => {
-      if (response.status === "COMPLETED" && response.resultArtId) {
+      if (response.status === "COMPLETED" && response.resultArtId !== null) {
         return null
       }
 
@@ -31,7 +31,7 @@ jest.mock("@/services/generation-service", () => ({
         shape: previous?.shape ?? "HEART",
         proficiency: previous?.proficiency ?? "BEGINNER",
         createdAt: previous?.createdAt ?? new Date(0).toISOString(),
-        status: response.status === "COMPLETED" && !response.resultArtId ? "PROCESSING" : response.status,
+        status: response.status === "COMPLETED" && response.resultArtId === null ? "PROCESSING" : response.status,
         resultArtId: response.resultArtId ?? null,
         errorMessage: response.errorMessage ?? null,
       }
@@ -121,7 +121,7 @@ describe("GenerationStatusPage", () => {
   })
 
   it("falls back to polling when the SSE subscription fails", async () => {
-    const setIntervalSpy = jest.spyOn(window, "setInterval")
+    let handlersRef: RunningArtTaskSseHandlers | undefined
     ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
       taskId: "task-1",
       status: "PROCESSING",
@@ -129,7 +129,7 @@ describe("GenerationStatusPage", () => {
       errorMessage: null,
     })
     ;(subscribeRunningArtTaskEvents as jest.Mock).mockImplementation((_taskId: string, handlers: RunningArtTaskSseHandlers) => {
-      handlers.onError?.(new Error("stream failed"))
+      handlersRef = handlers
       return { close: jest.fn() }
     })
 
@@ -140,8 +140,14 @@ describe("GenerationStatusPage", () => {
       { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
     )
 
-    await waitFor(() => expect(setIntervalSpy).toHaveBeenCalled())
-    setIntervalSpy.mockRestore()
+    await waitFor(() => expect(subscribeRunningArtTaskEvents).toHaveBeenCalledTimes(1))
+
+    const setTimeoutSpy = jest.spyOn(window, "setTimeout")
+    act(() => {
+      handlersRef?.onError?.(new Error("stream failed"))
+    })
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000)
+    setTimeoutSpy.mockRestore()
   })
 
   it("refetches status and navigates when the completed SSE event arrives", async () => {
