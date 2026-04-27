@@ -21,6 +21,8 @@ import {
   toTrackedGenerationArt,
 } from "@/services/generation-service"
 
+const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
+
 const getArtworkStatus = (artwork: Art) => {
   if (artwork.generationState === "FAILED") {
     return {
@@ -87,14 +89,29 @@ export default function MyPage() {
     }> = []
 
     const syncedTasks: Array<(typeof trackedTasks)[number] | null> = []
-    for (const trackedTask of trackedTasks) {
-      if (!isGeneratingTaskStatus(trackedTask.status)) {
-        syncedTasks.push(trackedTask)
-        continue
-      }
+    for (let index = 0; index < trackedTasks.length; index += GENERATION_STATUS_SYNC_BATCH_SIZE) {
+      const batch = trackedTasks.slice(index, index + GENERATION_STATUS_SYNC_BATCH_SIZE)
+      const batchResults = await Promise.all(
+        batch.map(async (trackedTask) => {
+          if (!isGeneratingTaskStatus(trackedTask.status)) {
+            return { trackedTask, response: null }
+          }
 
-      try {
-        const response = await getRunningArtTaskStatus(trackedTask.taskId)
+          try {
+            const response = await getRunningArtTaskStatus(trackedTask.taskId)
+            return { trackedTask, response }
+          } catch {
+            return { trackedTask, response: null }
+          }
+        }),
+      )
+
+      for (const { trackedTask, response } of batchResults) {
+        if (!response) {
+          syncedTasks.push(trackedTask)
+          continue
+        }
+
         if (response.status === "COMPLETED" && response.resultArtId !== null) {
           completedTaskUpdates.push({ trackedTask, response })
           syncedTasks.push(trackedTask)
@@ -102,8 +119,6 @@ export default function MyPage() {
         }
 
         syncedTasks.push(syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask))
-      } catch {
-        syncedTasks.push(trackedTask)
       }
     }
 
