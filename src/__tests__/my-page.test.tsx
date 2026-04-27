@@ -27,6 +27,7 @@ jest.mock("@/lib/runtime", () => ({
 
 jest.mock("@/services/generation-service", () => ({
   GENERATION_STATUS_POLLING_INTERVAL_MS: 5000,
+  cleanupExpiredTrackedGenerationTasks: jest.fn(() => []),
   getRunningArtTaskStatus: jest.fn(),
   getTrackedGenerationTask: jest.fn(),
   isGeneratingTaskStatus: jest.fn((status: string) => status === "PENDING" || status === "PROCESSING"),

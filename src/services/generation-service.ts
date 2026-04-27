@@ -80,7 +80,11 @@ const isTrackedRunningArtTask = (value: unknown): value is TrackedRunningArtTask
 }
 
 const sortTasks = (tasks: TrackedRunningArtTask[]) =>
-  [...tasks].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+  [...tasks].sort((left, right) => {
+    const leftTime = new Date(left.createdAt).getTime()
+    const rightTime = new Date(right.createdAt).getTime()
+    return (Number.isNaN(rightTime) ? 0 : rightTime) - (Number.isNaN(leftTime) ? 0 : leftTime)
+  })
 
 const shouldRetainTrackedTask = (task: TrackedRunningArtTask, now = Date.now()) => {
   if (task.status !== "FAILED") return true
@@ -91,7 +95,7 @@ const shouldRetainTrackedTask = (task: TrackedRunningArtTask, now = Date.now()) 
   return now - createdAtTime < FAILED_TASK_RETENTION_MS
 }
 
-const readTrackedTasks = (): TrackedRunningArtTask[] => {
+const readStoredTrackedTasks = (): TrackedRunningArtTask[] => {
   if (!isBrowser()) return []
 
   try {
@@ -101,18 +105,14 @@ const readTrackedTasks = (): TrackedRunningArtTask[] => {
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
 
-    const trackedTasks = parsed.filter(isTrackedRunningArtTask)
-    const retainedTasks = trackedTasks.filter((task) => shouldRetainTrackedTask(task))
-
-    if (retainedTasks.length !== trackedTasks.length) {
-      writeTrackedTasks(retainedTasks)
-    }
-
-    return sortTasks(retainedTasks)
+    return sortTasks(parsed.filter(isTrackedRunningArtTask))
   } catch {
     return []
   }
 }
+
+const readRetainedTrackedTasks = () =>
+  sortTasks(readStoredTrackedTasks().filter((task) => shouldRetainTrackedTask(task)))
 
 const writeTrackedTasks = (tasks: TrackedRunningArtTask[]) => {
   if (!isBrowser()) return
@@ -128,7 +128,7 @@ const toTrackedTask = (
   startPosition: previous?.startPosition ?? "",
   shape: previous?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
   proficiency: previous?.proficiency ?? DEFAULT_PROFICIENCY,
-  createdAt: previous?.createdAt ?? new Date().toISOString(),
+  createdAt: previous?.createdAt ?? "",
   status: statusResponse.status,
   resultArtId: statusResponse.resultArtId,
   errorMessage: statusResponse.errorMessage,
@@ -219,22 +219,33 @@ const parseSseNotification = (payload: string): RunningArtTaskSseNotification | 
 }
 
 export function listTrackedGenerationTasks(): TrackedRunningArtTask[] {
-  return readTrackedTasks()
+  return readRetainedTrackedTasks()
 }
 
 export function getTrackedGenerationTask(taskId: string): TrackedRunningArtTask | null {
-  return readTrackedTasks().find((task) => task.taskId === taskId) ?? null
+  return readRetainedTrackedTasks().find((task) => task.taskId === taskId) ?? null
 }
 
 export function upsertTrackedGenerationTask(task: TrackedRunningArtTask): TrackedRunningArtTask {
-  const nextTasks = readTrackedTasks().filter((candidate) => candidate.taskId !== task.taskId)
+  const nextTasks = readRetainedTrackedTasks().filter((candidate) => candidate.taskId !== task.taskId)
   nextTasks.unshift(task)
   writeTrackedTasks(nextTasks)
   return task
 }
 
 export function removeTrackedGenerationTask(taskId: string) {
-  writeTrackedTasks(readTrackedTasks().filter((task) => task.taskId !== taskId))
+  writeTrackedTasks(readStoredTrackedTasks().filter((task) => task.taskId !== taskId))
+}
+
+export function cleanupExpiredTrackedGenerationTasks(): TrackedRunningArtTask[] {
+  const storedTasks = readStoredTrackedTasks()
+  const retainedTasks = storedTasks.filter((task) => shouldRetainTrackedTask(task))
+
+  if (retainedTasks.length !== storedTasks.length) {
+    writeTrackedTasks(retainedTasks)
+  }
+
+  return sortTasks(retainedTasks)
 }
 
 export function syncTrackedGenerationTask(

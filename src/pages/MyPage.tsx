@@ -13,6 +13,7 @@ import { useToast } from "@/context/toast-context"
 import type { Art } from "@/types/art"
 import {
   GENERATION_STATUS_POLLING_INTERVAL_MS,
+  cleanupExpiredTrackedGenerationTasks,
   getRunningArtTaskStatus,
   isGeneratingTaskStatus,
   listTrackedGenerationTasks,
@@ -73,6 +74,7 @@ export default function MyPage() {
   }, [loadArts, user])
 
   const syncTrackedArtStatuses = useCallback(async () => {
+    cleanupExpiredTrackedGenerationTasks()
     const trackedTasks = listTrackedGenerationTasks()
     if (trackedTasks.length === 0) {
       setTrackedArts([])
@@ -84,25 +86,26 @@ export default function MyPage() {
       response: Awaited<ReturnType<typeof getRunningArtTaskStatus>>
     }> = []
 
-    const syncedTasks = await Promise.all(
-      trackedTasks.map(async (trackedTask) => {
-        if (!isGeneratingTaskStatus(trackedTask.status)) {
-          return trackedTask
+    const syncedTasks: Array<(typeof trackedTasks)[number] | null> = []
+    for (const trackedTask of trackedTasks) {
+      if (!isGeneratingTaskStatus(trackedTask.status)) {
+        syncedTasks.push(trackedTask)
+        continue
+      }
+
+      try {
+        const response = await getRunningArtTaskStatus(trackedTask.taskId)
+        if (response.status === "COMPLETED" && response.resultArtId !== null) {
+          completedTaskUpdates.push({ trackedTask, response })
+          syncedTasks.push(trackedTask)
+          continue
         }
 
-        try {
-          const response = await getRunningArtTaskStatus(trackedTask.taskId)
-          if (response.status === "COMPLETED" && response.resultArtId !== null) {
-            completedTaskUpdates.push({ trackedTask, response })
-            return trackedTask
-          }
-
-          return syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
-        } catch {
-          return trackedTask
-        }
-      }),
-    )
+        syncedTasks.push(syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask))
+      } catch {
+        syncedTasks.push(trackedTask)
+      }
+    }
 
     const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 

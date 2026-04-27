@@ -109,7 +109,7 @@ export default function GenerationStatusPage() {
         startPosition: current?.startPosition ?? "",
         shape: current?.shape ?? DEFAULT_TRACKED_TASK_SHAPE,
         proficiency: current?.proficiency ?? DEFAULT_PROFICIENCY,
-        createdAt: current?.createdAt ?? new Date().toISOString(),
+        createdAt: current?.createdAt ?? "",
         status: "FAILED",
         resultArtId: current?.resultArtId ?? null,
         errorMessage: message ?? current?.errorMessage ?? null,
