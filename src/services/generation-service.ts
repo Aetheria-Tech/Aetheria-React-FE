@@ -1,7 +1,7 @@
 import { apiClient } from "@/services/api-client"
-import { getAuthorizedAccessToken, refreshCurrentStoredTokens } from "@/services/auth-session"
+import { buildApiUrl } from "@/services/api-url"
+import { fetchWithAuthRetry } from "@/services/auth-session"
 import { authStorage } from "@/services/auth-storage"
-import { env } from "@/services/env"
 import { unwrapApiResponse } from "@/types/api"
 import type { Art } from "@/types/art"
 import type {
@@ -25,23 +25,6 @@ export const GENERATION_STATUS_POLLING_INTERVAL_MS = 5000
 export const DEFAULT_TRACKED_TASK_SHAPE = "러닝아트"
 
 const isBrowser = () => typeof window !== "undefined"
-const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
-const normalizeApiPath = (baseUrl: string, path: string) => {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`
-  const [, firstPathSegment = ""] = normalizedPath.split("/")
-
-  if (firstPathSegment && baseUrl.endsWith(`/${firstPathSegment}`)) {
-    // base URL이 /api prefix를 이미 포함하는 배포 환경에서는 /api/api 중복을 제거한다.
-    return normalizedPath.slice(firstPathSegment.length + 1)
-  }
-
-  return normalizedPath
-}
-
-const buildApiUrl = (path: string) => {
-  const baseUrl = trimTrailingSlash(env.apiBaseUrl.trim())
-  return baseUrl ? `${baseUrl}${normalizeApiPath(baseUrl, path)}` : path
-}
 
 const getCurrentTrackedTaskUserId = () => {
   if (!isBrowser()) return ""
@@ -126,8 +109,7 @@ const toTrackedTask = (
 
 export const isFinalTaskStatus = (status: RunningArtTaskStatus) => status === "COMPLETED" || status === "FAILED"
 
-export const isGeneratingTaskStatus = (status: RunningArtTaskStatus) =>
-  status === "PENDING" || status === "PROCESSING"
+export const isGeneratingTaskStatus = (status: RunningArtTaskStatus) => status === "PENDING" || status === "PROCESSING"
 
 const resolveFallbackSseEventName = (
   notification: RunningArtTaskSseNotification | null,
@@ -275,7 +257,11 @@ export function syncTrackedGenerationTask(
     return null
   }
 
-  const trackedTask = toTrackedTask(taskId, effectiveResponse, previous ?? getTrackedGenerationTask(taskId) ?? undefined)
+  const trackedTask = toTrackedTask(
+    taskId,
+    effectiveResponse,
+    previous ?? getTrackedGenerationTask(taskId) ?? undefined,
+  )
   return upsertTrackedGenerationTask(trackedTask)
 }
 
@@ -375,33 +361,17 @@ export function subscribeRunningArtTaskEvents(
 
   const startSubscription = async () => {
     try {
-      const requestStream = async (accessToken: string) =>
-        fetch(buildApiUrl(`/api/v1/ai/tasks/${encodeURIComponent(taskId)}/subscribe`), {
+      const response = await fetchWithAuthRetry(
+        buildApiUrl(`/api/v1/ai/tasks/${encodeURIComponent(taskId)}/subscribe`),
+        {
           method: "GET",
           credentials: "include",
           headers: {
             Accept: "text/event-stream",
-            Authorization: `Bearer ${accessToken}`,
           },
           signal: controller.signal,
-        })
-
-      let accessToken = await getAuthorizedAccessToken()
-      if (!accessToken) {
-        throw new Error("Authentication is required to subscribe to task updates.")
-      }
-
-      let response = await requestStream(accessToken)
-
-      if (response.status === 401) {
-        const nextTokens = await refreshCurrentStoredTokens()
-        if (!nextTokens?.accessToken) {
-          throw new Error("Authentication is required to subscribe to task updates.")
-        }
-
-        accessToken = nextTokens.accessToken
-        response = await requestStream(accessToken)
-      }
+        },
+      )
 
       if (!response.ok) {
         throw new Error(`SSE subscription failed with status ${response.status}.`)

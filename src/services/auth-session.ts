@@ -74,3 +74,34 @@ export const getAuthorizedAccessToken = async (): Promise<string | null> => {
   const tokens = await getStoredAuthTokens()
   return tokens?.accessToken ?? null
 }
+
+const buildAuthorizedHeaders = (headers: HeadersInit | undefined, accessToken: string) => {
+  const authorizedHeaders = new Headers(headers)
+  authorizedHeaders.set("Authorization", `Bearer ${accessToken}`)
+  return authorizedHeaders
+}
+
+export const fetchWithAuthRetry = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+  const tokens = await getStoredAuthTokens()
+  if (!tokens?.accessToken) {
+    throw new Error("Authentication is required.")
+  }
+
+  const requestWithToken = (accessToken: string) =>
+    fetch(input, {
+      ...init,
+      credentials: init.credentials ?? "include",
+      headers: buildAuthorizedHeaders(init.headers, accessToken),
+    })
+
+  let response = await requestWithToken(tokens.accessToken)
+  if (response.status !== 401) return response
+
+  const nextTokens = await refreshStoredTokens(tokens)
+  if (!nextTokens?.accessToken) {
+    throw new Error("Authentication is required.")
+  }
+
+  response = await requestWithToken(nextTokens.accessToken)
+  return response
+}

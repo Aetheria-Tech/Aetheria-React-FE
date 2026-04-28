@@ -1,7 +1,6 @@
 import type { AuthTokens } from "@/types/auth"
 
 const REFRESH_BUFFER_MS = 30_000
-const RELATIVE_SECONDS_EXPIRE_IN_MAX = 1_000_000
 
 const decodeJwtPayload = (accessToken: string): Record<string, unknown> | null => {
   const [, payload] = accessToken.split(".")
@@ -19,20 +18,7 @@ const decodeJwtPayload = (accessToken: string): Record<string, unknown> | null =
 
 const resolveExpiresAt = (accessToken: string, expireIn?: number): number | null => {
   if (typeof expireIn === "number" && Number.isFinite(expireIn) && expireIn > 0) {
-    const nowMs = Date.now()
-    const nowSeconds = Math.floor(nowMs / 1000)
-
-    if (expireIn > nowMs - 60_000) {
-      return expireIn
-    }
-
-    if (expireIn > nowSeconds - 60) {
-      return expireIn * 1000
-    }
-
-    // 백엔드/OAuth의 expires_in은 일반적으로 초 단위이므로 짧은 상대 시간은 초로 해석한다.
-    const relativeMs = expireIn < RELATIVE_SECONDS_EXPIRE_IN_MAX ? expireIn * 1000 : expireIn
-    return nowMs + relativeMs
+    return Date.now() + expireIn * 1000
   }
 
   const payload = decodeJwtPayload(accessToken)

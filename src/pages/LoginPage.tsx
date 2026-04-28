@@ -3,21 +3,10 @@ import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import { useToast } from "@/context/toast-context"
 import { redirectTo } from "@/lib/navigation"
+import { buildApiUrl } from "@/services/api-url"
 import { env } from "@/services/env"
 
 type SocialProvider = "kakao" | "google"
-
-const buildLoginApiUrl = (baseUrl: string, path: string) => {
-  const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, "")
-  if (!normalizedBaseUrl) return path
-
-  const normalizedPath = path.replace(/^\/+/, "")
-  const baseAlreadyIncludesApiPrefix = normalizedBaseUrl.endsWith("/api") && normalizedPath.startsWith("api/")
-  const pathWithoutDuplicatedApiPrefix = baseAlreadyIncludesApiPrefix ? normalizedPath.replace(/^api\//, "") : normalizedPath
-
-  // 배포 환경에서 base URL이 하위 경로를 포함해도 OAuth 진입 경로가 루트로 밀리지 않게 직접 결합한다.
-  return `${normalizedBaseUrl}/${pathWithoutDuplicatedApiPrefix}`
-}
 
 export default function LoginPage() {
   const { notify } = useToast()
@@ -26,10 +15,7 @@ export default function LoginPage() {
     if (provider === "google" && env.googleLoginUrl) return env.googleLoginUrl
 
     const defaultPath = `/api/v1/auth/login/${provider}`
-    const baseUrl = env.apiBaseUrl
-    if (!baseUrl) return defaultPath
-
-    return buildLoginApiUrl(baseUrl, defaultPath)
+    return buildApiUrl(defaultPath)
   }
 
   const handleSocialLogin = (provider: SocialProvider) => {
@@ -73,13 +59,7 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
+                <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path
                     d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
                     fill="#4285F4"
@@ -88,10 +68,7 @@ export default function LoginPage() {
                     d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.88-3.02c-1.08.72-2.46 1.15-4.05 1.15-3.12 0-5.77-2.1-6.72-4.93H1.27v3.1A12 12 0 0 0 12 24Z"
                     fill="#34A853"
                   />
-                  <path
-                    d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.27a12 12 0 0 0 0 10.8l4.01-3.1Z"
-                    fill="#FBBC05"
-                  />
+                  <path d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.27a12 12 0 0 0 0 10.8l4.01-3.1Z" fill="#FBBC05" />
                   <path
                     d="M12 4.77c1.76 0 3.34.6 4.58 1.8l3.43-3.43C17.95 1.15 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4.01 3.1C6.23 6.87 8.88 4.77 12 4.77Z"
                     fill="#EA4335"

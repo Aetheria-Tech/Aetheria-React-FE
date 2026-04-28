@@ -1,6 +1,6 @@
 import { waitFor } from "@testing-library/react"
 import { authStorage } from "@/services/auth-storage"
-import { getAuthorizedAccessToken } from "@/services/auth-session"
+import { fetchWithAuthRetry } from "@/services/auth-session"
 import {
   getTrackedGenerationTask,
   listTrackedGenerationTasks,
@@ -30,14 +30,16 @@ jest.mock("@/services/api-client", () => ({
 }))
 
 jest.mock("@/services/auth-session", () => ({
-  getAuthorizedAccessToken: jest.fn(),
-  refreshCurrentStoredTokens: jest.fn(),
+  fetchWithAuthRetry: jest.fn(),
 }))
 
-const mockedGetAuthorizedAccessToken = getAuthorizedAccessToken as jest.MockedFunction<typeof getAuthorizedAccessToken>
-const originalFetch = globalThis.fetch
+const mockedFetchWithAuthRetry = fetchWithAuthRetry as jest.MockedFunction<typeof fetchWithAuthRetry>
 
-const makeTask = (taskId: string, userId: string, status: RunningArtTaskStatus = "PROCESSING"): TrackedRunningArtTask => ({
+const makeTask = (
+  taskId: string,
+  userId: string,
+  status: RunningArtTaskStatus = "PROCESSING",
+): TrackedRunningArtTask => ({
   taskId,
   userId,
   startPosition: "Seoul",
@@ -61,13 +63,8 @@ describe("generation-service tracked tasks", () => {
   beforeEach(() => {
     localStorage.clear()
     delete process.env.VITE_API_BASE_URL
-    mockedGetAuthorizedAccessToken.mockReset()
+    mockedFetchWithAuthRetry.mockReset()
     jest.restoreAllMocks()
-    if (originalFetch) {
-      globalThis.fetch = originalFetch
-    } else {
-      delete (globalThis as { fetch?: typeof fetch }).fetch
-    }
   })
 
   it("returns only tasks owned by the current stored user", () => {
@@ -92,10 +89,9 @@ describe("generation-service tracked tasks", () => {
 
   it("does not duplicate the api prefix when subscribing to task SSE", async () => {
     process.env.VITE_API_BASE_URL = "https://example.com/api"
-    mockedGetAuthorizedAccessToken.mockResolvedValue("access-token")
 
     const read = jest.fn().mockResolvedValue({ done: true })
-    const fetchMock = jest.fn().mockResolvedValue({
+    mockedFetchWithAuthRetry.mockResolvedValue({
       ok: true,
       status: 200,
       headers: {
@@ -104,13 +100,12 @@ describe("generation-service tracked tasks", () => {
       body: {
         getReader: () => ({ read }),
       },
-    })
-    globalThis.fetch = fetchMock as unknown as typeof fetch
+    } as unknown as Response)
 
     const subscription = subscribeRunningArtTaskEvents("task-1", {})
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(mockedFetchWithAuthRetry).toHaveBeenCalledWith(
         "https://example.com/api/v1/ai/tasks/task-1/subscribe",
         expect.any(Object),
       )

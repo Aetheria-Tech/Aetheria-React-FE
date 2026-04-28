@@ -1,42 +1,44 @@
-language: "ko"        # 2글자 코드
+language: "ko"
 early_access: false
 
 reviews:
   profile: "chill"
-  request_changes_workflow: true   # 리뷰에 코드에 Comment를 달도록 함
-  high_level_summary: true         # PR에 대해 요약(요지문)
+  request_changes_workflow: true
+  high_level_summary: true
   poem: false
-  review_status: false             # 상태 메시지 비활성화
+  review_status: false
   collapse_walkthrough: false
   auto_review:
     enabled: true
     drafts: false
   base_branches:
-    - ".*"  # 모든 브랜치(master, main, feature/* 등)를 대상으로 하는 PR을 리뷰합니다.
+    - ".*"
 
   path_instructions:
-    - path: "src/main/java/**/*.java"
-      instructions: "SOLID 원칙, 스프링 어노테이션, 의존성 주입 패턴, 예외 처리에 중점을 둔다"
-    - path: "src/test/**/*.java"
-      instructions: "테스트 커버리지, 스프링 테스트 어노테이션, mock 사용법, 네이밍 규칙을 확인한다"
-    - path: "**/*.{yml,yaml,properties}"
-      instructions: "스프링 설정, 보안 설정, DB 연결, 환경 설정을 검증한다"
+    - path: "src/pages/**/*.{ts,tsx}"
+      instructions: "라우트 단위 상태와 화면 전환만 담당하는지, 서비스 호출 결과를 화면 흐름에 맞게 조합하는지 확인한다."
+    - path: "src/components/**/*.{ts,tsx}"
+      instructions: "재사용 가능한 props 기반 UI인지, 라우팅/인증/API 호출 같은 전역 흐름이 과도하게 섞이지 않았는지 확인한다."
+    - path: "src/services/**/*.ts"
+      instructions: "API 계약, 인증 세션, 토큰 갱신, 브라우저 저장소 접근 책임이 명확한지 확인한다. 백엔드에 없는 endpoint나 응답 필드를 추측하지 않는다."
+    - path: "src/hooks/**/*.ts"
+      instructions: "React 상태와 서비스 호출 조합이 명확한지, cleanup과 stale callback 방지가 충분한지 확인한다."
+    - path: "src/lib/**/*.ts"
+      instructions: "React에 의존하지 않는 순수 유틸리티인지, 사이드 이펙트가 불필요하게 섞이지 않았는지 확인한다."
+    - path: "src/__tests__/**/*.{ts,tsx}"
+      instructions: "사용자 흐름, API 매핑, 라우팅, 실패/로딩 상태를 검증하는지 확인한다. 테스트 삭제로 통과시키지 않는다."
+    - path: "**/*.{yml,yaml,json,js,cjs,ts}"
+      instructions: "프론트엔드 빌드, 테스트, lint 설정과 환경 변수 사용이 프로젝트 구조에 맞는지 확인한다."
 
   path_filters:
-    - "!**/build/**"
-    - "!**/.gradle/**"
-    - "!**/gradle/wrapper/**"
-    - "!**/gradlew*"
-    - "!**/out/**"
-    - "!**/*.class"
-    - "!**/*.jar"
-    - "!**/*.war"
+    - "!**/dist/**"
     - "!**/node_modules/**"
+    - "!**/coverage/**"
 
 chat:
   auto_reply: true
 
-tone_instructions: "스프링 모범 사례, SOLID 원칙, 성능 최적화, 보안 관련 사항, 적절한 JPA 사용법, 자바 코딩 표준을 강조한다"
+tone_instructions: "React, TypeScript, Vite, TailwindCSS 기반 프론트엔드 코드 기준으로 API 계약 준수, 사용자 흐름 안정성, 인증/토큰 처리, 테스트 가능성을 중점적으로 검토한다."
 
 knowledge_base:
   opt_out: false
@@ -47,4 +49,4 @@ knowledge_base:
 
 code_generation:
   docstrings:
-    language: "ko-KR"  # 코드에 자동으로 작성할 설명 주석의 언어
+    language: "ko-KR"

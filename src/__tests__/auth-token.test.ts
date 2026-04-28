@@ -2,10 +2,7 @@ import { authStorage } from "@/services/auth-storage"
 import { buildAuthTokens, shouldRefreshAccessToken } from "@/services/auth-token"
 
 const createJwt = (payload: Record<string, unknown>) => {
-  const encodedPayload = btoa(JSON.stringify(payload))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "")
+  const encodedPayload = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
   return `header.${encodedPayload}.signature`
 }
 
@@ -14,25 +11,22 @@ describe("auth token helpers", () => {
     localStorage.clear()
   })
 
-  it("stores expiresAt when the backend returns expireIn as an absolute timestamp", () => {
-    const expiresAt = Date.now() + 15 * 60 * 1000
-
-    const tokens = buildAuthTokens("access-token", "cookie", expiresAt)
-
-    expect(tokens.expiresAt).toBe(expiresAt)
-  })
-
-  it("treats short expireIn values as relative seconds", () => {
+  it("stores expiresAt when the backend returns expireIn as relative seconds", () => {
     const now = new Date("2026-04-29T00:00:00.000Z").getTime()
     const dateNowSpy = jest.spyOn(Date, "now").mockReturnValue(now)
 
     try {
-      const tokens = buildAuthTokens("access-token", "cookie", 3600)
+      const tokens = buildAuthTokens("access-token", "cookie", 15 * 60)
 
-      expect(tokens.expiresAt).toBe(now + 3600 * 1000)
+      expect(tokens.expiresAt).toBe(now + 15 * 60 * 1000)
     } finally {
       dateNowSpy.mockRestore()
     }
+  })
+
+  it("falls back when expireIn is missing or invalid", () => {
+    expect(buildAuthTokens("access-token", "cookie").expiresAt).toBeUndefined()
+    expect(buildAuthTokens("access-token", "cookie", 0).expiresAt).toBeUndefined()
   })
 
   it("derives expiresAt from the JWT exp claim for legacy stored tokens", () => {
