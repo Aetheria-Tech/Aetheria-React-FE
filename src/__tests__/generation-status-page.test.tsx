@@ -32,7 +32,7 @@ jest.mock("@/services/generation-service", () => ({
         startPosition: previous?.startPosition ?? "서울시청",
         shape: previous?.shape ?? "HEART",
         proficiency: previous?.proficiency ?? "BEGINNER",
-        createdAt: previous?.createdAt ?? new Date(0).toISOString(),
+        createdAt: previous?.createdAt ?? "",
         status: response.status === "COMPLETED" && response.resultArtId === null ? "PROCESSING" : response.status,
         resultArtId: response.resultArtId ?? null,
         errorMessage: response.errorMessage ?? null,
@@ -102,6 +102,35 @@ describe("GenerationStatusPage", () => {
 
     expect(await screen.findByText("생성에 실패했습니다")).toBeInTheDocument()
     expect(screen.getByText("모델 오류")).toBeInTheDocument()
+  })
+
+  it("shows a pending label when the task created time is unknown", async () => {
+    ;(getTrackedGenerationTask as jest.Mock).mockReturnValue({
+      taskId: "task-1",
+      userId: "user-1",
+      startPosition: "Seoul Station",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      createdAt: "   ",
+      status: "PENDING",
+      resultArtId: null,
+      errorMessage: null,
+    })
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
+      taskId: "task-1",
+      status: "PROCESSING",
+      resultArtId: null,
+      errorMessage: null,
+    })
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/tasks/:taskId" element={<GenerationStatusPage />} />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    expect(await screen.findByText("확인 중")).toBeInTheDocument()
   })
 
   it("resets stale state when navigating between task ids", async () => {

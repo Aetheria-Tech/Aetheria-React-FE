@@ -50,7 +50,10 @@ const getSseResultArtId = (notification: RunningArtTaskSseNotification | null) =
   return Number.isSafeInteger(resultArtId) && resultArtId >= 0 ? resultArtId : null
 }
 
-const getCreatedAtLabel = (createdAt: string | null | undefined) => formatDateTime(createdAt?.trim() ?? "")
+const getCreatedAtLabel = (createdAt: string | null | undefined) => {
+  const trimmed = createdAt?.trim()
+  return trimmed ? formatDateTime(trimmed) : "확인 중"
+}
 
 function LoadingMotion() {
   return (
@@ -179,13 +182,23 @@ export default function GenerationStatusPage() {
         },
         taskRef.current ?? undefined,
       )
+      const visibleCompletedTask =
+        completedTask ??
+        (taskRef.current
+          ? {
+              ...taskRef.current,
+              status: "COMPLETED" as const,
+              resultArtId,
+              errorMessage: null,
+            }
+          : null)
 
       navigateOnceRef.current = true
       closeSseSubscription()
       stopPolling()
-      taskRef.current = completedTask
+      taskRef.current = visibleCompletedTask
       statusRef.current = "COMPLETED"
-      setTask(completedTask)
+      setTask(visibleCompletedTask)
       setStatus("COMPLETED")
       setSyncError(null)
       setIsChecking(false)
