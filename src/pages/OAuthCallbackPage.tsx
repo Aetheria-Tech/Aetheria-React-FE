@@ -13,6 +13,18 @@ const isSocialProvider = (value: string | undefined): value is SocialProvider =>
   value === "kakao" || value === "google"
 
 const oauthCompletionRequests = new Map<string, Promise<Awaited<ReturnType<typeof completeOAuthLogin>>>>()
+const SUCCESSFUL_OAUTH_REQUEST_CLEANUP_DELAY_MS = 100
+
+const scheduleOAuthCompletionRequestCleanup = (
+  attemptKey: string,
+  completionRequest: Promise<Awaited<ReturnType<typeof completeOAuthLogin>>>,
+) => {
+  setTimeout(() => {
+    if (oauthCompletionRequests.get(attemptKey) === completionRequest) {
+      oauthCompletionRequests.delete(attemptKey)
+    }
+  }, SUCCESSFUL_OAUTH_REQUEST_CLEANUP_DELAY_MS)
+}
 
 const getAccessTokenFromHash = () => {
   const hash = window.location.hash.replace(/^#/, "")
@@ -46,11 +58,14 @@ export default function OAuthCallbackPage() {
     let cancelled = false
 
     const completeLogin = async () => {
+      let completionRequest: Promise<Awaited<ReturnType<typeof completeOAuthLogin>>> | null = null
+      let shouldCleanupAfterStrictModeReplay = false
+
       try {
         // React StrictMode는 개발 환경에서 callback 화면을 mount/unmount/remount 할 수 있으므로
         // 동일한 인가 코드를 사용하는 요청은 한 번만 보내고, remount 된 화면은 같은 Promise를 공유합니다.
         const existingRequest = oauthCompletionRequests.get(attemptKey)
-        const completionRequest =
+        completionRequest =
           existingRequest ??
           (accessToken
             ? completeOAuthLoginWithAccessToken(accessToken)
@@ -61,6 +76,7 @@ export default function OAuthCallbackPage() {
         }
 
         const payload = await completionRequest
+        shouldCleanupAfterStrictModeReplay = true
 
         if (cancelled) {
           return
@@ -76,6 +92,16 @@ export default function OAuthCallbackPage() {
         }
 
         setErrorMessage("로그인 처리에 실패했습니다. 다시 시도해주세요.")
+      } finally {
+        if (!completionRequest) return
+
+        if (shouldCleanupAfterStrictModeReplay) {
+          // 성공 요청은 StrictMode 재실행과 인증 상태 rerender가 같은 Promise를 재사용한 뒤 정리되도록 잠시 늦춘다.
+          scheduleOAuthCompletionRequestCleanup(attemptKey, completionRequest)
+        } else if (oauthCompletionRequests.get(attemptKey) === completionRequest) {
+          // 실패 요청은 사용자가 같은 callback으로 재시도할 수 있도록 즉시 정리한다.
+          oauthCompletionRequests.delete(attemptKey)
+        }
       }
     }
 

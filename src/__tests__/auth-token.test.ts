@@ -22,6 +22,19 @@ describe("auth token helpers", () => {
     expect(tokens.expiresAt).toBe(expiresAt)
   })
 
+  it("treats short expireIn values as relative seconds", () => {
+    const now = new Date("2026-04-29T00:00:00.000Z").getTime()
+    const dateNowSpy = jest.spyOn(Date, "now").mockReturnValue(now)
+
+    try {
+      const tokens = buildAuthTokens("access-token", "cookie", 3600)
+
+      expect(tokens.expiresAt).toBe(now + 3600 * 1000)
+    } finally {
+      dateNowSpy.mockRestore()
+    }
+  })
+
   it("derives expiresAt from the JWT exp claim for legacy stored tokens", () => {
     const jwt = createJwt({
       exp: Math.floor((Date.now() + 10 * 60 * 1000) / 1000),

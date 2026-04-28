@@ -7,6 +7,18 @@ import { env } from "@/services/env"
 
 type SocialProvider = "kakao" | "google"
 
+const buildLoginApiUrl = (baseUrl: string, path: string) => {
+  const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, "")
+  if (!normalizedBaseUrl) return path
+
+  const normalizedPath = path.replace(/^\/+/, "")
+  const baseAlreadyIncludesApiPrefix = normalizedBaseUrl.endsWith("/api") && normalizedPath.startsWith("api/")
+  const pathWithoutDuplicatedApiPrefix = baseAlreadyIncludesApiPrefix ? normalizedPath.replace(/^api\//, "") : normalizedPath
+
+  // 배포 환경에서 base URL이 하위 경로를 포함해도 OAuth 진입 경로가 루트로 밀리지 않게 직접 결합한다.
+  return `${normalizedBaseUrl}/${pathWithoutDuplicatedApiPrefix}`
+}
+
 export default function LoginPage() {
   const { notify } = useToast()
 
@@ -17,12 +29,7 @@ export default function LoginPage() {
     const baseUrl = env.apiBaseUrl
     if (!baseUrl) return defaultPath
 
-    try {
-      return new URL(defaultPath, baseUrl).href
-    } catch (error) {
-      console.error(`${provider} 로그인 URL 생성에 실패했습니다:`, baseUrl, error)
-      return defaultPath
-    }
+    return buildLoginApiUrl(baseUrl, defaultPath)
   }
 
   const handleSocialLogin = (provider: SocialProvider) => {

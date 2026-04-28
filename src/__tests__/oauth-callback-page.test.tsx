@@ -133,6 +133,10 @@ describe("oauth callback page", () => {
       { route: "/auth/callback/kakao?code=shared-code" },
     )
 
+    await waitFor(() => {
+      expect(mockedCompleteOAuthLogin).toHaveBeenCalledTimes(1)
+    })
+
     firstRender.unmount()
 
     renderWithProviders(
@@ -199,5 +203,49 @@ describe("oauth callback page", () => {
     await waitFor(() => {
       expect(screen.getByText("로그인 페이지")).toBeInTheDocument()
     })
+  })
+
+  it("starts a fresh oauth completion request after a failed attempt", async () => {
+    mockedCompleteOAuthLoginWithAccessToken
+      .mockRejectedValueOnce(new Error("oauth-failed"))
+      .mockResolvedValueOnce({
+        user: {
+          id: "user-1",
+          name: "테스트 러너",
+          email: "runner@example.com",
+        },
+        tokens: {
+          accessToken: "retried-access-token",
+          refreshToken: "cookie",
+        },
+      })
+
+    window.history.replaceState({}, "", "/auth/callback/kakao#accessToken=retry-token")
+
+    const firstRender = renderWithProviders(
+      <Routes>
+        <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
+        <Route path="/" element={<div>메인 페이지</div>} />
+        <Route path="/login" element={<div>로그인 페이지</div>} />
+      </Routes>,
+      { route: "/auth/callback/kakao" },
+    )
+
+    expect(await screen.findByText("로그인 처리 실패")).toBeInTheDocument()
+
+    firstRender.unmount()
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/auth/callback/:provider" element={<OAuthCallbackPage />} />
+        <Route path="/" element={<div>메인 페이지</div>} />
+        <Route path="/login" element={<div>로그인 페이지</div>} />
+      </Routes>,
+      { route: "/auth/callback/kakao" },
+    )
+
+    expect(await screen.findByText("메인 페이지")).toBeInTheDocument()
+    expect(mockedCompleteOAuthLoginWithAccessToken).toHaveBeenCalledTimes(2)
+    expect(localStorage.getItem("auth.tokens")).toContain("retried-access-token")
   })
 })

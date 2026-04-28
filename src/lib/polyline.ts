@@ -129,6 +129,6 @@ function parseXmlWithRegex(xml: string): RouteCoordinate[] {
 }
 
 function extractNumericAttribute(attributes: string, name: string): number {
-  const match = attributes.match(new RegExp(`${name}="([^"]+)"`, "i"))
+  const match = attributes.match(new RegExp(`${name}=["']([^"']+)["']`, "i"))
   return match ? Number(match[1]) : Number.NaN
 }

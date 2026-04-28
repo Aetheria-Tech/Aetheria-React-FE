@@ -116,4 +116,20 @@ describe("login flow", () => {
 
     expect(redirectTo).toHaveBeenCalledWith("http://myapi.com/api/v1/auth/login/kakao")
   })
+
+  it("keeps a custom API base path when building a social login URL", async () => {
+    const user = userEvent.setup()
+    process.env.VITE_API_BASE_URL = "http://myapi.com/backend"
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>,
+      { route: "/login" },
+    )
+
+    await user.click(screen.getByRole("button", { name: /카카오로 로그인/i }))
+
+    expect(redirectTo).toHaveBeenCalledWith("http://myapi.com/backend/api/v1/auth/login/kakao")
+  })
 })
