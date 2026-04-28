@@ -357,7 +357,7 @@ export default function GenerationStatusPage() {
       const response = await syncTaskStatus()
       if (disposed || !isActiveTask() || navigateOnceRef.current) return
 
-      const shouldSubscribe = response ? isGeneratingTaskStatus(normalizeTaskStatus(response)) : true
+      const shouldSubscribe = response === null || isGeneratingTaskStatus(normalizeTaskStatus(response))
 
       if (shouldSubscribe) {
         openSseSubscription()

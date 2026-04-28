@@ -362,7 +362,7 @@ export function subscribeRunningArtTaskEvents(
     }
   }
 
-  void (async () => {
+  const startSubscription = async () => {
     try {
       const requestStream = async (accessToken: string) =>
         fetch(buildApiUrl(`/api/v1/ai/tasks/${encodeURIComponent(taskId)}/subscribe`), {
@@ -405,7 +405,9 @@ export function subscribeRunningArtTaskEvents(
       if (closed || controller.signal.aborted) return
       handlers.onError?.(error instanceof Error ? error : new Error("Failed to subscribe to task updates."))
     }
-  })()
+  }
+
+  void startSubscription()
 
   return {
     close: () => {

@@ -202,6 +202,19 @@ describe("GenerationStatusPage", () => {
     expect(close).toHaveBeenCalledTimes(1)
   })
 
+  it("still subscribes to SSE when the initial status fetch fails", async () => {
+    ;(getRunningArtTaskStatus as jest.Mock).mockRejectedValue(new Error("status unavailable"))
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/tasks/:taskId" element={<GenerationStatusPage />} />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    await waitFor(() => expect(subscribeRunningArtTaskEvents).toHaveBeenCalledTimes(1))
+  })
+
   it("uses the configured SSE connect timeout before switching to polling", async () => {
     process.env.VITE_GENERATION_SSE_CONNECT_TIMEOUT_MS = "12000"
     const setTimeoutSpy = jest.spyOn(window, "setTimeout")
