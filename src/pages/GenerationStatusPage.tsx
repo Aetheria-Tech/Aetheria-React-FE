@@ -63,6 +63,7 @@ export default function GenerationStatusPage() {
   const navigate = useNavigate()
   const navigateOnceRef = useRef(false)
   const failureCountRef = useRef(0)
+  const activeTaskIdRef = useRef(taskId ?? null)
   const sseSubscriptionRef = useRef<RunningArtTaskSseSubscription | null>(null)
   const pollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sseConnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -105,9 +106,29 @@ export default function GenerationStatusPage() {
     sseSubscriptionRef.current = null
   }, [clearSseConnectTimeout])
 
+  const isActiveTask = useCallback(() => Boolean(taskId && activeTaskIdRef.current === taskId), [taskId])
+
+  useEffect(() => {
+    activeTaskIdRef.current = taskId ?? null
+    navigateOnceRef.current = false
+    failureCountRef.current = 0
+    closeSseSubscription()
+    stopPolling()
+
+    const nextTask = taskId ? getTrackedGenerationTask(taskId) : null
+    const nextStatus = nextTask?.status ?? null
+
+    taskRef.current = nextTask
+    statusRef.current = nextStatus
+    setTask(nextTask)
+    setStatus(nextStatus)
+    setSyncError(null)
+    setIsChecking(Boolean(taskId))
+  }, [closeSseSubscription, stopPolling, taskId])
+
   const updateFailedTask = useCallback(
     (message: string | null) => {
-      if (!taskId) return
+      if (!taskId || !isActiveTask()) return
 
       const current = taskRef.current
       const nextTask: TrackedRunningArtTask = {
@@ -130,14 +151,16 @@ export default function GenerationStatusPage() {
       taskRef.current = storedTask
       statusRef.current = "FAILED"
     },
-    [taskId],
+    [isActiveTask, taskId],
   )
 
   const syncTaskStatus = useCallback(async (): Promise<RunningArtTaskStatusResponse | null> => {
-    if (!taskId || navigateOnceRef.current) return null
+    if (!taskId || !isActiveTask() || navigateOnceRef.current) return null
 
     try {
       const response = await getRunningArtTaskStatus(taskId)
+      if (!isActiveTask() || navigateOnceRef.current) return null
+
       const nextStatus = normalizeTaskStatus(response)
       const previousTask = taskRef.current ?? undefined
       const nextTask = syncTrackedGenerationTask(taskId, response, previousTask)
@@ -165,6 +188,8 @@ export default function GenerationStatusPage() {
 
       return response
     } catch {
+      if (!isActiveTask()) return null
+
       failureCountRef.current += 1
       setIsChecking(false)
 
@@ -174,11 +199,11 @@ export default function GenerationStatusPage() {
 
       return null
     }
-  }, [closeSseSubscription, navigate, stopPolling, taskId])
+  }, [closeSseSubscription, isActiveTask, navigate, stopPolling, taskId])
 
   const startPollingFallback = useCallback(
     (message?: string) => {
-      if (navigateOnceRef.current || pollingTimeoutRef.current !== null) return
+      if (!isActiveTask() || navigateOnceRef.current || pollingTimeoutRef.current !== null) return
 
       closeSseSubscription()
 
@@ -204,11 +229,11 @@ export default function GenerationStatusPage() {
 
       pollingTimeoutRef.current = setTimeout(pollOnce, GENERATION_STATUS_POLLING_INTERVAL_MS)
     },
-    [closeSseSubscription, stopPolling, syncTaskStatus],
+    [closeSseSubscription, isActiveTask, stopPolling, syncTaskStatus],
   )
 
   const openSseSubscription = useCallback(() => {
-    if (!taskId || sseSubscriptionRef.current || navigateOnceRef.current) return
+    if (!taskId || !isActiveTask() || sseSubscriptionRef.current || navigateOnceRef.current) return
 
     sseConnectTimeoutRef.current = setTimeout(() => {
       startPollingFallback("실시간 연결을 확인하지 못해 상태 조회로 전환했습니다.")
@@ -216,11 +241,15 @@ export default function GenerationStatusPage() {
 
     sseSubscriptionRef.current = subscribeRunningArtTaskEvents(taskId, {
       onConnect: () => {
+        if (!isActiveTask()) return
+
         clearSseConnectTimeout()
         stopPolling()
         setSyncError(null)
       },
       onCompleted: () => {
+        if (!isActiveTask()) return
+
         clearSseConnectTimeout()
         closeSseSubscription()
 
@@ -231,6 +260,8 @@ export default function GenerationStatusPage() {
         })
       },
       onFailed: (notification) => {
+        if (!isActiveTask()) return
+
         clearSseConnectTimeout()
         closeSseSubscription()
         stopPolling()
@@ -243,13 +274,14 @@ export default function GenerationStatusPage() {
         })
       },
       onError: () => {
-        if (navigateOnceRef.current || statusRef.current === "FAILED") return
+        if (!isActiveTask() || navigateOnceRef.current || statusRef.current === "FAILED") return
         startPollingFallback("실시간 연결이 불안정해 상태를 다시 확인 중입니다.")
       },
     })
   }, [
     clearSseConnectTimeout,
     closeSseSubscription,
+    isActiveTask,
     startPollingFallback,
     stopPolling,
     syncTaskStatus,
@@ -268,7 +300,7 @@ export default function GenerationStatusPage() {
 
     const initialize = async () => {
       const response = await syncTaskStatus()
-      if (disposed || navigateOnceRef.current) return
+      if (disposed || !isActiveTask() || navigateOnceRef.current) return
 
       const shouldSubscribe = response ? isGeneratingTaskStatus(normalizeTaskStatus(response)) : true
 
@@ -284,7 +316,7 @@ export default function GenerationStatusPage() {
       closeSseSubscription()
       stopPolling()
     }
-  }, [closeSseSubscription, openSseSubscription, stopPolling, syncTaskStatus, taskId])
+  }, [closeSseSubscription, isActiveTask, openSseSubscription, stopPolling, syncTaskStatus, taskId])
 
   const heading = useMemo(() => {
     if (status === "FAILED") return "생성에 실패했습니다"
@@ -319,7 +351,7 @@ export default function GenerationStatusPage() {
 
           <section className="rounded-3xl border border-white/20 bg-black/35 p-6 shadow-2xl backdrop-blur-md sm:p-8">
             <div className="text-center">
-              <p className="text-sm font-semibold text-[#80e87a]">Running Art Task</p>
+              <p className="text-sm font-semibold text-brand">Running Art Task</p>
               <h1 className="mt-3 text-3xl font-black text-white sm:text-4xl">{heading}</h1>
               <p className="mt-3 text-sm text-white/75 sm:text-base">{description}</p>
             </div>
@@ -379,7 +411,7 @@ export default function GenerationStatusPage() {
             {status === "FAILED" && !isChecking && (
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link to="/create">
-                  <Button className="bg-[#80e87a] text-zinc-900 hover:bg-[#9cf397]">다시 생성하기</Button>
+                  <Button className="bg-brand text-zinc-900 hover:bg-brand-hover">다시 생성하기</Button>
                 </Link>
                 <Link to="/mypage">
                   <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15">

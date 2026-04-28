@@ -1,5 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react"
-import { Route, Routes } from "react-router-dom"
+import userEvent from "@testing-library/user-event"
+import { Link, Route, Routes } from "react-router-dom"
 import GenerationStatusPage from "@/pages/GenerationStatusPage"
 import {
   getRunningArtTaskStatus,
@@ -101,6 +102,52 @@ describe("GenerationStatusPage", () => {
 
     expect(await screen.findByText("생성에 실패했습니다")).toBeInTheDocument()
     expect(screen.getByText("모델 오류")).toBeInTheDocument()
+  })
+
+  it("resets stale state when navigating between task ids", async () => {
+    const user = userEvent.setup()
+
+    ;(getTrackedGenerationTask as jest.Mock).mockImplementation((nextTaskId: string) => ({
+      taskId: nextTaskId,
+      userId: "user-1",
+      startPosition: nextTaskId === "task-2" ? "Busan Station" : "Seoul Station",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      createdAt: new Date(0).toISOString(),
+      status: "PENDING",
+      resultArtId: null,
+      errorMessage: null,
+    }))
+    ;(getRunningArtTaskStatus as jest.Mock).mockImplementation((nextTaskId: string) =>
+      Promise.resolve({
+        taskId: nextTaskId,
+        status: nextTaskId === "task-1" ? "FAILED" : "PROCESSING",
+        resultArtId: null,
+        errorMessage: nextTaskId === "task-1" ? "model-error" : null,
+      }),
+    )
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/mypage/tasks/:taskId"
+          element={
+            <>
+              <Link to="/mypage/tasks/task-2">open task 2</Link>
+              <GenerationStatusPage />
+            </>
+          }
+        />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    expect(await screen.findByText("model-error")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("link", { name: "open task 2" }))
+
+    expect(await screen.findByText("Busan Station")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("model-error")).not.toBeInTheDocument())
   })
 
   it("subscribes to SSE and cleans up on unmount", async () => {

@@ -216,7 +216,7 @@ export default function CreatePage() {
                   <Button
                     onClick={handleGenerate}
                     disabled={isLoading}
-                    className="mt-4 w-full rounded-full bg-[#80e87a] py-6 text-base font-black text-zinc-900 hover:bg-[#9cf397]"
+                    className="mt-4 w-full rounded-full bg-brand py-6 text-base font-black text-zinc-900 hover:bg-brand-hover"
                   >
                     {isLoading ? (
                       <>

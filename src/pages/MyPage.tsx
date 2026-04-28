@@ -444,7 +444,7 @@ export default function MyPage() {
                                 {[0, 1, 2].map((index) => (
                                   <span
                                     key={index}
-                                    className="h-2.5 w-2.5 rounded-full bg-[#80e87a] animate-bounce"
+                                    className="h-2.5 w-2.5 rounded-full bg-brand animate-bounce"
                                     style={{ animationDelay: `${index * 120}ms` }}
                                   />
                                 ))}
