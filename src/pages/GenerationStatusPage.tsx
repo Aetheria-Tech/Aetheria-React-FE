@@ -19,6 +19,7 @@ import {
 } from "@/services/generation-service"
 import type {
   RunningArtTaskSseSubscription,
+  RunningArtTaskSseNotification,
   RunningArtTaskStatus,
   RunningArtTaskStatusResponse,
   TrackedRunningArtTask,
@@ -40,6 +41,14 @@ const getGuideMessage = (status: RunningArtTaskStatus | null) => {
 
 const normalizeTaskStatus = (response: RunningArtTaskStatusResponse): RunningArtTaskStatus =>
   response.status === "COMPLETED" && response.resultArtId === null ? "PROCESSING" : response.status
+
+const getSseResultArtId = (notification: RunningArtTaskSseNotification | null) => {
+  const rawResultArtId = notification?.data?.trim()
+  if (!rawResultArtId) return null
+
+  const resultArtId = Number(rawResultArtId)
+  return Number.isSafeInteger(resultArtId) && resultArtId >= 0 ? resultArtId : null
+}
 
 function LoadingMotion() {
   return (
@@ -154,6 +163,36 @@ export default function GenerationStatusPage() {
     [isActiveTask, taskId],
   )
 
+  const completeWithResultArtId = useCallback(
+    (resultArtId: number) => {
+      if (!taskId || !isActiveTask() || navigateOnceRef.current) return false
+
+      const completedTask = syncTrackedGenerationTask(
+        taskId,
+        {
+          taskId,
+          status: "COMPLETED",
+          resultArtId,
+          errorMessage: null,
+        },
+        taskRef.current ?? undefined,
+      )
+
+      navigateOnceRef.current = true
+      closeSseSubscription()
+      stopPolling()
+      taskRef.current = completedTask
+      statusRef.current = "COMPLETED"
+      setTask(completedTask)
+      setStatus("COMPLETED")
+      setSyncError(null)
+      setIsChecking(false)
+      navigate(`/mypage/${resultArtId}`, { replace: true })
+      return true
+    },
+    [closeSseSubscription, isActiveTask, navigate, stopPolling, taskId],
+  )
+
   const syncTaskStatus = useCallback(async (): Promise<RunningArtTaskStatusResponse | null> => {
     if (!taskId || !isActiveTask() || navigateOnceRef.current) return null
 
@@ -179,11 +218,8 @@ export default function GenerationStatusPage() {
         stopPolling()
       }
 
-      if (response.status === "COMPLETED" && response.resultArtId !== null && !navigateOnceRef.current) {
-        navigateOnceRef.current = true
-        closeSseSubscription()
-        stopPolling()
-        navigate(`/mypage/${response.resultArtId}`, { replace: true })
+      if (response.status === "COMPLETED" && response.resultArtId !== null) {
+        completeWithResultArtId(response.resultArtId)
       }
 
       return response
@@ -199,7 +235,7 @@ export default function GenerationStatusPage() {
 
       return null
     }
-  }, [closeSseSubscription, isActiveTask, navigate, stopPolling, taskId])
+  }, [closeSseSubscription, completeWithResultArtId, isActiveTask, stopPolling, taskId])
 
   const startPollingFallback = useCallback(
     (message?: string) => {
@@ -247,8 +283,11 @@ export default function GenerationStatusPage() {
         stopPolling()
         setSyncError(null)
       },
-      onCompleted: () => {
+      onCompleted: (notification) => {
         if (!isActiveTask()) return
+
+        const resultArtId = getSseResultArtId(notification)
+        if (resultArtId !== null && completeWithResultArtId(resultArtId)) return
 
         clearSseConnectTimeout()
         closeSseSubscription()
@@ -281,6 +320,7 @@ export default function GenerationStatusPage() {
   }, [
     clearSseConnectTimeout,
     closeSseSubscription,
+    completeWithResultArtId,
     isActiveTask,
     startPollingFallback,
     stopPolling,

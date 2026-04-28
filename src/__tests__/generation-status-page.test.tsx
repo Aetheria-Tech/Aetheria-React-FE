@@ -233,7 +233,44 @@ describe("GenerationStatusPage", () => {
     setTimeoutSpy.mockRestore()
   })
 
-  it("refetches status and navigates when the completed SSE event arrives", async () => {
+  it("uses the completed SSE data as the result art id", async () => {
+    let handlersRef: RunningArtTaskSseHandlers | undefined
+
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValueOnce({
+      taskId: "task-1",
+      status: "PROCESSING",
+      resultArtId: null,
+      errorMessage: null,
+    })
+
+    ;(subscribeRunningArtTaskEvents as jest.Mock).mockImplementation((_taskId: string, handlers: RunningArtTaskSseHandlers) => {
+      handlersRef = handlers
+      return { close: jest.fn() }
+    })
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/tasks/:taskId" element={<GenerationStatusPage />} />
+        <Route path="/mypage/:id" element={<div>상세 페이지</div>} />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    await waitFor(() => expect(subscribeRunningArtTaskEvents).toHaveBeenCalledTimes(1))
+    act(() => {
+      handlersRef?.onCompleted?.({
+        taskId: "task-1",
+        status: "COMPLETED",
+        message: "AI 생성이 완료되었습니다.",
+        data: "42",
+      })
+    })
+
+    expect(await screen.findByText("상세 페이지")).toBeInTheDocument()
+    expect(getRunningArtTaskStatus).toHaveBeenCalledTimes(1)
+  })
+
+  it("falls back to status refetch when the completed SSE data is not a valid art id", async () => {
     let handlersRef: RunningArtTaskSseHandlers | undefined
 
     ;(getRunningArtTaskStatus as jest.Mock)
@@ -264,14 +301,17 @@ describe("GenerationStatusPage", () => {
     )
 
     await waitFor(() => expect(subscribeRunningArtTaskEvents).toHaveBeenCalledTimes(1))
-    handlersRef?.onCompleted?.({
-      taskId: "task-1",
-      status: "COMPLETED",
-      message: "AI 생성이 완료되었습니다.",
-      data: "s3://mock-bucket/dummy-result.png",
+    act(() => {
+      handlersRef?.onCompleted?.({
+        taskId: "task-1",
+        status: "COMPLETED",
+        message: "AI 생성이 완료되었습니다.",
+        data: "s3://mock-bucket/dummy-result.png",
+      })
     })
 
     expect(await screen.findByText("상세 페이지")).toBeInTheDocument()
+    expect(getRunningArtTaskStatus).toHaveBeenCalledTimes(2)
   })
   it("uses the failed SSE message when the status endpoint has not caught up yet", async () => {
     let handlersRef: RunningArtTaskSseHandlers | undefined
