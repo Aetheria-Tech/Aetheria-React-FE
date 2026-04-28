@@ -39,4 +39,3 @@ describe("toArtFromRunningArt", () => {
     expect(result.createdAt).toBe("")
   })
 })
-
