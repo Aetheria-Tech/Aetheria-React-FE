@@ -270,6 +270,7 @@ export function syncTrackedGenerationTask(
 
 export function toTrackedGenerationArt(task: TrackedRunningArtTask): Art {
   const isFailed = task.status === "FAILED"
+  const generationState = isFailed ? "FAILED" : task.status === "COMPLETED" ? "COMPLETED" : "GENERATING"
 
   return {
     id: `task:${task.taskId}`,
@@ -284,7 +285,7 @@ export function toTrackedGenerationArt(task: TrackedRunningArtTask): Art {
     createdAt: task.createdAt,
     ownerId: "",
     startAddress: task.startPosition,
-    generationState: isFailed ? "FAILED" : "GENERATING",
+    generationState,
     taskId: task.taskId,
     generationErrorMessage: task.errorMessage,
     isGenerationTask: true,

@@ -2,9 +2,10 @@ import { authStorage } from "@/services/auth-storage"
 import {
   getTrackedGenerationTask,
   listTrackedGenerationTasks,
+  toTrackedGenerationArt,
   upsertTrackedGenerationTask,
 } from "@/services/generation-service"
-import type { TrackedRunningArtTask } from "@/types/generation"
+import type { RunningArtTaskStatus, TrackedRunningArtTask } from "@/types/generation"
 
 jest.mock("@/services/env", () => ({
   env: {
@@ -28,14 +29,14 @@ jest.mock("@/services/auth-session", () => ({
   refreshCurrentStoredTokens: jest.fn(),
 }))
 
-const makeTask = (taskId: string, userId: string): TrackedRunningArtTask => ({
+const makeTask = (taskId: string, userId: string, status: RunningArtTaskStatus = "PROCESSING"): TrackedRunningArtTask => ({
   taskId,
   userId,
   startPosition: "Seoul",
   shape: "HEART",
   proficiency: "BEGINNER",
   createdAt: new Date(0).toISOString(),
-  status: "PROCESSING",
+  status,
   resultArtId: null,
   errorMessage: null,
 })
@@ -67,5 +68,9 @@ describe("generation-service tracked tasks", () => {
 
     expect(listTrackedGenerationTasks().map((task) => task.taskId)).toEqual(["task-1"])
     expect(getTrackedGenerationTask("task-1")?.userId).toBe("user-1")
+  })
+
+  it("maps completed tracked tasks to completed generation state", () => {
+    expect(toTrackedGenerationArt(makeTask("task-1", "user-1", "COMPLETED")).generationState).toBe("COMPLETED")
   })
 })
