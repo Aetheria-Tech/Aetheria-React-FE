@@ -3,8 +3,10 @@ import { apiClient } from "@/services/api-client"
 import { authStorage } from "@/services/auth-storage"
 import { buildAuthTokens } from "@/services/auth-token"
 import { env } from "@/services/env"
-import type { AuthPayload, AuthTokens, User } from "@/types/auth"
+import type { AuthPayload, User } from "@/types/auth"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
+
+export { refreshTokens } from "@/services/auth-session"
 
 interface AccessTokenResponse {
   accessToken: string
@@ -44,16 +46,6 @@ const mapUserProfile = (data: UserProfileResponse): User => {
     statusMessage: data.statusMessage?.trim() || "",
     profileImage: undefined,
   }
-}
-
-export async function refreshTokens(accessToken: string): Promise<AuthTokens> {
-  const response = await authClient.post("/api/v1/auth/reissue", undefined, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-  const data = unwrapApiResponse<AccessTokenResponse>(response.data)
-  return buildAuthTokens(data.accessToken, "cookie", data.expireIn)
 }
 
 export async function exchangeOAuthCode(provider: "kakao" | "google", code: string): Promise<AccessTokenResponse> {

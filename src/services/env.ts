@@ -1,4 +1,19 @@
-﻿const resolveEnv = () => (typeof process !== "undefined" ? process.env : {})
+type RuntimeEnv = Partial<Record<keyof ImportMetaEnv, string>>
+
+type GlobalWithProcessEnv = typeof globalThis & {
+  process?: {
+    env?: RuntimeEnv
+  }
+}
+
+const resolveEnv = (): RuntimeEnv => {
+  const processEnv = (globalThis as GlobalWithProcessEnv).process?.env ?? {}
+
+  return {
+    ...import.meta.env,
+    ...processEnv,
+  }
+}
 
 export const env = {
   get apiBaseUrl() {
@@ -18,5 +33,8 @@ export const env = {
   },
   get useMockApi() {
     return resolveEnv().VITE_USE_MOCK_API ?? ""
+  },
+  get generationSseConnectTimeoutMs() {
+    return resolveEnv().VITE_GENERATION_SSE_CONNECT_TIMEOUT_MS ?? ""
   },
 }

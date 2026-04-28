@@ -23,6 +23,11 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        brand: {
+          DEFAULT: "#80e87a",
+          hover: "#9cf397",
+          surface: "#8cf08a",
+        },
         "sidebar": "var(--sidebar)",
         "sidebar-foreground": "var(--sidebar-foreground)",
         "sidebar-primary": "var(--sidebar-primary)",

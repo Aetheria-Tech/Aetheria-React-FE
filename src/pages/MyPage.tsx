@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Edit2, Mail, MessageSquareText, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
@@ -10,12 +10,49 @@ import { useMyArts } from "@/hooks/use-my-arts"
 import { formatDate, formatDistance } from "@/lib/formatters"
 import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { useToast } from "@/context/toast-context"
+import type { Art } from "@/types/art"
+import {
+  GENERATION_STATUS_POLLING_INTERVAL_MS,
+  cleanupExpiredTrackedGenerationTasks,
+  getRunningArtTaskStatus,
+  isGeneratingTaskStatus,
+  listTrackedGenerationTasks,
+  syncTrackedGenerationTask,
+  toTrackedGenerationArt,
+} from "@/services/generation-service"
+
+const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
+const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
+
+const getArtworkStatus = (artwork: Art) => {
+  if (artwork.generationState === "FAILED") {
+    return {
+      label: "생성 실패",
+      className: "border-rose-300/20 bg-rose-500/15 text-rose-100",
+    }
+  }
+
+  if (artwork.isGenerationTask) {
+    return {
+      label: "생성 중",
+      className: "border-amber-300/20 bg-amber-400/15 text-amber-100",
+    }
+  }
+
+  return {
+    label: "생성 완료",
+    className: "border-emerald-300/20 bg-emerald-400/15 text-emerald-100",
+  }
+}
 
 export default function MyPage() {
   const { user, logout, updateUser } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
+  const [trackedArts, setTrackedArts] = useState<Art[]>([])
+  const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const taskRefreshErrorNotifiedAtRef = useRef(0)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
@@ -39,6 +76,108 @@ export default function MyPage() {
   useEffect(() => {
     loadArts({ includeSample: Boolean(user) }).catch(() => undefined)
   }, [loadArts, user])
+
+  const syncTrackedArtStatuses = useCallback(async () => {
+    cleanupExpiredTrackedGenerationTasks()
+    const trackedTasks = listTrackedGenerationTasks()
+    if (trackedTasks.length === 0) {
+      setTrackedArts([])
+      return
+    }
+
+    const completedTaskUpdates: Array<{
+      trackedTask: (typeof trackedTasks)[number]
+      response: Awaited<ReturnType<typeof getRunningArtTaskStatus>>
+    }> = []
+
+    const syncedTasks: Array<(typeof trackedTasks)[number] | null> = []
+    for (let index = 0; index < trackedTasks.length; index += GENERATION_STATUS_SYNC_BATCH_SIZE) {
+      const batch = trackedTasks.slice(index, index + GENERATION_STATUS_SYNC_BATCH_SIZE)
+      const batchResults = await Promise.all(
+        batch.map(async (trackedTask) => {
+          if (!isGeneratingTaskStatus(trackedTask.status)) {
+            return { trackedTask, response: null }
+          }
+
+          try {
+            const response = await getRunningArtTaskStatus(trackedTask.taskId)
+            return { trackedTask, response }
+          } catch {
+            return { trackedTask, response: null }
+          }
+        }),
+      )
+
+      for (const { trackedTask, response } of batchResults) {
+        if (!response) {
+          syncedTasks.push(trackedTask)
+          continue
+        }
+
+        if (response.status === "COMPLETED" && response.resultArtId !== null) {
+          completedTaskUpdates.push({ trackedTask, response })
+          syncedTasks.push(trackedTask)
+          continue
+        }
+
+        syncedTasks.push(syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask))
+      }
+    }
+
+    const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
+
+    if (completedTaskUpdates.length > 0) {
+      setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
+
+      const didRefreshArts = await loadArts({ includeSample: Boolean(user) })
+        .then(() => true)
+        .catch(() => false)
+
+      if (!didRefreshArts) {
+        const now = Date.now()
+        if (now - taskRefreshErrorNotifiedAtRef.current >= TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS) {
+          taskRefreshErrorNotifiedAtRef.current = now
+          notify("생성 완료된 작품 목록을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.", "error")
+        }
+        return
+      }
+
+      taskRefreshErrorNotifiedAtRef.current = 0
+
+      completedTaskUpdates.forEach(({ trackedTask, response }) => {
+        syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
+      })
+    }
+
+    const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
+    const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
+    setTrackedArts(validTasks.map(toTrackedGenerationArt))
+  }, [loadArts, notify, user])
+
+  useEffect(() => {
+    let disposed = false
+
+    const clearPollingTimeout = () => {
+      if (trackedPollingTimeoutRef.current !== null) {
+        clearTimeout(trackedPollingTimeoutRef.current)
+        trackedPollingTimeoutRef.current = null
+      }
+    }
+
+    const scheduleNextSync = () => {
+      if (disposed) return
+      trackedPollingTimeoutRef.current = setTimeout(() => {
+        void syncTrackedArtStatuses().finally(scheduleNextSync)
+      }, GENERATION_STATUS_POLLING_INTERVAL_MS)
+    }
+
+    void syncTrackedArtStatuses().finally(scheduleNextSync)
+
+    return () => {
+      disposed = true
+      clearPollingTimeout()
+    }
+  }, [syncTrackedArtStatuses])
 
   useEffect(() => {
     if (!isWithdrawOpen) return
@@ -75,12 +214,12 @@ export default function MyPage() {
     const statusMessage = userProfile.statusMessage.trim()
 
     if (nickname.length < 2 || nickname.length > 20) {
-      notify("닉네임은 2자 이상 20자 이하로 입력해주세요.", "error")
+      notify("닉네임은 2자 이상 20자 이하로 입력해 주세요.", "error")
       return
     }
 
     if (statusMessage.length > 100) {
-      notify("상태 메시지는 100자 이하로 입력해주세요.", "error")
+      notify("상태 메시지는 100자 이하로 입력해 주세요.", "error")
       return
     }
 
@@ -125,6 +264,21 @@ export default function MyPage() {
       setIsWithdrawing(false)
     }
   }
+
+  const visibleArts = useMemo(() => {
+    const fetchedArtIds = new Set(arts.map((artwork) => artwork.id))
+    const fetchedTaskIds = new Set(
+      arts
+        .map((artwork) => artwork.taskId)
+        .filter((taskId): taskId is string => typeof taskId === "string" && taskId.length > 0),
+    )
+    const filteredTrackedArts = trackedArts.filter((artwork) => {
+      if (fetchedArtIds.has(artwork.id)) return false
+      return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
+    })
+
+    return [...filteredTrackedArts, ...arts]
+  }, [arts, trackedArts])
 
   return (
     <AppBackground overlayClassName="bg-black/50">
@@ -251,42 +405,73 @@ export default function MyPage() {
           </div>
 
           {isLoading && <p className="text-white/70">작품을 불러오는 중...</p>}
-          {!isLoading && arts.length === 0 && <p className="text-white/70">아직 작품이 없습니다.</p>}
+          {!isLoading && visibleArts.length === 0 && <p className="text-white/70">아직 작품이 없습니다.</p>}
 
-          {arts.length > 0 && (
+          {visibleArts.length > 0 && (
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {arts.map((artwork) => (
-                <article
-                  key={artwork.id}
-                  className="group overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-white/15"
-                >
-                  <Link to={`/mypage/${artwork.id}`} aria-label={artwork.title} className="block">
-                    <div
-                      data-testid={`art-card-map-${artwork.id}`}
-                      className="relative aspect-square overflow-hidden bg-slate-950/40"
-                    >
-                      {artwork.gpxData ? (
-                        <RouteThumbnail gpxData={artwork.gpxData} title={artwork.title} />
-                      ) : (
-                        <img
-                          src={artwork.imageUrl || "/placeholder.svg"}
-                          alt={artwork.title}
-                          className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
-                        />
-                      )}
-                    </div>
-                  </Link>
+              {visibleArts.map((artwork) => {
+                const status = getArtworkStatus(artwork)
+                const artworkPath =
+                  artwork.isGenerationTask && artwork.taskId ? `/mypage/tasks/${artwork.taskId}` : `/mypage/${artwork.id}`
 
-                  <div className="space-y-2 p-4">
-                    <h3 className="truncate text-lg font-semibold text-white">{artwork.title}</h3>
-                    <p className="min-h-10 text-sm text-white/65">{artwork.content?.trim() || "-"}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-300">
-                      <span>{formatDistance(artwork.distanceKm)}</span>
-                      <span>{formatDate(artwork.createdAt)}</span>
+                return (
+                  <article
+                    key={artwork.id}
+                    className="group overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-white/15"
+                  >
+                    <Link to={artworkPath} aria-label={artwork.title} className="block">
+                      <div
+                        data-testid={`art-card-map-${artwork.id}`}
+                        className="relative aspect-square overflow-hidden bg-slate-950/40"
+                      >
+                        <div className="absolute left-3 top-3 z-10">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </div>
+
+                        {artwork.gpxData ? (
+                          <RouteThumbnail gpxData={artwork.gpxData} title={artwork.title} />
+                        ) : artwork.isGenerationTask ? (
+                          <div className="flex h-full flex-col justify-between p-5">
+                            <div className="space-y-3">
+                              <div className="h-3 w-24 rounded-full bg-white/10" />
+                              <div className="h-3 w-32 rounded-full bg-white/10" />
+                            </div>
+                            <div className="space-y-3">
+                              <div className="h-px w-full bg-white/10" />
+                              <div className="flex items-center justify-center gap-2">
+                                {[0, 1, 2].map((index) => (
+                                  <span
+                                    key={index}
+                                    className="h-2.5 w-2.5 rounded-full bg-brand animate-bounce"
+                                    style={{ animationDelay: `${index * 120}ms` }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={artwork.imageUrl || "/placeholder.svg"}
+                            alt={artwork.title}
+                            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+                          />
+                        )}
+                      </div>
+                    </Link>
+
+                    <div className="space-y-2 p-4">
+                      <h3 className="truncate text-lg font-semibold text-white">{artwork.title}</h3>
+                      <p className="min-h-10 text-sm text-white/65">{artwork.content?.trim() || "-"}</p>
+                      <div className="flex items-center justify-between text-sm text-gray-300">
+                        <span>{artwork.isGenerationTask ? (artwork.startAddress?.trim() || "상태 확인 가능") : formatDistance(artwork.distanceKm)}</span>
+                        <span>{formatDate(artwork.createdAt)}</span>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                )
+              })}
             </section>
           )}
         </div>

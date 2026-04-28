@@ -10,6 +10,7 @@ const LoginPage = lazy(() => import("@/pages/LoginPage"))
 const OAuthCallbackPage = lazy(() => import("@/pages/OAuthCallbackPage"))
 const MyPage = lazy(() => import("@/pages/MyPage"))
 const MyPageDetail = lazy(() => import("@/pages/MyPageDetail"))
+const GenerationStatusPage = lazy(() => import("@/pages/GenerationStatusPage"))
 const SharePage = lazy(() => import("@/pages/SharePage"))
 const ForbiddenPage = lazy(() => import("@/pages/ForbiddenPage"))
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"))
@@ -35,6 +36,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mypage/tasks/:taskId"
+          element={
+            <ProtectedRoute>
+              <GenerationStatusPage />
             </ProtectedRoute>
           }
         />

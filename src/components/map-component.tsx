@@ -101,7 +101,7 @@ export default function MapComponent({
       map.remove()
       mapRef.current = null
     }
-  }, [center])
+  }, [center, displayOnly])
 
   useEffect(() => {
     if (mapRef.current?.map) {

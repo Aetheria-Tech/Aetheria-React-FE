@@ -35,7 +35,7 @@ export default function HomePage() {
                 아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
               </p>
               <Link to="/login" aria-label="회원가입/로그인 페이지 이동">
-                <Button className="mt-8 h-auto rounded-full bg-[#80e87a] px-7 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                <Button className="mt-8 h-auto rounded-full bg-brand px-7 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
                   JOIN US
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
@@ -65,7 +65,7 @@ export default function HomePage() {
                 </div>
               </div>
               <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
-                <Button className="h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                <Button className="h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
                   REGISTER
                 </Button>
               </Link>
@@ -80,7 +80,7 @@ export default function HomePage() {
               <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">초보부터 마라토너까지</h2>
               <p className="mt-4 text-sm text-white/75">속도보다 궤적으로, 매일의 러닝을 시작하세요.</p>
               <Link to="/gallery" aria-label="서비스 소개 보기">
-                <Button className="mt-6 h-auto rounded-full bg-[#80e87a] px-6 py-2.5 font-black text-zinc-900 hover:bg-[#9cf397]">
+                <Button className="mt-6 h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
                   ABOUT US
                 </Button>
               </Link>
@@ -91,7 +91,7 @@ export default function HomePage() {
             <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 공유하고 달리세요</h2>
             <p className="mt-4 text-sm text-white/75">매번의 러닝을 하나의 작품으로 남겨보세요.</p>
             <Link to="/gallery" aria-label="갤러리 페이지 이동">
-              <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-[#80e87a] hover:bg-zinc-600">
+              <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-brand hover:bg-zinc-600">
                 NEWSLETTER
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
@@ -99,13 +99,13 @@ export default function HomePage() {
           </article>
         </section>
 
-        <section className="snap-start min-h-screen bg-[#8cf08a] px-4 py-10 text-zinc-900 sm:px-8 sm:py-12">
+        <section className="snap-start min-h-screen bg-brand-surface px-4 py-10 text-zinc-900 sm:px-8 sm:py-12">
           <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-between">
             <h2 className="max-w-4xl text-3xl font-black leading-tight sm:text-5xl">
               아테리아는 당신의 다음 러닝 아트를 기다리고 있습니다.
             </h2>
             <Link to="/create" aria-label="등록하기">
-              <Button className="h-auto rounded-full bg-zinc-800 px-5 py-2.5 font-black text-[#80e87a] hover:bg-zinc-700">
+              <Button className="h-auto rounded-full bg-zinc-800 px-5 py-2.5 font-black text-brand hover:bg-zinc-700">
                 REGISTER
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
