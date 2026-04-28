@@ -50,6 +50,8 @@ const getSseResultArtId = (notification: RunningArtTaskSseNotification | null) =
   return Number.isSafeInteger(resultArtId) && resultArtId >= 0 ? resultArtId : null
 }
 
+const getCreatedAtLabel = (createdAt: string | null | undefined) => formatDateTime(createdAt?.trim() ?? "")
+
 function LoadingMotion() {
   return (
     <div className="flex justify-center">
@@ -434,7 +436,7 @@ export default function GenerationStatusPage() {
               </div>
               <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
                 <p className="text-xs text-white/55">요청 시각</p>
-                <p className="mt-2 text-sm text-white/85">{task?.createdAt ? formatDateTime(task.createdAt) : "-"}</p>
+                <p className="mt-2 text-sm text-white/85">{getCreatedAtLabel(task?.createdAt)}</p>
               </div>
             </div>
 
