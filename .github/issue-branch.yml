@@ -52,8 +52,8 @@ commentMessage: '🌱 브랜치 `${branchName}`가 생성되었습니다. 이슈
 openDraftPR: false
 
 # 브랜치 생성 후 해당 이슈를 자동으로 닫을지 여부를 결정합니다.
-# `true`로 설정하면 이슈를 닫습니다.
-autoCloseIssue: true
+# `false`로 설정하면 브랜치 생성 시점에는 이슈를 닫지 않습니다.
+autoCloseIssue: false
 
 # 이슈에 있는 라벨을 생성된 Pull Request에 복사할지 여부를 결정합니다.
 # `true`로 설정하면 라벨을 복사합니다.
