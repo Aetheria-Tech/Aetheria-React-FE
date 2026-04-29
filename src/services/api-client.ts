@@ -12,7 +12,14 @@ const createApiClient = (): AxiosInstance => {
   })
 
   client.interceptors.request.use(async (config) => {
-    const tokens = await getStoredAuthTokens()
+    let tokens: Awaited<ReturnType<typeof getStoredAuthTokens>>
+
+    try {
+      tokens = await getStoredAuthTokens()
+    } catch (error) {
+      // 토큰 조회/갱신 오류가 나면 인증 없는 요청으로 보내지 않고 호출자에게 전파한다.
+      return Promise.reject(error)
+    }
 
     if (tokens?.accessToken) {
       const headers = AxiosHeaders.from(config.headers)
