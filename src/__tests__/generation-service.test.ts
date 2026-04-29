@@ -113,4 +113,16 @@ describe("generation-service tracked tasks", () => {
 
     subscription.close()
   })
+
+  it("reports task SSE subscription initialization failures", async () => {
+    const error = new Error("subscription failed")
+    const onError = jest.fn()
+    mockedFetchWithAuthRetry.mockRejectedValue(error)
+
+    const subscription = subscribeRunningArtTaskEvents("task-1", { onError })
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(error))
+
+    subscription.close()
+  })
 })

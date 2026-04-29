@@ -359,6 +359,11 @@ export function subscribeRunningArtTaskEvents(
     }
   }
 
+  const handleSubscriptionError = (error: unknown) => {
+    if (closed || controller.signal.aborted) return
+    handlers.onError?.(error instanceof Error ? error : new Error("Failed to subscribe to task updates."))
+  }
+
   const startSubscription = async () => {
     try {
       const response = await fetchWithAuthRetry(
@@ -383,12 +388,12 @@ export function subscribeRunningArtTaskEvents(
         handlers.onError?.(new Error("SSE connection closed before the task finished."))
       }
     } catch (error) {
-      if (closed || controller.signal.aborted) return
-      handlers.onError?.(error instanceof Error ? error : new Error("Failed to subscribe to task updates."))
+      handleSubscriptionError(error)
     }
   }
 
-  void startSubscription()
+  // 구독 초기화 Promise가 예외로 종료되어도 fallback 흐름이 끊기지 않게 한다.
+  void startSubscription().catch(handleSubscriptionError)
 
   return {
     close: () => {

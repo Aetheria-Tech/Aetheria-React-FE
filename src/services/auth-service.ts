@@ -56,15 +56,21 @@ export async function exchangeOAuthCode(provider: "kakao" | "google", code: stri
 }
 
 async function storeAuthPayload(accessToken: string, refreshToken = "cookie", expireIn?: number): Promise<AuthPayload> {
-  const user = await fetchMyProfile(accessToken)
-  const tokens = buildAuthTokens(accessToken, refreshToken, expireIn)
+  try {
+    const user = await fetchMyProfile(accessToken)
+    const tokens = buildAuthTokens(accessToken, refreshToken, expireIn)
 
-  authStorage.setTokens(tokens)
-  authStorage.setUser(user)
+    authStorage.setTokens(tokens)
+    authStorage.setUser(user)
 
-  return {
-    user,
-    tokens,
+    return {
+      user,
+      tokens,
+    }
+  } catch (error) {
+    // 프로필 확인 또는 저장 실패 시 이전 인증 상태가 남지 않도록 정리한다.
+    authStorage.clear()
+    throw error
   }
 }
 
