@@ -58,7 +58,9 @@ describe("apiClient", () => {
 
     await import("@/services/api-client")
 
-    await expect(requestInterceptor?.({ headers: {} })).rejects.toThrow("token lookup failed")
+    await expect(requestInterceptor?.({ headers: {} })).rejects.toThrow(
+      "API 요청 인증 토큰 확인에 실패했습니다: token lookup failed",
+    )
   })
 
   it("adds the bearer token when auth token lookup succeeds", async () => {

@@ -81,10 +81,12 @@ const buildAuthorizedHeaders = (headers: HeadersInit | undefined, accessToken: s
   return authorizedHeaders
 }
 
+const createAuthenticationRequiredError = (reason: string) => new Error(`Authentication is required: ${reason}`)
+
 export const fetchWithAuthRetry = async (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
   const tokens = await getStoredAuthTokens()
   if (!tokens?.accessToken) {
-    throw new Error("Authentication is required.")
+    throw createAuthenticationRequiredError("stored access token is missing or refresh failed.")
   }
 
   const requestWithToken = (accessToken: string) =>
@@ -99,7 +101,7 @@ export const fetchWithAuthRetry = async (input: RequestInfo | URL, init: Request
 
   const nextTokens = await refreshStoredTokens(tokens)
   if (!nextTokens?.accessToken) {
-    throw new Error("Authentication is required.")
+    throw createAuthenticationRequiredError("access token refresh failed after a 401 response.")
   }
 
   response = await requestWithToken(nextTokens.accessToken)

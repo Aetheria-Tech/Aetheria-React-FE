@@ -2,6 +2,11 @@ import axios, { AxiosHeaders, type AxiosError, type AxiosInstance } from "axios"
 import { getStoredAuthTokens, refreshCurrentStoredTokens } from "@/services/auth-session"
 import { env } from "@/services/env"
 
+const withTokenLookupContext = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error)
+  return new Error(`API 요청 인증 토큰 확인에 실패했습니다: ${message}`)
+}
+
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
     baseURL: env.apiBaseUrl,
@@ -17,8 +22,8 @@ const createApiClient = (): AxiosInstance => {
     try {
       tokens = await getStoredAuthTokens()
     } catch (error) {
-      // 토큰 조회/갱신 오류가 나면 인증 없는 요청으로 보내지 않고 호출자에게 전파한다.
-      return Promise.reject(error)
+      // 토큰 조회/갱신 오류가 나면 인증 없는 요청으로 보내지 않고 맥락을 붙여 호출자에게 전파한다.
+      return Promise.reject(withTokenLookupContext(error))
     }
 
     if (tokens?.accessToken) {
