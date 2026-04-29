@@ -77,11 +77,15 @@ export default function MyPage() {
     loadArts({ includeSample: Boolean(user) }).catch(() => undefined)
   }, [loadArts, user])
 
-  const syncTrackedArtStatuses = useCallback(async () => {
+  const syncTrackedArtStatuses = useCallback(async (isDisposed: () => boolean) => {
+    if (isDisposed()) return
+
     cleanupExpiredTrackedGenerationTasks()
     const trackedTasks = listTrackedGenerationTasks()
     if (trackedTasks.length === 0) {
-      setTrackedArts([])
+      if (!isDisposed()) {
+        setTrackedArts([])
+      }
       return
     }
 
@@ -92,10 +96,12 @@ export default function MyPage() {
 
     const syncedTasks: Array<(typeof trackedTasks)[number] | null> = []
     for (let index = 0; index < trackedTasks.length; index += GENERATION_STATUS_SYNC_BATCH_SIZE) {
+      if (isDisposed()) return
+
       const batch = trackedTasks.slice(index, index + GENERATION_STATUS_SYNC_BATCH_SIZE)
       const batchResults = await Promise.all(
         batch.map(async (trackedTask) => {
-          if (!isGeneratingTaskStatus(trackedTask.status)) {
+          if (isDisposed() || !isGeneratingTaskStatus(trackedTask.status)) {
             return { trackedTask, response: null }
           }
 
@@ -107,6 +113,8 @@ export default function MyPage() {
           }
         }),
       )
+
+      if (isDisposed()) return
 
       for (const { trackedTask, response } of batchResults) {
         if (!response) {
@@ -124,6 +132,8 @@ export default function MyPage() {
       }
     }
 
+    if (isDisposed()) return
+
     const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 
     if (completedTaskUpdates.length > 0) {
@@ -132,6 +142,8 @@ export default function MyPage() {
       const didRefreshArts = await loadArts({ includeSample: Boolean(user) })
         .then(() => true)
         .catch(() => false)
+
+      if (isDisposed()) return
 
       if (!didRefreshArts) {
         const now = Date.now()
@@ -151,6 +163,8 @@ export default function MyPage() {
 
     const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
     const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
+    if (isDisposed()) return
+
     setTrackedArts(validTasks.map(toTrackedGenerationArt))
   }, [loadArts, notify, user])
 
@@ -164,14 +178,17 @@ export default function MyPage() {
       }
     }
 
+    // 언마운트 후에는 batch 요청과 상태 갱신을 중단한다.
+    const isDisposed = () => disposed
+
     const scheduleNextSync = () => {
       if (disposed) return
       trackedPollingTimeoutRef.current = setTimeout(() => {
-        void syncTrackedArtStatuses().finally(scheduleNextSync)
+        void syncTrackedArtStatuses(isDisposed).finally(scheduleNextSync)
       }, GENERATION_STATUS_POLLING_INTERVAL_MS)
     }
 
-    void syncTrackedArtStatuses().finally(scheduleNextSync)
+    void syncTrackedArtStatuses(isDisposed).finally(scheduleNextSync)
 
     return () => {
       disposed = true
