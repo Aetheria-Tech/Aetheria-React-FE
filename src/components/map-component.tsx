@@ -255,7 +255,8 @@ export default function MapComponent({
   const handleLocationClick = () => {
     if (!mapRef.current?.map) return
 
-    const { map } = mapRef.current
+    const mapState = mapRef.current
+    const { map } = mapState
 
     map.locate({ setView: true, maxZoom: 16 })
 
@@ -264,8 +265,8 @@ export default function MapComponent({
       setCurrentLocation(coords)
       onLocationFound(coords)
 
-      if (mapRef.current?.currentLocationMarker) {
-        map.removeLayer(mapRef.current.currentLocationMarker)
+      if (mapState.currentLocationMarker) {
+        map.removeLayer(mapState.currentLocationMarker)
       }
 
       const blueIcon = L.icon({
@@ -278,8 +279,7 @@ export default function MapComponent({
       })
 
       const marker = L.marker(coords, { icon: blueIcon }).addTo(map)
-      if (!mapRef.current) return
-      mapRef.current.currentLocationMarker = marker
+      mapState.currentLocationMarker = marker
 
       let addressLabel = `위도: ${coords[0].toFixed(6)}, 경도: ${coords[1].toFixed(6)}`
       try {
