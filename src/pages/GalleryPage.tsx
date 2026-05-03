@@ -17,6 +17,7 @@ export default function GalleryPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    // 갤러리는 서버에서 공개 작품 목록만 받아와 화면에서 검색 필터를 적용한다.
     setIsLoading(true)
     fetchGalleryArts()
       .then((data) => setArts(data))
