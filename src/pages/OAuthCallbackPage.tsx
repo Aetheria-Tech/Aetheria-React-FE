@@ -55,6 +55,7 @@ export default function OAuthCallbackPage() {
 
     const attemptKey = `${provider}:${code ?? ""}:${accessToken ?? ""}`
 
+    // StrictMode 재마운트에서도 같은 OAuth callback 요청은 한 번만 보내도록 key로 공유한다.
     let cancelled = false
 
     const completeLogin = async () => {
@@ -82,6 +83,7 @@ export default function OAuthCallbackPage() {
           return
         }
 
+        // 로그인 payload 저장은 AuthContext에 맡겨 이후 API client가 같은 인증 상태를 사용하게 한다.
         login(payload)
         notify("로그인에 성공했습니다.", "success")
         navigate("/", { replace: true })
