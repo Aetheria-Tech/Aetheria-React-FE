@@ -12,6 +12,7 @@ export default function LoginPage() {
   const { notify } = useToast()
 
   const getSocialLoginUrl = (provider: SocialProvider) => {
+    // Google은 환경별 OAuth URL override가 있으면 백엔드 기본 경로보다 우선 사용한다.
     if (provider === "google" && env.googleLoginUrl) return env.googleLoginUrl
 
     const defaultPath = `/api/v1/auth/login/${provider}`
