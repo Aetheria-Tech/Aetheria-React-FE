@@ -172,6 +172,7 @@ export default function GenerationStatusPage() {
     (resultArtId: number) => {
       if (!taskId || !isActiveTask() || navigateOnceRef.current) return false
 
+      // 완료 이벤트가 중복 도착해도 상세 페이지 이동은 한 번만 수행한다.
       const completedTask = syncTrackedGenerationTask(
         taskId,
         {
@@ -262,6 +263,7 @@ export default function GenerationStatusPage() {
         setSyncError(message)
       }
 
+      // SSE가 불안정하면 이전 조회가 끝난 뒤 다음 조회를 예약하는 polling으로 전환한다.
       const pollOnce = () => {
         if (navigateOnceRef.current || statusRef.current === "FAILED") {
           stopPolling()
