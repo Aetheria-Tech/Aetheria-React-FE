@@ -123,6 +123,7 @@ export default function GenerationStatusPage() {
   const isActiveTask = useCallback(() => Boolean(taskId && activeTaskIdRef.current === taskId), [taskId])
 
   useEffect(() => {
+    // taskId가 바뀌면 이전 task의 SSE/polling 응답이 현재 화면을 덮어쓰지 못하게 초기화한다.
     activeTaskIdRef.current = taskId ?? null
     navigateOnceRef.current = false
     failureCountRef.current = 0
@@ -306,6 +307,7 @@ export default function GenerationStatusPage() {
         const resultArtId = getSseResultArtId(notification)
         if (resultArtId !== null && completeWithResultArtId(resultArtId)) return
 
+        // SSE 완료 이벤트에 결과 ID가 없거나 형식이 틀리면 상태 API로 한 번 더 확인한다.
         clearSseConnectTimeout()
         closeSseSubscription()
 
