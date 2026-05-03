@@ -31,6 +31,7 @@ export default function MyPageDetail() {
 
   const isSampleArt = useMemo(() => String(art?.id ?? "") === "-1", [art])
   const isOwner = useMemo(() => Boolean(art && user && art.ownerId === user.id), [art, user])
+  // 샘플은 읽기 전용이고, 실제 작품 관리는 소유자 또는 개발 환경에서만 허용한다.
   const canManageArt = !isSampleArt && (isOwner || isDevEnvironment())
   const shareUrl = typeof window !== "undefined" && art ? `${window.location.origin}/share/${art.id}` : ""
 
@@ -69,6 +70,7 @@ export default function MyPageDetail() {
   const handleSaveContent = async () => {
     if (!id || !art || isSavingContent) return
 
+    // 설명만 바꾸더라도 백엔드 patch 요청에는 기존 title을 함께 보낸다.
     setIsSavingContent(true)
     try {
       await patchRunningArt(id, { title: art.title, content: draftContent })
