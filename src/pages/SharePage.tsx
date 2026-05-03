@@ -22,6 +22,7 @@ export default function SharePage() {
   useEffect(() => {
     if (!art) return
     const isOwner = user?.id && art.ownerId === user.id
+    // 비공개 작품 공유 URL은 소유자만 볼 수 있고, 나머지는 403으로 이동한다.
     if (!art.isPublic && !isOwner) {
       navigate("/403", { replace: true })
     }
