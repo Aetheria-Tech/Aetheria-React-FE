@@ -6,6 +6,7 @@ import GlobalHeader from "@/components/layouts/global-header"
 
 export default function HomePage() {
   const { isLoggedIn } = useAuth()
+  // 로그인 사용자는 생성 화면으로, 게스트는 로그인 화면으로 CTA를 연결한다.
   const createEntryPath = isLoggedIn ? "/create" : "/login"
 
   return (
