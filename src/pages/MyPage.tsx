@@ -80,6 +80,7 @@ export default function MyPage() {
   const syncTrackedArtStatuses = useCallback(async (isDisposed: () => boolean) => {
     if (isDisposed()) return
 
+    // 생성 중인 task는 localStorage 목록을 서버 상태로 동기화해 마이페이지에 함께 표시한다.
     cleanupExpiredTrackedGenerationTasks()
     const trackedTasks = listTrackedGenerationTasks()
     if (trackedTasks.length === 0) {
@@ -283,6 +284,7 @@ export default function MyPage() {
   }
 
   const visibleArts = useMemo(() => {
+    // 서버 작품과 로컬 추적 task가 겹치면 실제 서버 작품을 우선 노출한다.
     const fetchedArtIds = new Set(arts.map((artwork) => artwork.id))
     const fetchedTaskIds = new Set(
       arts
