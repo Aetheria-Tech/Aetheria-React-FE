@@ -70,6 +70,7 @@ export default function CreatePage() {
     setFormData((prev) => ({ ...prev, startPoint: address.addressName }))
     setShowStartResults(false)
 
+    // 선택한 주소의 좌표를 저장해 생성 요청에서 같은 주소를 다시 해석할 때 재사용한다.
     const coords = toLatLngFromKakao(address)
     if (!coords) return
 
