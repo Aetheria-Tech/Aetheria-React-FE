@@ -97,6 +97,7 @@ export default function CreatePage() {
         proficiency: formData.proficiency,
       })
 
+      // 생성 결과는 비동기 task로 추적하므로 taskId 기반 상태 화면으로 이동한다.
       navigate(`/mypage/tasks/${response.taskId}`, { replace: true })
     } catch {
       // Errors are surfaced via toast in the hook.
