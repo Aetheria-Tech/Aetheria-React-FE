@@ -138,6 +138,7 @@ export default function MyPage() {
     const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 
     if (completedTaskUpdates.length > 0) {
+      // 완료된 task는 서버 작품 목록 갱신 전까지 추적 카드로 유지해 목록이 비는 순간을 줄인다.
       setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
 
       const didRefreshArts = await loadArts({ includeSample: Boolean(user) })
@@ -163,6 +164,7 @@ export default function MyPage() {
     }
 
     const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
+    // 작품 목록 갱신 후에는 완료 task 카드를 제거해 같은 작품이 두 번 보이지 않게 한다.
     const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
     if (isDisposed()) return
 
