@@ -125,4 +125,50 @@ describe("generation-service tracked tasks", () => {
 
     subscription.close()
   })
+
+  it("continues reading task SSE events after one event handler fails", async () => {
+    const encoder = new TextEncoder()
+    const read = jest
+      .fn()
+      .mockResolvedValueOnce({
+        done: false,
+        value: encoder.encode(
+          'event:PROCESSING\ndata:{"taskId":"task-1","status":"PROCESSING","message":"processing","data":null}\n\n',
+        ),
+      })
+      .mockResolvedValueOnce({
+        done: false,
+        value: encoder.encode(
+          'event:COMPLETED\ndata:{"taskId":"task-1","status":"COMPLETED","message":"done","data":"19"}\n\n',
+        ),
+      })
+      .mockResolvedValueOnce({ done: true })
+    const onProcessing = jest.fn(() => {
+      throw new Error("handler failed")
+    })
+    const onCompleted = jest.fn()
+    const onError = jest.fn()
+
+    mockedFetchWithAuthRetry.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: () => "text/event-stream",
+      },
+      body: {
+        getReader: () => ({ read }),
+      },
+    } as unknown as Response)
+
+    const subscription = subscribeRunningArtTaskEvents("task-1", {
+      onProcessing,
+      onCompleted,
+      onError,
+    })
+
+    await waitFor(() => expect(onCompleted).toHaveBeenCalled())
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "handler failed" }))
+
+    subscription.close()
+  })
 })

@@ -205,6 +205,17 @@ const parseSseNotification = (payload: string): RunningArtTaskSseNotification | 
   }
 }
 
+const dispatchBufferedSseChunk = (chunk: string, handlers: RunningArtTaskSseHandlers) => {
+  if (!chunk.trim()) return
+
+  try {
+    dispatchTaskSseEvent(chunk, handlers)
+  } catch (error) {
+    // 이벤트 하나의 처리 실패가 이후 SSE 이벤트 수신까지 막지 않도록 chunk 단위로 격리한다.
+    handlers.onError?.(error instanceof Error ? error : new Error("Failed to handle a task SSE event."))
+  }
+}
+
 export function listTrackedGenerationTasks(): TrackedRunningArtTask[] {
   return readCurrentUserTrackedTasks()
 }
@@ -345,18 +356,14 @@ export function subscribeRunningArtTaskEvents(
       buffer = chunks.pop() ?? ""
 
       for (const chunk of chunks) {
-        if (chunk.trim()) {
-          dispatchTaskSseEvent(chunk, handlers)
-        }
+        dispatchBufferedSseChunk(chunk, handlers)
       }
     }
 
     // Flush any pending bytes TextDecoder kept from the final chunk.
     buffer += decoder.decode()
 
-    if (buffer.trim()) {
-      dispatchTaskSseEvent(buffer, handlers)
-    }
+    dispatchBufferedSseChunk(buffer, handlers)
   }
 
   const handleSubscriptionError = (error: unknown) => {
