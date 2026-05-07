@@ -1,22 +1,63 @@
-import axios, { AxiosHeaders, type AxiosError, type AxiosInstance } from "axios"
+import axios, { AxiosHeaders, type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from "axios"
 import { getStoredAuthTokens, refreshCurrentStoredTokens } from "@/services/auth-session"
 import { env } from "@/services/env"
+
+const FALLBACK_ORIGIN = "http://localhost"
 
 const withTokenLookupContext = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)
   return new Error(`API 요청 인증 토큰 확인에 실패했습니다: ${message}`)
 }
 
+const isAbsoluteUrl = (value: string) => /^[a-z][a-z\d+\-.]*:\/\//i.test(value)
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "")
+
+const getRuntimeOrigin = () => {
+  if (typeof window === "undefined") return FALLBACK_ORIGIN
+  return window.location.origin
+}
+
+const combineAxiosUrl = (baseUrl: string, url: string) => {
+  if (!baseUrl || isAbsoluteUrl(url)) return url
+  return `${trimTrailingSlash(baseUrl)}/${url.replace(/^\/+/, "")}`
+}
+
+const isRequestToConfiguredApi = (config: InternalAxiosRequestConfig) => {
+  const runtimeOrigin = getRuntimeOrigin()
+  const baseUrl = env.apiBaseUrl || runtimeOrigin
+  const requestUrl = config.url ?? ""
+  const requestBaseUrl = config.baseURL ?? env.apiBaseUrl
+  const resolvedApiBaseUrl = new URL(baseUrl, runtimeOrigin)
+  const resolvedRequestUrl = new URL(combineAxiosUrl(requestBaseUrl ?? "", requestUrl), runtimeOrigin)
+  const apiPathPrefix = trimTrailingSlash(resolvedApiBaseUrl.pathname)
+  const isSameApiOrigin = resolvedRequestUrl.origin === resolvedApiBaseUrl.origin
+  const isInsideApiPath =
+    !apiPathPrefix ||
+    apiPathPrefix === "/" ||
+    resolvedRequestUrl.pathname === apiPathPrefix ||
+    resolvedRequestUrl.pathname.startsWith(`${apiPathPrefix}/`)
+
+  return isSameApiOrigin && isInsideApiPath
+}
+
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
     baseURL: env.apiBaseUrl,
-    withCredentials: true,
+    withCredentials: false,
     headers: {
       "Content-Type": "application/json",
     },
   })
 
   client.interceptors.request.use(async (config) => {
+    if (!isRequestToConfiguredApi(config)) {
+      return Promise.reject(new Error("apiClient는 백엔드 API 경로에만 사용할 수 있습니다."))
+    }
+
+    // 인증 쿠키는 백엔드 API 요청에만 붙여 외부 API로 credential이 나가지 않게 한다.
+    config.withCredentials = true
+
     let tokens: Awaited<ReturnType<typeof getStoredAuthTokens>>
 
     try {
