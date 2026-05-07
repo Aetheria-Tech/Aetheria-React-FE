@@ -81,6 +81,68 @@ describe("sharing", () => {
     expect(await screen.findByText("작품이 공개로 전환되었습니다.")).toBeInTheDocument()
   })
 
+  it("disables share toggle while share status update is pending", async () => {
+    const user = userEvent.setup()
+    const auth = {
+      user: {
+        id: "10",
+        name: "Owner",
+        email: "owner@example.com",
+      },
+      tokens: {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+      },
+    }
+    const art = {
+      id: 1,
+      title: "Morning run",
+      content: "테스트 러닝 아트",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U",
+      userId: 10,
+    }
+    let resolveUpdate!: (value: unknown) => void
+
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(art)
+    ;(updateShareStatus as jest.Mock).mockImplementation(
+      (_artId: string, isPublic: boolean) =>
+        new Promise((resolve) => {
+          resolveUpdate = resolve
+        }).then(() => ({
+          id: "1",
+          title: art.title,
+          content: art.content,
+          imageUrl: "/placeholder.svg",
+          distanceKm: 0,
+          theme: art.shape,
+          isPublic,
+          createdAt: "",
+          ownerId: String(art.userId),
+          gpxData: art.gpx,
+        })),
+    )
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+
+    const checkbox = screen.getByRole("checkbox")
+    await user.click(checkbox)
+
+    await waitFor(() => expect(checkbox).toBeDisabled())
+    resolveUpdate(undefined)
+
+    await waitFor(() => expect(checkbox).toBeChecked())
+    expect(checkbox).not.toBeDisabled()
+  })
+
   it("redirects to 403 for private shared artwork", async () => {
     const art = {
       id: 2,

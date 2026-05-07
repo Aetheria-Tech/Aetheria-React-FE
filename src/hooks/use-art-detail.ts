@@ -33,6 +33,8 @@ export function useArtDetail() {
   const updateShare = useCallback(
     async (artId: string, isPublic: boolean) => {
       if (!art || String(art.id) !== artId) return null
+      // 공유 상태 변경 중에는 상세 화면의 공유 토글을 잠가 중복 요청을 막는다.
+      setIsLoading(true)
       setError(null)
       try {
         const updated = await updateShareStatus(artId, isPublic)
@@ -43,9 +45,11 @@ export function useArtDetail() {
         setError("공유 상태를 변경하는 데 실패했습니다")
         notify("공유 상태를 변경하는 데 실패했습니다.", "error")
         throw err
+      } finally {
+        setIsLoading(false)
       }
     },
-    [notify, art],
+    [notify, art, setArt],
   )
 
   return {
