@@ -6,6 +6,7 @@
 export interface Art {
   id: string
   title: string
+  content?: string
   imageUrl: string
   distanceKm: number
   theme: string
@@ -15,6 +16,10 @@ export interface Art {
   gpxData?: string
   startAddress?: string
   endAddress?: string
+  generationState?: "GENERATING" | "COMPLETED" | "FAILED"
+  taskId?: string
+  generationErrorMessage?: string | null
+  isGenerationTask?: boolean
 }
 
 export interface CreateArtPayload {

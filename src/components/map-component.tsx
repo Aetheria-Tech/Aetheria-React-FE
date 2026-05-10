@@ -5,6 +5,7 @@ import { Navigation } from "lucide-react"
 import * as L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import "leaflet-gpx"
+import { decodePolyline, isXmlRouteData } from "@/lib/polyline"
 import { coordsToAddress } from "@/services/kakao-service"
 
 interface MapComponentProps {
@@ -13,6 +14,9 @@ interface MapComponentProps {
   endCoords?: [number, number] | null
   gpxData?: string | null
   onLocationFound: (coords: [number, number]) => void
+  onMapClick?: (coords: [number, number]) => void
+  showLocationButton?: boolean
+  displayOnly?: boolean
 }
 
 interface MapInstance {
@@ -20,11 +24,14 @@ interface MapInstance {
   startMarker: L.Marker | null
   endMarker: L.Marker | null
   currentLocationMarker: L.Marker | null
-  gpxLayer: L.Layer | null
+  routeLayer: L.Layer | null
 }
 
-interface GpxLayer extends L.Layer {
-  on: (event: string, handler: (event: { target: { getBounds: () => L.LatLngBounds } }) => void) => void
+type GpxLayer = L.Layer & {
+  on(
+    event: "loaded",
+    handler: (event: { target: { getBounds: () => L.LatLngBounds } }) => void,
+  ): GpxLayer
 }
 
 interface GpxOptions {
@@ -43,7 +50,16 @@ interface GpxOptions {
 
 type LeafletWithGpx = typeof L & { GPX: new (gpx: string, options?: GpxOptions) => GpxLayer }
 
-export default function MapComponent({ center, startCoords, endCoords, gpxData, onLocationFound }: MapComponentProps) {
+export default function MapComponent({
+  center,
+  startCoords,
+  endCoords,
+  gpxData,
+  onLocationFound,
+  onMapClick,
+  showLocationButton = true,
+  displayOnly = false,
+}: MapComponentProps) {
   const mapRef = useRef<MapInstance | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -54,7 +70,15 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
-    const map = L.map(mapContainerRef.current).setView(center, 13)
+    const map = L.map(mapContainerRef.current, {
+      zoomControl: !displayOnly,
+      dragging: !displayOnly,
+      scrollWheelZoom: !displayOnly,
+      doubleClickZoom: !displayOnly,
+      boxZoom: !displayOnly,
+      keyboard: !displayOnly,
+      touchZoom: !displayOnly,
+    }).setView(center, 13)
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map)
@@ -64,16 +88,20 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       startMarker: null,
       endMarker: null,
       currentLocationMarker: null,
-      gpxLayer: null,
+      routeLayer: null,
     }
 
     setIsLoading(false)
+
+    requestAnimationFrame(() => {
+      map.invalidateSize()
+    })
 
     return () => {
       map.remove()
       mapRef.current = null
     }
-  }, [center])
+  }, [center, displayOnly])
 
   useEffect(() => {
     if (mapRef.current?.map) {
@@ -82,7 +110,21 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
   }, [center])
 
   useEffect(() => {
-    if (!mapRef.current) return
+    if (!mapRef.current?.map || !onMapClick) return
+
+    const { map } = mapRef.current
+    const handleClick = (event: L.LeafletMouseEvent) => {
+      onMapClick([event.latlng.lat, event.latlng.lng])
+    }
+
+    map.on("click", handleClick)
+    return () => {
+      map.off("click", handleClick)
+    }
+  }, [onMapClick])
+
+  useEffect(() => {
+    if (isLoading || !mapRef.current) return
 
     const { map, startMarker } = mapRef.current
 
@@ -103,10 +145,10 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       const marker = L.marker(startCoords, { icon: greenIcon }).addTo(map).bindPopup("출발")
       mapRef.current.startMarker = marker
     }
-  }, [startCoords])
+  }, [startCoords, isLoading])
 
   useEffect(() => {
-    if (!mapRef.current) return
+    if (isLoading || !mapRef.current) return
 
     const { map, endMarker } = mapRef.current
 
@@ -127,44 +169,94 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       const marker = L.marker(endCoords, { icon: redIcon }).addTo(map).bindPopup("도착")
       mapRef.current.endMarker = marker
     }
-  }, [endCoords])
+  }, [endCoords, isLoading])
 
   useEffect(() => {
-    if (!mapRef.current || !gpxData) return
+    if (isLoading || !mapRef.current) return
 
-    const { map, gpxLayer } = mapRef.current
+    const { map, routeLayer } = mapRef.current
 
-    if (gpxLayer) {
-      map.removeLayer(gpxLayer)
+    if (routeLayer) {
+      map.removeLayer(routeLayer)
+      mapRef.current.routeLayer = null
     }
 
-    const leafletWithGpx = L as LeafletWithGpx
-    const newGpxLayer = new leafletWithGpx.GPX(gpxData, {
-      async: true,
-      marker_options: {
-        startIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        endIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      },
-      polyline_options: {
-        color: "#8b5cf6",
-        weight: 4,
-        opacity: 0.8,
-      },
-    })
+    const routeData = gpxData?.trim()
 
-    newGpxLayer.on("loaded", (event) => {
-      map.fitBounds(event.target.getBounds())
-    })
+    if (!routeData) return
 
-    newGpxLayer.addTo(map)
-    mapRef.current.gpxLayer = newGpxLayer
-  }, [gpxData])
+    if (isXmlRouteData(routeData)) {
+      const leafletWithGpx = L as LeafletWithGpx
+      const newGpxLayer = new leafletWithGpx.GPX(routeData, {
+        async: true,
+        marker_options: {
+          startIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+          endIconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+          shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        },
+        polyline_options: {
+          color: "#8b5cf6",
+          weight: 4,
+          opacity: 0.8,
+        },
+      })
+
+      newGpxLayer.on("loaded", (event: { target: { getBounds: () => L.LatLngBounds } }) => {
+        requestAnimationFrame(() => {
+          map.invalidateSize()
+          map.fitBounds(event.target.getBounds())
+        })
+      })
+
+      newGpxLayer.addTo(map)
+      mapRef.current.routeLayer = newGpxLayer
+      return
+    }
+
+    try {
+      const coordinates = decodePolyline(routeData)
+
+      if (coordinates.length < 2) {
+        return
+      }
+
+      const polyline = L.polyline(coordinates, {
+        color: "#f43f5e",
+        weight: 6,
+        opacity: 0.95,
+      })
+      const startMarker = L.circleMarker(coordinates[0], {
+        radius: 7,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#22c55e",
+        fillOpacity: 1,
+      })
+      const endMarker = L.circleMarker(coordinates[coordinates.length - 1], {
+        radius: 7,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#ef4444",
+        fillOpacity: 1,
+      })
+
+      const routeGroup = L.featureGroup([polyline, startMarker, endMarker]).addTo(map)
+      polyline.bringToFront()
+      requestAnimationFrame(() => {
+        map.invalidateSize()
+        map.fitBounds(routeGroup.getBounds(), { padding: [24, 24] })
+      })
+      mapRef.current.routeLayer = routeGroup
+    } catch (error) {
+      console.error("경로 디코딩 실패:", error)
+    }
+  }, [gpxData, isLoading])
 
   const handleLocationClick = () => {
     if (!mapRef.current?.map) return
 
-    const { map } = mapRef.current
+    const mapState = mapRef.current
+    const { map } = mapState
 
     map.locate({ setView: true, maxZoom: 16 })
 
@@ -173,8 +265,8 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       setCurrentLocation(coords)
       onLocationFound(coords)
 
-      if (mapRef.current?.currentLocationMarker) {
-        map.removeLayer(mapRef.current.currentLocationMarker)
+      if (mapState.currentLocationMarker) {
+        map.removeLayer(mapState.currentLocationMarker)
       }
 
       const blueIcon = L.icon({
@@ -187,7 +279,7 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
       })
 
       const marker = L.marker(coords, { icon: blueIcon }).addTo(map)
-      mapRef.current = { ...mapRef.current, currentLocationMarker: marker }
+      mapState.currentLocationMarker = marker
 
       let addressLabel = `위도: ${coords[0].toFixed(6)}, 경도: ${coords[1].toFixed(6)}`
       try {
@@ -218,23 +310,25 @@ export default function MapComponent({ center, startCoords, endCoords, gpxData, 
         </div>
       )}
       <div ref={mapContainerRef} className="w-full h-full rounded-lg" />
-      <div className="absolute bottom-4 right-4 z-[1000]">
-        <button
-          onClick={handleLocationClick}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
-          className="bg-white hover:bg-gray-100 p-3 rounded-full shadow-lg transition-all duration-300 relative"
-          title="내 위치 찾기"
-        >
-          <Navigation className="w-5 h-5 text-purple-600" />
-        </button>
-        {showTooltip && currentLocation && currentAddress && (
-          <div className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-purple-200 whitespace-nowrap text-sm text-gray-800 max-w-xs">
-            <div className="font-semibold text-purple-600 mb-1">현재 위치</div>
-            <div className="text-xs break-words max-w-[200px]">{currentAddress}</div>
-          </div>
-        )}
-      </div>
+      {showLocationButton && (
+        <div className="absolute bottom-4 right-4 z-[1000]">
+          <button
+            onClick={handleLocationClick}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="bg-white hover:bg-gray-100 p-3 rounded-full shadow-lg transition-all duration-300 relative"
+            title="내 위치 찾기"
+          >
+            <Navigation className="w-5 h-5 text-purple-600" />
+          </button>
+          {showTooltip && currentLocation && currentAddress && (
+            <div className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-purple-200 whitespace-nowrap text-sm text-gray-800 max-w-xs">
+              <div className="font-semibold text-purple-600 mb-1">현재 위치</div>
+              <div className="text-xs break-words max-w-[200px]">{currentAddress}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

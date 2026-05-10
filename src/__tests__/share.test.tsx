@@ -1,75 +1,49 @@
-﻿import { screen, waitFor } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
+import { screen } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import MyPageDetail from "@/pages/MyPageDetail"
 import SharePage from "@/pages/SharePage"
-import ForbiddenPage from "@/pages/ForbiddenPage"
-import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
-import { fetchArtById, updateShareStatus } from "@/services/art-service"
+import { renderWithProviders } from "@/test/test-utils"
+import { getRunningArtDetail } from "@/services/art-service"
 
 jest.mock("@/services/art-service", () => ({
-  createArt: jest.fn(),
-  saveArt: jest.fn(),
-  fetchMyArts: jest.fn(),
-  deleteArt: jest.fn(),
-  fetchArtById: jest.fn(),
-  updateShareStatus: jest.fn(),
-  fetchGalleryArts: jest.fn(),
+  getRunningArtDetail: jest.fn(),
+  deleteRunningArt: jest.fn(),
+  patchRunningArt: jest.fn(),
 }))
 
 describe("sharing", () => {
-  it("updates share status from detail view", async () => {
-    const user = userEvent.setup()
-    const art = {
-      id: "art-1",
+  it("does not render share controls in detail view because backend does not expose sharing APIs", async () => {
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue({
+      id: 1,
       title: "Morning run",
-      imageUrl: "/art.png",
-      distanceKm: 5,
-      theme: "Star",
-      isPublic: false,
-      createdAt: new Date().toISOString(),
-      ownerId: mockAuthPayload.user.id,
-    }
-
-    ;(fetchArtById as jest.Mock).mockResolvedValue(art)
-    ;(updateShareStatus as jest.Mock).mockResolvedValue({ ...art, isPublic: true })
+      content: "테스트 러닝 아트",
+      shape: "HEART",
+      proficiency: "BEGINNER",
+      gpx: "_p~iF~ps|U",
+      userId: 10,
+    })
 
     renderWithProviders(
       <Routes>
         <Route path="/mypage/:id" element={<MyPageDetail />} />
       </Routes>,
-      { route: "/mypage/art-1", auth: mockAuthPayload },
+      { route: "/mypage/1", auth: { user: { id: "owner@example.com", name: "Owner", email: "owner@example.com" }, tokens: { accessToken: "access-token", refreshToken: "refresh-token" } } },
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-
-    await user.click(screen.getByRole("checkbox"))
-
-    await waitFor(() => expect(updateShareStatus).toHaveBeenCalledWith("art-1", true))
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+    expect(screen.queryByText("공개 공유")).not.toBeInTheDocument()
   })
 
-  it("redirects to 403 for private shared artwork", async () => {
-    const art = {
-      id: "art-2",
-      title: "Private run",
-      imageUrl: "/private.png",
-      distanceKm: 4,
-      theme: "Heart",
-      isPublic: false,
-      createdAt: new Date().toISOString(),
-      ownerId: "owner-2",
-    }
-
-    ;(fetchArtById as jest.Mock).mockResolvedValue(art)
-
+  it("shows an unsupported message for legacy share URLs", async () => {
     renderWithProviders(
       <Routes>
         <Route path="/share/:id" element={<SharePage />} />
-        <Route path="/403" element={<ForbiddenPage />} />
       </Routes>,
-      { route: "/share/art-2", auth: null },
+      { route: "/share/2", auth: null },
     )
 
-    expect(await screen.findByText("접근이 거부되었습니다")).toBeInTheDocument()
+    expect(await screen.findByText("공유 기능 미지원")).toBeInTheDocument()
+    expect(screen.getByText("현재 백엔드 API 계약에는 공개 공유 조회와 공개 상태 변경 기능이 없습니다.")).toBeInTheDocument()
   })
 })

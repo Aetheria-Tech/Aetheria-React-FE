@@ -1,7 +1,8 @@
-﻿import { useCallback, useState } from "react"
+import { useCallback, useState } from "react"
 import type { Art } from "@/types/art"
-import { deleteArt as deleteArtRequest, fetchMyArts } from "@/services/art-service"
+import { deleteRunningArt, getMyRunningArts } from "@/services/art-service"
 import { useToast } from "@/context/toast-context"
+import { toArtFromRunningArt } from "@/lib/running-art"
 
 export function useMyArts() {
   const { notify } = useToast()
@@ -13,9 +14,10 @@ export function useMyArts() {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await fetchMyArts()
-      setArts(data)
-      return data
+      const data = await getMyRunningArts()
+      const mapped = data.map(toArtFromRunningArt)
+      setArts(mapped)
+      return mapped
     } catch (err) {
       setError("작품을 불러오는 데 실패했습니다")
       notify("작품을 불러오는 데 실패했습니다.", "error")
@@ -30,7 +32,8 @@ export function useMyArts() {
       setIsLoading(true)
       setError(null)
       try {
-        await deleteArtRequest(artId)
+        const parsedId = Number(artId)
+        await deleteRunningArt(Number.isFinite(parsedId) ? parsedId : artId)
         setArts((prev) => prev.filter((art) => art.id !== artId))
         notify("작품이 삭제되었습니다.", "success")
       } catch (err) {

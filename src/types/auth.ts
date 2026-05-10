@@ -1,13 +1,15 @@
-﻿export interface User {
+export interface User {
   id: string
   name: string
   email: string
+  statusMessage?: string
   profileImage?: string
 }
 
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
+  expiresAt?: number
 }
 
 export interface AuthPayload {

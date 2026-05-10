@@ -1,12 +1,14 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, Clock, Heart, Search, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ShootingStars from "@/components/shooting-stars"
+import GlobalHeader from "@/components/layouts/global-header"
 import { fetchGalleryArts } from "@/services/art-service"
 import type { Art } from "@/types/art"
 import { useToast } from "@/context/toast-context"
+import { formatDate, formatDistance } from "@/lib/formatters"
 
 export default function GalleryPage() {
   const { notify } = useToast()
@@ -23,33 +25,24 @@ export default function GalleryPage() {
   }, [notify])
 
   const filteredItems = useMemo(
-    () =>
-      arts.filter((item) => item.title.toLowerCase().includes(searchQuery.toLowerCase().trim())),
+    () => arts.filter((item) => item.title.toLowerCase().includes(searchQuery.toLowerCase().trim())),
     [arts, searchQuery],
   )
 
   return (
     <div className="min-h-screen bg-[#0a0f29] relative">
       <ShootingStars />
+      <GlobalHeader />
 
-      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-white/10">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/20">
-            <ArrowLeft className="w-4 h-4" />
-            뒤로
-          </Button>
-        </Link>
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
-            alt="Aetheria 로고"
-            className="h-8 object-contain"
-          />
-        </Link>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-12">
+      <main className="max-w-7xl mx-auto px-6 pb-12 pt-24">
         <div className="space-y-8">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/20">
+              <ArrowLeft className="w-4 h-4" />
+              뒤로
+            </Button>
+          </Link>
+
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h1 className="text-4xl md:text-5xl font-bold text-white">러닝 아트 갤러리</h1>
@@ -99,8 +92,8 @@ export default function GalleryPage() {
                   <div className="p-4 space-y-3">
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-white/60">{item.distanceKm}km</span>
-                      <span className="text-[#836FFF] font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
+                      <span className="text-white/60">{formatDistance(item.distanceKm)}</span>
+                      <span className="text-[#836FFF] font-medium">{formatDate(item.createdAt)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/60">테마: {item.theme}</span>

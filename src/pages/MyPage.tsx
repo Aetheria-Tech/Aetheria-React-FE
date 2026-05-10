@@ -1,21 +1,66 @@
-﻿import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
-import { ArrowLeft, Edit2, Grid3x3, List, Plus, Trash2, User, Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { Edit2, Mail, MessageSquareText, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
-import { useMyArts } from "@/hooks/use-my-arts"
+import GlobalHeader from "@/components/layouts/global-header"
+import RouteThumbnail from "@/components/route-thumbnail"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
+import { useMyArts } from "@/hooks/use-my-arts"
+import { formatDate, formatDistance } from "@/lib/formatters"
+import { updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { useToast } from "@/context/toast-context"
+import type { Art } from "@/types/art"
+import {
+  GENERATION_STATUS_POLLING_INTERVAL_MS,
+  cleanupExpiredTrackedGenerationTasks,
+  getRunningArtTaskStatus,
+  isGeneratingTaskStatus,
+  listTrackedGenerationTasks,
+  syncTrackedGenerationTask,
+  toTrackedGenerationArt,
+} from "@/services/generation-service"
+
+const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
+const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
+
+const getArtworkStatus = (artwork: Art) => {
+  if (artwork.generationState === "FAILED") {
+    return {
+      label: "생성 실패",
+      className: "border-rose-300/20 bg-rose-500/15 text-rose-100",
+    }
+  }
+
+  if (artwork.isGenerationTask) {
+    return {
+      label: "생성 중",
+      className: "border-amber-300/20 bg-amber-400/15 text-amber-100",
+    }
+  }
+
+  return {
+    label: "생성 완료",
+    className: "border-emerald-300/20 bg-emerald-400/15 text-emerald-100",
+  }
+}
 
 export default function MyPage() {
-  const { user } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const { notify } = useToast()
-  const { arts, isLoading, loadArts, removeArt } = useMyArts()
-  const [viewMode, setViewMode] = useState<"thumbnail" | "list">("thumbnail")
+  const navigate = useNavigate()
+  const { arts, isLoading, loadArts } = useMyArts()
+  const [trackedArts, setTrackedArts] = useState<Art[]>([])
+  const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const taskRefreshErrorNotifiedAtRef = useRef(0)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
+    statusMessage: "",
     profileImage: "",
   })
 
@@ -23,51 +68,256 @@ export default function MyPage() {
     setUserProfile({
       name: user?.name ?? "",
       email: user?.email ?? "",
+      statusMessage: user?.statusMessage ?? "",
       profileImage: user?.profileImage ?? "",
     })
   }, [user])
 
   useEffect(() => {
     loadArts().catch(() => undefined)
-  }, [loadArts])
+  }, [loadArts, user])
 
-  const handleSaveProfile = () => {
-    setIsEditingProfile(false)
-    // Profile edits are local until backend support is added.
-    notify("프로필 변경 사항이 로컬에 저장되었습니다.", "info")
+  const syncTrackedArtStatuses = useCallback(async (isDisposed: () => boolean) => {
+    if (isDisposed()) return
+
+    // 생성 중인 task는 localStorage 목록을 서버 상태로 동기화해 마이페이지에 함께 표시한다.
+    cleanupExpiredTrackedGenerationTasks()
+    const trackedTasks = listTrackedGenerationTasks()
+    if (trackedTasks.length === 0) {
+      if (!isDisposed()) {
+        setTrackedArts([])
+      }
+      return
+    }
+
+    const completedTaskUpdates: Array<{
+      trackedTask: (typeof trackedTasks)[number]
+      response: Awaited<ReturnType<typeof getRunningArtTaskStatus>>
+    }> = []
+
+    const syncedTasks: Array<(typeof trackedTasks)[number] | null> = []
+    for (let index = 0; index < trackedTasks.length; index += GENERATION_STATUS_SYNC_BATCH_SIZE) {
+      if (isDisposed()) return
+
+      const batch = trackedTasks.slice(index, index + GENERATION_STATUS_SYNC_BATCH_SIZE)
+      const batchResults = await Promise.all(
+        batch.map(async (trackedTask) => {
+          if (isDisposed() || !isGeneratingTaskStatus(trackedTask.status)) {
+            return { trackedTask, response: null }
+          }
+
+          try {
+            const response = await getRunningArtTaskStatus(trackedTask.taskId)
+            return { trackedTask, response }
+          } catch {
+            return { trackedTask, response: null }
+          }
+        }),
+      )
+
+      if (isDisposed()) return
+
+      for (const { trackedTask, response } of batchResults) {
+        if (!response) {
+          syncedTasks.push(trackedTask)
+          continue
+        }
+
+        if (response.status === "COMPLETED" && response.resultArtId !== null) {
+          completedTaskUpdates.push({ trackedTask, response })
+          syncedTasks.push(trackedTask)
+          continue
+        }
+
+        syncedTasks.push(syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask))
+      }
+    }
+
+    if (isDisposed()) return
+
+    const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
+
+    if (completedTaskUpdates.length > 0) {
+      // 완료된 task는 서버 작품 목록 갱신 전까지 추적 카드로 유지해 목록이 비는 순간을 줄인다.
+      setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
+
+      const didRefreshArts = await loadArts()
+        .then(() => true)
+        .catch(() => false)
+
+      if (isDisposed()) return
+
+      if (!didRefreshArts) {
+        const now = Date.now()
+        if (now - taskRefreshErrorNotifiedAtRef.current >= TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS) {
+          taskRefreshErrorNotifiedAtRef.current = now
+          notify("생성 완료된 작품 목록을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.", "error")
+        }
+        return
+      }
+
+      taskRefreshErrorNotifiedAtRef.current = 0
+
+      completedTaskUpdates.forEach(({ trackedTask, response }) => {
+        syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
+      })
+    }
+
+    const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
+    // 작품 목록 갱신 후에는 완료 task 카드를 제거해 같은 작품이 두 번 보이지 않게 한다.
+    const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
+    if (isDisposed()) return
+
+    setTrackedArts(validTasks.map(toTrackedGenerationArt))
+  }, [loadArts, notify])
+
+  useEffect(() => {
+    let disposed = false
+
+    const clearPollingTimeout = () => {
+      if (trackedPollingTimeoutRef.current !== null) {
+        clearTimeout(trackedPollingTimeoutRef.current)
+        trackedPollingTimeoutRef.current = null
+      }
+    }
+
+    // 언마운트 후에는 batch 요청과 상태 갱신을 중단한다.
+    const isDisposed = () => disposed
+
+    const scheduleNextSync = () => {
+      if (disposed) return
+      trackedPollingTimeoutRef.current = setTimeout(() => {
+        void syncTrackedArtStatuses(isDisposed).finally(scheduleNextSync)
+      }, GENERATION_STATUS_POLLING_INTERVAL_MS)
+    }
+
+    void syncTrackedArtStatuses(isDisposed).finally(scheduleNextSync)
+
+    return () => {
+      disposed = true
+      clearPollingTimeout()
+    }
+  }, [syncTrackedArtStatuses])
+
+  useEffect(() => {
+    if (!isWithdrawOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isWithdrawing) {
+        setIsWithdrawOpen(false)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isWithdrawOpen, isWithdrawing])
+
+  const resetProfileForm = () => {
+    setUserProfile({
+      name: user?.name ?? "",
+      email: user?.email ?? "",
+      statusMessage: user?.statusMessage ?? "",
+      profileImage: user?.profileImage ?? "",
+    })
   }
+
+  const handleCancelProfileEdit = () => {
+    if (isSavingProfile) return
+    resetProfileForm()
+    setIsEditingProfile(false)
+  }
+
+  const handleSaveProfile = async () => {
+    if (isSavingProfile) return
+
+    const nickname = userProfile.name.trim()
+    const statusMessage = userProfile.statusMessage.trim()
+
+    if (nickname.length < 2 || nickname.length > 20) {
+      notify("닉네임은 2자 이상 20자 이하로 입력해 주세요.", "error")
+      return
+    }
+
+    if (statusMessage.length > 100) {
+      notify("상태 메시지는 100자 이하로 입력해 주세요.", "error")
+      return
+    }
+
+    setIsSavingProfile(true)
+    try {
+      const updatedUser = await updateMyProfile({
+        nickname,
+        statusMessage,
+      })
+
+      updateUser(updatedUser)
+      setUserProfile({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        statusMessage: updatedUser.statusMessage ?? "",
+        profileImage: updatedUser.profileImage ?? "",
+      })
+      setIsEditingProfile(false)
+      notify("프로필이 저장되었습니다.", "success")
+    } catch (error) {
+      console.error("프로필 저장 실패:", error)
+      notify("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.", "error")
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    if (isWithdrawing) return
+
+    setIsWithdrawing(true)
+    try {
+      await withdrawMe()
+      logout()
+      notify("회원탈퇴가 완료되었습니다.", "success")
+      setIsWithdrawOpen(false)
+      navigate("/", { replace: true })
+    } catch (error) {
+      console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
+      notify("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
+    } finally {
+      setIsWithdrawing(false)
+    }
+  }
+
+  const visibleArts = useMemo(() => {
+    // 서버 작품과 로컬 추적 task가 겹치면 실제 서버 작품을 우선 노출한다.
+    const fetchedArtIds = new Set(arts.map((artwork) => artwork.id))
+    const fetchedTaskIds = new Set(
+      arts
+        .map((artwork) => artwork.taskId)
+        .filter((taskId): taskId is string => typeof taskId === "string" && taskId.length > 0),
+    )
+    const filteredTrackedArts = trackedArts.filter((artwork) => {
+      if (fetchedArtIds.has(artwork.id)) return false
+      return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
+    })
+
+    return [...filteredTrackedArts, ...arts]
+  }, [arts, trackedArts])
 
   return (
     <AppBackground overlayClassName="bg-black/50">
-      <header className="w-full px-6 py-4 flex items-center justify-between">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10 transition-all duration-300">
-            <ArrowLeft className="w-4 h-4" />
-            뒤로
-          </Button>
-        </Link>
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
-            alt="Aetheria 로고"
-            className="h-8 object-contain"
-          />
-        </Link>
-      </header>
+      <GlobalHeader />
 
-      <main className="flex-1 px-6 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20 transition-all duration-300">
-            <div className="flex items-center justify-between mb-6">
+      <main className="flex-1 px-6 pb-8 pt-24">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
+            <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white">프로필</h2>
               {!isEditingProfile ? (
                 <Button
                   onClick={() => setIsEditingProfile(true)}
                   variant="ghost"
                   size="sm"
-                  className="text-indigo-300 hover:text-indigo-200 hover:bg-white/10 gap-2 transition-all duration-300"
+                  className="gap-2 text-indigo-300 transition-all duration-300 hover:bg-white/10 hover:text-indigo-200"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="h-4 w-4" />
                   수정
                 </Button>
               ) : (
@@ -75,185 +325,214 @@ export default function MyPage() {
                   <Button
                     onClick={handleSaveProfile}
                     size="sm"
-                    className="bg-indigo-500 hover:bg-indigo-600 text-white transition-all duration-300"
+                    disabled={isSavingProfile}
+                    className="bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600"
                   >
-                    저장
+                    {isSavingProfile ? "저장 중..." : "저장"}
                   </Button>
                   <Button
-                    onClick={() => setIsEditingProfile(false)}
+                    onClick={handleCancelProfileEdit}
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10 transition-all duration-300"
+                    disabled={isSavingProfile}
+                    className="text-white transition-all duration-300 hover:bg-white/10"
                   >
                     취소
                   </Button>
                 </div>
               )}
             </div>
-            <div className="flex items-start gap-6 mb-6">
+
+            <div className="mb-6 flex items-start gap-6">
               {userProfile.profileImage && (
                 <img
                   src={userProfile.profileImage || "/placeholder.svg"}
-                  alt="프로필"
-                  className="w-20 h-20 rounded-full object-cover border-2 border-indigo-300"
+                  alt="프로필 이미지"
+                  className="h-20 w-20 rounded-full border-2 border-indigo-300 object-cover"
                 />
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-indigo-300" />
+                <User className="h-5 w-5 text-indigo-300" />
                 <div className="flex-1">
-                  <p className="text-gray-300 text-sm">이름</p>
+                  <p className="text-sm text-gray-300">이름</p>
                   {isEditingProfile ? (
                     <input
                       type="text"
+                      aria-label="닉네임 입력"
                       value={userProfile.name}
                       onChange={(event) => setUserProfile({ ...userProfile, name: event.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
+                      maxLength={20}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   ) : (
-                    <p className="text-white text-lg">{userProfile.name || "-"}</p>
+                    <p className="text-lg text-white">{userProfile.name || "-"}</p>
                   )}
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-indigo-300" />
+                <Mail className="h-5 w-5 text-indigo-300" />
                 <div className="flex-1">
-                  <p className="text-gray-300 text-sm">이메일</p>
+                  <p className="text-sm text-gray-300">이메일</p>
+                  <p className="text-lg text-white">{userProfile.email || "-"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 md:col-span-2">
+                <MessageSquareText className="mt-1 h-5 w-5 text-indigo-300" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-300">상태 메시지</p>
                   {isEditingProfile ? (
-                    <input
-                      type="email"
-                      value={userProfile.email}
-                      onChange={(event) => setUserProfile({ ...userProfile, email: event.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
+                    <textarea
+                      aria-label="상태 메시지 입력"
+                      value={userProfile.statusMessage}
+                      onChange={(event) => setUserProfile({ ...userProfile, statusMessage: event.target.value })}
+                      rows={3}
+                      maxLength={100}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   ) : (
-                    <p className="text-white text-lg">{userProfile.email || "-"}</p>
+                    <p className="whitespace-pre-wrap text-lg text-white">{userProfile.statusMessage?.trim() || "-"}</p>
                   )}
                 </div>
               </div>
             </div>
-          </div>
+
+            {isEditingProfile && (
+              <div className="mt-6 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsWithdrawOpen(true)}
+                  className="text-rose-300 transition-all duration-300 hover:bg-rose-500/10 hover:text-rose-200"
+                >
+                  회원탈퇴
+                </Button>
+              </div>
+            )}
+          </section>
 
           <div className="flex items-center justify-between">
-            <h1 className="text-4xl md:text-5xl font-semibold text-white drop-shadow-lg">내 작품</h1>
-            <div className="flex items-center gap-4">
-              <Link to="/create">
-                <Button className="bg-indigo-500 hover:bg-indigo-600 text-white gap-2 transition-all duration-300">
-                  <Plus className="w-4 h-4" />
-                  생성하기
-                </Button>
-              </Link>
-              <div className="flex gap-2 bg-white/10 backdrop-blur-md rounded-lg p-1 border border-white/20">
-                <Button
-                  variant={viewMode === "thumbnail" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("thumbnail")}
-                  className={
-                    viewMode === "thumbnail"
-                      ? "bg-indigo-500 hover:bg-indigo-600 transition-all duration-300"
-                      : "text-white hover:bg-white/10 transition-all duration-300"
-                  }
-                >
-                  <Grid3x3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className={
-                    viewMode === "list"
-                      ? "bg-indigo-500 hover:bg-indigo-600 transition-all duration-300"
-                      : "text-white hover:bg-white/10 transition-all duration-300"
-                  }
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <h1 className="text-4xl font-semibold text-white drop-shadow-lg md:text-5xl">내 작품</h1>
+            <Link to="/create">
+              <Button className="gap-2 bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600">
+                <Plus className="h-4 w-4" />
+                생성하기
+              </Button>
+            </Link>
           </div>
 
           {isLoading && <p className="text-white/70">작품을 불러오는 중...</p>}
-          {!isLoading && arts.length === 0 && <p className="text-white/70">아직 작품이 없습니다.</p>}
+          {!isLoading && visibleArts.length === 0 && <p className="text-white/70">아직 작품이 없습니다.</p>}
 
-          {viewMode === "thumbnail" && arts.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {arts.map((artwork) => (
-                <div
-                  key={artwork.id}
-                  className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-300 cursor-pointer group"
-                >
-                  <Link to={`/mypage/${artwork.id}`} className="block">
-                    <div className="aspect-square relative overflow-hidden">
-                      <img
-                        src={artwork.imageUrl || "/placeholder.svg"}
-                        alt={artwork.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                      />
-                    </div>
-                  </Link>
-                  <div className="p-4 space-y-2">
-                    <h3 className="text-white font-semibold text-lg truncate">{artwork.title}</h3>
-                    <div className="flex items-center justify-between text-sm text-gray-300">
-                      <span>{artwork.distanceKm}km</span>
-                      <span>{new Date(artwork.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeArt(artwork.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      삭제
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {visibleArts.length > 0 && (
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {visibleArts.map((artwork) => {
+                const status = getArtworkStatus(artwork)
+                const artworkPath =
+                  artwork.isGenerationTask && artwork.taskId ? `/mypage/tasks/${artwork.taskId}` : `/mypage/${artwork.id}`
 
-          {viewMode === "list" && arts.length > 0 && (
-            <div className="space-y-4">
-              {arts.map((artwork) => (
-                <div
-                  key={artwork.id}
-                  className="bg-white/10 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-6">
-                    <Link to={`/mypage/${artwork.id}`} className="flex-shrink-0">
-                      <img
-                        src={artwork.imageUrl || "/placeholder.svg"}
-                        alt={artwork.title}
-                        className="w-24 h-24 rounded-lg object-cover"
-                      />
+                return (
+                  <article
+                    key={artwork.id}
+                    className="group overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-white/15"
+                  >
+                    <Link to={artworkPath} aria-label={artwork.title} className="block">
+                      <div
+                        data-testid={`art-card-map-${artwork.id}`}
+                        className="relative aspect-square overflow-hidden bg-slate-950/40"
+                      >
+                        <div className="absolute left-3 top-3 z-10">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${status.className}`}>
+                            {status.label}
+                          </span>
+                        </div>
+
+                        {artwork.gpxData ? (
+                          <RouteThumbnail gpxData={artwork.gpxData} title={artwork.title} />
+                        ) : artwork.isGenerationTask ? (
+                          <div className="flex h-full flex-col justify-between p-5">
+                            <div className="space-y-3">
+                              <div className="h-3 w-24 rounded-full bg-white/10" />
+                              <div className="h-3 w-32 rounded-full bg-white/10" />
+                            </div>
+                            <div className="space-y-3">
+                              <div className="h-px w-full bg-white/10" />
+                              <div className="flex items-center justify-center gap-2">
+                                {[0, 1, 2].map((index) => (
+                                  <span
+                                    key={index}
+                                    className="h-2.5 w-2.5 rounded-full bg-brand animate-bounce"
+                                    style={{ animationDelay: `${index * 120}ms` }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={artwork.imageUrl || "/placeholder.svg"}
+                            alt={artwork.title}
+                            className="h-full w-full object-cover transition-all duration-300 group-hover:scale-105"
+                          />
+                        )}
+                      </div>
                     </Link>
-                    <div className="flex-1 min-w-0">
-                      <Link to={`/mypage/${artwork.id}`}>
-                        <h3 className="text-white font-semibold text-xl mb-2 hover:text-indigo-300 transition-all duration-300">
-                          {artwork.title}
-                        </h3>
-                      </Link>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-300">
-                        <span>거리: {artwork.distanceKm}km</span>
-                        <span>생성일: {new Date(artwork.createdAt).toLocaleString()}</span>
+
+                    <div className="space-y-2 p-4">
+                      <h3 className="truncate text-lg font-semibold text-white">{artwork.title}</h3>
+                      <p className="min-h-10 text-sm text-white/65">{artwork.content?.trim() || "-"}</p>
+                      <div className="flex items-center justify-between text-sm text-gray-300">
+                        <span>{artwork.isGenerationTask ? (artwork.startAddress?.trim() || "상태 확인 가능") : formatDistance(artwork.distanceKm)}</span>
+                        <span>{formatDate(artwork.createdAt)}</span>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeArt(artwork.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </article>
+                )
+              })}
+            </section>
           )}
         </div>
       </main>
+
+      {isWithdrawOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-title"
+            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+          >
+            <h2 id="withdraw-title" className="mb-3 text-xl font-semibold">
+              회원탈퇴
+            </h2>
+            <p className="mb-6 text-sm text-white/70">
+              정말 회원탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setIsWithdrawOpen(false)}
+                className="text-white hover:bg-white/10"
+                disabled={isWithdrawing}
+                autoFocus
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleWithdraw}
+                className="bg-rose-500 text-white hover:bg-rose-600"
+                disabled={isWithdrawing}
+              >
+                {isWithdrawing ? "처리 중..." : "회원탈퇴"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppBackground>
   )
 }

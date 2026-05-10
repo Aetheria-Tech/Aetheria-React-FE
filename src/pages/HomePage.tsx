@@ -1,160 +1,170 @@
 ﻿import { Link } from "react-router-dom"
+import { ArrowUpRight, Facebook, Instagram, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import AppBackground from "@/components/layouts/app-background"
+import { useAuth } from "@/context/auth-context"
+import GlobalHeader from "@/components/layouts/global-header"
 
 export default function HomePage() {
+  const { isLoggedIn } = useAuth()
+  // 로그인 사용자는 생성 화면으로, 게스트는 로그인 화면으로 CTA를 연결한다.
+  const createEntryPath = isLoggedIn ? "/create" : "/login"
+  const myArtsEntryPath = isLoggedIn ? "/mypage" : "/login"
+
   return (
-    <AppBackground overlayClassName="bg-black/40">
-      <header className="w-full px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%202025%EB%85%84%2011%EC%9B%94%2012%EC%9D%BC%20%EC%98%A4%ED%9B%84%2006_49_46-KkdNi8eRKRtmyvGjfBZ8KIzSsAc6s4.png"
-            alt="Aetheria 로고"
-            className="h-10 object-contain"
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <GlobalHeader />
+
+      <main className="snap-y snap-mandatory pt-24">
+        <section className="relative snap-start min-h-screen overflow-hidden px-4 py-16 sm:px-8">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
           />
-        </Link>
-
-        <Link to="/mypage">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
-          >
-            마이페이지
-          </Button>
-        </Link>
-      </header>
-
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="max-w-4xl w-full text-center space-y-8">
-          <div className="space-y-6">
-            <div className="inline-block">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-medium border border-white/30">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                맞춤형 러닝 아트
-              </span>
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="absolute inset-x-0 top-1/2 h-72 -translate-y-1/2 bg-black/55" />
+          <div className="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-balance text-5xl font-black leading-[0.95] text-white md:text-7xl">
+                러닝 경로, 그냥 달리기만 하세요
+              </h1>
+              <p className="mx-auto mt-5 max-w-2xl text-sm text-white/85 sm:text-base">
+                아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
+              </p>
+              <Link to="/login" aria-label="회원가입/로그인 페이지 이동">
+                <Button className="mt-8 h-auto rounded-full bg-brand px-7 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
+                  JOIN US
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight text-balance drop-shadow-2xl">
-              예술이 되는 러닝 경로
-              <br />
-              <span className="text-purple-300">당신의 러닝으로 완성됩니다</span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed text-pretty drop-shadow-lg">
-              러닝 경로를 감각적인 작품으로 바꿔 보세요.
-              <br />
-              매번의 러닝을 하나의 창작물로 남기세요.
-            </p>
           </div>
+        </section>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link to="/create">
-              <Button
-                size="lg"
-                className="text-lg px-8 py-6 h-auto font-semibold bg-purple-500 hover:bg-purple-600 text-white shadow-2xl"
-              >
-                작품 생성하기
+        <section className="relative snap-start min-h-screen overflow-hidden bg-gradient-to-br from-[#0a4ea1] via-[#0a66c2] to-[#063f86]">
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="relative flex min-h-screen flex-col">
+            <div className="mt-auto flex flex-col gap-4 px-4 pb-8 sm:px-8 sm:pb-10 md:flex-row md:items-end md:justify-between">
+              <div className="w-full rounded-xl bg-black/45 p-4 text-sm text-white/90 backdrop-blur-sm md:max-w-lg">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Location</p>
+                    <p className="mt-1">내 위치 기반 러닝</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Date</p>
+                    <p className="mt-1">매일 누적되는 기록</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-white/60">Time</p>
+                    <p className="mt-1">아침 - 저녁</p>
+                  </div>
+                </div>
+              </div>
+              <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
+                <Button className="h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
+                  REGISTER
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="snap-start grid min-h-screen grid-cols-1 md:grid-cols-2">
+          <article className="relative min-h-[50vh] overflow-hidden bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
+            <div className="absolute inset-0 bg-black/15" />
+            <div className="relative">
+              <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">초보부터 마라토너까지</h2>
+              <p className="mt-4 text-sm text-white/75">속도보다 궤적으로, 매일의 러닝을 시작하세요.</p>
+              <Link to={createEntryPath} aria-label="러닝 아트 생성 시작">
+                <Button className="mt-6 h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
+                  START
+                </Button>
+              </Link>
+            </div>
+          </article>
+
+          <article className="min-h-[50vh] bg-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
+            <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 관리하며 달리세요</h2>
+            <p className="mt-4 text-sm text-white/75">매번의 러닝을 하나의 작품으로 남겨보세요.</p>
+            <Link to={myArtsEntryPath} aria-label="내 러닝 아트 목록 이동">
+              <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-brand hover:bg-zinc-600">
+                MY ARTS
+                <ArrowUpRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/gallery">
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-6 h-auto font-semibold bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40"
-              >
-                갤러리 보기
+          </article>
+        </section>
+
+        <section className="snap-start min-h-screen bg-brand-surface px-4 py-10 text-zinc-900 sm:px-8 sm:py-12">
+          <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-between">
+            <h2 className="max-w-4xl text-3xl font-black leading-tight sm:text-5xl">
+              아테리아는 당신의 다음 러닝 아트를 기다리고 있습니다.
+            </h2>
+            <Link to="/create" aria-label="등록하기">
+              <Button className="h-auto rounded-full bg-zinc-800 px-5 py-2.5 font-black text-brand hover:bg-zinc-700">
+                REGISTER
+                <ArrowUpRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
-            <div className="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all">
-              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-6 h-6 text-purple-300"
-                >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
-                </svg>
+        <footer className="relative snap-start min-h-screen overflow-hidden bg-zinc-950 px-4 py-10 text-white sm:px-8 sm:py-14">
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-transparent to-black/70" />
+          <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col justify-between">
+            <div className="grid gap-8 md:grid-cols-[1fr_auto]">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs uppercase text-white/60">Email</p>
+                  <p className="text-sm text-white/85">contact@aetheria.run</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-white/60">Sponsorship</p>
+                  <p className="text-sm text-white/85">공식 파트너 문의를 받고 있습니다.</p>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-white">GPS 경로 기록</h3>
-              <p className="text-sm text-white/80 leading-relaxed">
-                러닝을 정확히 기록해 작품이 되는 경로를 만듭니다.
-              </p>
+
+              <div className="space-y-3">
+                <p className="text-xs uppercase text-white/60">Socials</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="인스타그램"
+                  >
+                    <Instagram className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="트위터"
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    aria-label="페이스북"
+                  >
+                    <Facebook className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all">
-              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-6 h-6 text-purple-300"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-white">AI 경로 스타일링</h3>
-              <p className="text-sm text-white/80 leading-relaxed">
-                선택한 테마에 맞춰 경로를 예술적으로 시각화합니다.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 space-y-3 text-left hover:bg-white/25 transition-all">
-              <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-6 h-6 text-purple-300"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-white">커뮤니티와 공유</h3>
-              <p className="text-sm text-white/80 leading-relaxed">
-                작품을 공개하고 다른 러너들의 경로를 탐색하세요.
-              </p>
-            </div>
+            <p className="text-5xl font-black tracking-tight text-white/95 sm:text-8xl">Aetheria</p>
           </div>
-        </div>
+        </footer>
       </main>
-
-      <footer className="w-full px-6 py-8 border-t border-white/10">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/70">(c) 2025 Aetheria. 모든 권리 보유.</p>
-          <div className="flex items-center gap-6">
-            <Link to="/about" className="text-sm text-white/70 hover:text-white transition-colors">
-              서비스 소개
-            </Link>
-            <Link to="/terms" className="text-sm text-white/70 hover:text-white transition-colors">
-              이용약관
-            </Link>
-            <Link to="/privacy" className="text-sm text-white/70 hover:text-white transition-colors">
-              개인정보처리방침
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </AppBackground>
+    </div>
   )
 }

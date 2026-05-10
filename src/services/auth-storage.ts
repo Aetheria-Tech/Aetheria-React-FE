@@ -1,4 +1,5 @@
-﻿import type { AuthTokens, User } from "@/types/auth"
+import { normalizeAuthTokens } from "@/services/auth-token"
+import type { AuthTokens, User } from "@/types/auth"
 
 const USER_KEY = "auth.user"
 const TOKENS_KEY = "auth.tokens"
@@ -17,13 +18,21 @@ export const authStorage = {
     return safeParse<User>(localStorage.getItem(USER_KEY))
   },
   getTokens(): AuthTokens | null {
-    return safeParse<AuthTokens>(localStorage.getItem(TOKENS_KEY))
+    const tokens = safeParse<AuthTokens>(localStorage.getItem(TOKENS_KEY))
+    if (!tokens) return null
+
+    const normalizedTokens = normalizeAuthTokens(tokens)
+    if (normalizedTokens.expiresAt !== tokens.expiresAt) {
+      localStorage.setItem(TOKENS_KEY, JSON.stringify(normalizedTokens))
+    }
+
+    return normalizedTokens
   },
   setUser(user: User) {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
   },
   setTokens(tokens: AuthTokens) {
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens))
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(normalizeAuthTokens(tokens)))
   },
   clear() {
     localStorage.removeItem(USER_KEY)
