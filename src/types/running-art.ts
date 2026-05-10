@@ -1,4 +1,4 @@
-export type RunningArtProficiency = "INTRODUCTION" | "BEGINNER" | "SKILLED" | "EXPERT" | "MASTER"
+export type RunningArtProficiency = "INTRODUCTION" | "BEGINNER" | "SKILLED" | "EXPERT"
 
 export interface RunningArtSummary {
   id: number

@@ -1,6 +1,6 @@
 ﻿import { useCallback, useState } from "react"
 import type { Art } from "@/types/art"
-import { getRunningArtDetail, updateShareStatus } from "@/services/art-service"
+import { getRunningArtDetail } from "@/services/art-service"
 import { useToast } from "@/context/toast-context"
 import { toArtFromRunningArt } from "@/lib/running-art"
 
@@ -30,34 +30,11 @@ export function useArtDetail() {
     [notify],
   )
 
-  const updateShare = useCallback(
-    async (artId: string, isPublic: boolean) => {
-      if (!art || String(art.id) !== artId) return null
-      // 공유 상태 변경 중에는 상세 화면의 공유 토글을 잠가 중복 요청을 막는다.
-      setIsLoading(true)
-      setError(null)
-      try {
-        const updated = await updateShareStatus(artId, isPublic)
-        setArt(updated)
-        notify(isPublic ? "작품이 공개로 전환되었습니다." : "작품이 비공개로 전환되었습니다.", "success")
-        return updated
-      } catch (err) {
-        setError("공유 상태를 변경하는 데 실패했습니다")
-        notify("공유 상태를 변경하는 데 실패했습니다.", "error")
-        throw err
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [notify, art, setArt],
-  )
-
   return {
     art,
     isLoading,
     error,
     loadArt,
-    updateShare,
     setArt,
   }
 }

@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useCallback } from "react"
+import { logoutMe } from "@/services/auth-service"
 
 interface GlobalHeaderProps {
   hideGuestLoginButton?: boolean
@@ -12,8 +13,10 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
   const navigate = useNavigate()
 
   const handleLogout = useCallback(() => {
-    logout()
-    navigate("/", { replace: true })
+    void logoutMe().finally(() => {
+      logout()
+      navigate("/", { replace: true })
+    })
   }, [logout, navigate])
 
   return (
@@ -26,9 +29,6 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
         <div className="flex items-center gap-2 text-xs font-black sm:gap-3 sm:text-base">
           {isLoggedIn ? (
             <>
-              <Link to="/gallery" className="underline-offset-4 hover:underline">
-                갤러리
-              </Link>
               <Link to="/mypage" aria-label="마이페이지 이동">
                 <Button variant="ghost" size="sm" className="font-black text-white hover:bg-white/10">
                   마이페이지

@@ -15,11 +15,8 @@ export default function ForbiddenPage() {
             <p className="text-white/70 text-lg">이 작품은 비공개입니다.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/gallery">
-              <Button className="bg-[#836FFF] hover:bg-[#6b5acc]">갤러리로</Button>
-            </Link>
             <Link to="/mypage">
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
+              <Button className="bg-[#836FFF] hover:bg-[#6b5acc]">
                 마이페이지로
               </Button>
             </Link>

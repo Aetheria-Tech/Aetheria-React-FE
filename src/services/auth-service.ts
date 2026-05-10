@@ -101,6 +101,11 @@ export async function updateMyProfile(request: UpdateMyProfileRequest): Promise<
   return user
 }
 
+export async function logoutMe(): Promise<void> {
+  const response = await apiClient.post("/api/v1/auth/logout")
+  unwrapVoidResponse(response.data)
+}
+
 export async function withdrawMe(): Promise<void> {
   const response = await apiClient.delete("/api/v1/auth/me")
   unwrapVoidResponse(response.data)

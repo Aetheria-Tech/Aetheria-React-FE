@@ -8,6 +8,7 @@ export default function HomePage() {
   const { isLoggedIn } = useAuth()
   // 로그인 사용자는 생성 화면으로, 게스트는 로그인 화면으로 CTA를 연결한다.
   const createEntryPath = isLoggedIn ? "/create" : "/login"
+  const myArtsEntryPath = isLoggedIn ? "/mypage" : "/login"
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -80,20 +81,20 @@ export default function HomePage() {
             <div className="relative">
               <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">초보부터 마라토너까지</h2>
               <p className="mt-4 text-sm text-white/75">속도보다 궤적으로, 매일의 러닝을 시작하세요.</p>
-              <Link to="/gallery" aria-label="서비스 소개 보기">
+              <Link to={createEntryPath} aria-label="러닝 아트 생성 시작">
                 <Button className="mt-6 h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
-                  ABOUT US
+                  START
                 </Button>
               </Link>
             </div>
           </article>
 
           <article className="min-h-[50vh] bg-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
-            <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 공유하고 달리세요</h2>
+            <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 관리하며 달리세요</h2>
             <p className="mt-4 text-sm text-white/75">매번의 러닝을 하나의 작품으로 남겨보세요.</p>
-            <Link to="/gallery" aria-label="갤러리 페이지 이동">
+            <Link to={myArtsEntryPath} aria-label="내 러닝 아트 목록 이동">
               <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-brand hover:bg-zinc-600">
-                NEWSLETTER
+                MY ARTS
                 <ArrowUpRight className="h-4 w-4" />
               </Button>
             </Link>

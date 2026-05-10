@@ -22,9 +22,9 @@ export default function NotFoundPage() {
                 홈으로
               </Button>
             </Link>
-            <Link to="/gallery">
+            <Link to="/create">
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
-                갤러리 보기
+                러닝 아트 만들기
               </Button>
             </Link>
           </div>

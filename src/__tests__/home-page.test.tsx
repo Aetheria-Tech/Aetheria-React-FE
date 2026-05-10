@@ -4,8 +4,18 @@ import { Route, Routes } from "react-router-dom"
 import HomePage from "@/pages/HomePage"
 import { renderWithProviders, mockAuthPayload } from "@/test/test-utils"
 import { authStorage } from "@/services/auth-storage"
+import { logoutMe } from "@/services/auth-service"
+
+jest.mock("@/services/auth-service", () => ({
+  logoutMe: jest.fn(),
+}))
 
 describe("HomePage", () => {
+  beforeEach(() => {
+    ;(logoutMe as jest.Mock).mockReset()
+    ;(logoutMe as jest.Mock).mockResolvedValue(undefined)
+  })
+
   it("shows only login button for unauthenticated users", async () => {
     renderWithProviders(<HomePage />, { auth: null })
 
@@ -15,12 +25,12 @@ describe("HomePage", () => {
     expect(screen.queryByRole("link", { name: "갤러리" })).not.toBeInTheDocument()
   })
 
-  it("shows gallery, mypage and logout buttons for authenticated users", async () => {
+  it("shows mypage and logout buttons for authenticated users", async () => {
     renderWithProviders(<HomePage />, { auth: mockAuthPayload })
 
-    expect(await screen.findByRole("link", { name: "갤러리" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "마이페이지" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "마이페이지" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "로그아웃" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "갤러리" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "로그인" })).not.toBeInTheDocument()
   })
 
@@ -38,6 +48,7 @@ describe("HomePage", () => {
 
     await user.click(await screen.findByRole("button", { name: "로그아웃" }))
 
+    await waitFor(() => expect(logoutMe).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(clearSpy).toHaveBeenCalled())
     expect(await screen.findByText("홈루트")).toBeInTheDocument()
     clearSpy.mockRestore()

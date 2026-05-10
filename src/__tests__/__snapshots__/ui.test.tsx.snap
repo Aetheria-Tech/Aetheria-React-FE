@@ -198,15 +198,15 @@ exports[`UI snapshots matches the home page layout 1`] = `
               속도보다 궤적으로, 매일의 러닝을 시작하세요.
             </p>
             <a
-              aria-label="서비스 소개 보기"
+              aria-label="러닝 아트 생성 시작"
               data-discover="true"
-              href="/gallery"
+              href="/login"
             >
               <button
                 class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-6 h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover"
                 data-slot="button"
               >
-                ABOUT US
+                START
               </button>
             </a>
           </div>
@@ -217,7 +217,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
           <h2
             class="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl"
           >
-            기록하고 공유하고 달리세요
+            기록하고 관리하며 달리세요
           </h2>
           <p
             class="mt-4 text-sm text-white/75"
@@ -225,15 +225,15 @@ exports[`UI snapshots matches the home page layout 1`] = `
             매번의 러닝을 하나의 작품으로 남겨보세요.
           </p>
           <a
-            aria-label="갤러리 페이지 이동"
+            aria-label="내 러닝 아트 목록 이동"
             data-discover="true"
-            href="/gallery"
+            href="/login"
           >
             <button
               class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-brand hover:bg-zinc-600"
               data-slot="button"
             >
-              NEWSLETTER
+              MY ARTS
               <svg
                 aria-hidden="true"
                 class="lucide lucide-arrow-up-right h-4 w-4"

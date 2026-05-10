@@ -7,16 +7,16 @@ import {
   deleteRunningArt,
   getMyRunningArts,
   getRunningArtDetail,
-  getRunningArtSample,
   patchRunningArt,
 } from "@/services/art-service"
 import { authStorage } from "@/services/auth-storage"
-import { updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { logoutMe, updateMyProfile, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
 import { getRunningArtTaskStatus, listTrackedGenerationTasks } from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
+  logoutMe: jest.fn(),
   updateMyProfile: jest.fn(),
   withdrawMe: jest.fn(),
 }))
@@ -73,7 +73,6 @@ jest.mock("@/services/art-service", () => ({
   deleteArt: jest.fn(),
   fetchArtById: jest.fn(),
   updateShareStatus: jest.fn(),
-  fetchGalleryArts: jest.fn(),
   getMyRunningArts: jest.fn(),
   getRunningArtDetail: jest.fn(),
   getRunningArtSample: jest.fn(),
@@ -127,12 +126,12 @@ const createDeferred = <T,>() => {
 describe("MyPage", () => {
   beforeEach(() => {
     ;(updateMyProfile as jest.Mock).mockReset()
+    ;(logoutMe as jest.Mock).mockReset()
+    ;(logoutMe as jest.Mock).mockResolvedValue(undefined)
     ;(withdrawMe as jest.Mock).mockReset()
     ;(isDevEnvironment as jest.Mock).mockReturnValue(false)
     ;(getMyRunningArts as jest.Mock).mockReset()
     ;(getRunningArtDetail as jest.Mock).mockReset()
-    ;(getRunningArtSample as jest.Mock).mockReset()
-    ;(getRunningArtSample as jest.Mock).mockResolvedValue(undefined)
     ;(deleteRunningArt as jest.Mock).mockReset()
     ;(patchRunningArt as jest.Mock).mockReset()
     ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([])
@@ -181,6 +180,7 @@ describe("MyPage", () => {
 
     await user.click(await screen.findByRole("button", { name: "로그아웃" }))
 
+    await waitFor(() => expect(logoutMe).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(clearSpy).toHaveBeenCalled())
     expect(await screen.findByText("홈")).toBeInTheDocument()
     clearSpy.mockRestore()
@@ -378,28 +378,6 @@ describe("MyPage", () => {
     expect(within(screen.getByTestId("art-card-map-2")).getByTestId("route-thumbnail")).toHaveTextContent(arts[1].gpx)
   })
 
-  it("prepends sample artwork for authenticated users", async () => {
-    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(getRunningArtSample as jest.Mock).mockResolvedValue({
-      id: -1,
-      title: "샘플 작품",
-      content: "샘플 경로",
-      shape: "SAMPLE",
-      proficiency: "BEGINNER",
-      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-      userId: 0,
-    })
-
-    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
-
-    expect(await screen.findByText("샘플 작품")).toBeInTheDocument()
-    await waitFor(() =>
-      expect(within(screen.getByTestId("art-card-map--1")).getByTestId("route-thumbnail")).toHaveTextContent(
-        "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-      ),
-    )
-  })
-
   it("keeps sample artwork detail read-only even in dev mode", async () => {
     ;(isDevEnvironment as jest.Mock).mockReturnValue(true)
     ;(getRunningArtDetail as jest.Mock).mockResolvedValue({
@@ -563,7 +541,7 @@ describe("MyPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 
-  it("disables delete button when current user is not the owner", async () => {
+  it("allows managing loaded detail because backend already verified ownership", async () => {
     const auth = {
       user: {
         id: "99",
@@ -585,7 +563,7 @@ describe("MyPage", () => {
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "삭제" })).not.toBeDisabled()
   })
 
   it("shows textarea when clicking description edit button in detail page", async () => {

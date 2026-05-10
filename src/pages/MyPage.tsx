@@ -74,7 +74,7 @@ export default function MyPage() {
   }, [user])
 
   useEffect(() => {
-    loadArts({ includeSample: Boolean(user) }).catch(() => undefined)
+    loadArts().catch(() => undefined)
   }, [loadArts, user])
 
   const syncTrackedArtStatuses = useCallback(async (isDisposed: () => boolean) => {
@@ -141,7 +141,7 @@ export default function MyPage() {
       // 완료된 task는 서버 작품 목록 갱신 전까지 추적 카드로 유지해 목록이 비는 순간을 줄인다.
       setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
 
-      const didRefreshArts = await loadArts({ includeSample: Boolean(user) })
+      const didRefreshArts = await loadArts()
         .then(() => true)
         .catch(() => false)
 
@@ -169,7 +169,7 @@ export default function MyPage() {
     if (isDisposed()) return
 
     setTrackedArts(validTasks.map(toTrackedGenerationArt))
-  }, [loadArts, notify, user])
+  }, [loadArts, notify])
 
   useEffect(() => {
     let disposed = false

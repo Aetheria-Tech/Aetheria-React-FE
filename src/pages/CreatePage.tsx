@@ -19,7 +19,7 @@ const proficiencyOptions: Array<{ value: RunningArtProficiency; label: string }>
   { value: "INTRODUCTION", label: "입문 (3km)" },
   { value: "BEGINNER", label: "초급 (10km)" },
   { value: "SKILLED", label: "중급 (20km)" },
-  { value: "MASTER", label: "마라톤 (40km)" },
+  { value: "EXPERT", label: "전문가 (40km)" },
 ]
 
 export default function CreatePage() {

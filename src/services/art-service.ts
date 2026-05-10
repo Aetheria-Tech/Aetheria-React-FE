@@ -73,6 +73,9 @@ let mockArts: Art[] = [
 
 const isMockEnabled = () => env.useMockApi === "true"
 
+const unsupportedBackendEndpoint = (feature: string) =>
+  new Error(`${feature}은 현재 백엔드 API 계약에서 제공되지 않습니다.`)
+
 const mapArtToRunningArt = (art: Art, index: number): RunningArtSummary => ({
   id: Number.isFinite(Number(art.id)) ? Number(art.id) : index + 1,
   title: art.title,
@@ -120,9 +123,7 @@ export async function createArt(payload: CreateArtPayload): Promise<CreateArtRes
     mockArts = [art, ...mockArts]
     return { art, gpxData, imageUrl: art.imageUrl }
   }
-  // Keep create + AI generation in one request for a single user action.
-  const response = await apiClient.post<CreateArtResponse>("/arts", payload)
-  return response.data
+  throw unsupportedBackendEndpoint("동기식 작품 생성 API")
 }
 
 export async function saveArt(artId: string): Promise<Art> {
@@ -133,16 +134,14 @@ export async function saveArt(artId: string): Promise<Art> {
     }
     return art
   }
-  const response = await apiClient.post<Art>(`/arts/${artId}/save`)
-  return response.data
+  throw unsupportedBackendEndpoint("작품 저장 API")
 }
 
 export async function fetchMyArts(): Promise<Art[]> {
   if (isMockEnabled()) {
     return [...mockArts]
   }
-  const response = await apiClient.get<Art[]>("/arts/mine")
-  return response.data
+  throw unsupportedBackendEndpoint("legacy 내 작품 API")
 }
 
 export async function fetchArtById(artId: string): Promise<Art> {
@@ -153,8 +152,7 @@ export async function fetchArtById(artId: string): Promise<Art> {
     }
     return art
   }
-  const response = await apiClient.get<Art>(`/arts/${artId}`)
-  return response.data
+  throw unsupportedBackendEndpoint("legacy 작품 상세 API")
 }
 
 export async function deleteArt(artId: string): Promise<void> {
@@ -162,7 +160,7 @@ export async function deleteArt(artId: string): Promise<void> {
     mockArts = mockArts.filter((item) => item.id !== artId)
     return
   }
-  await apiClient.delete(`/arts/${artId}`)
+  throw unsupportedBackendEndpoint("legacy 작품 삭제 API")
 }
 
 export async function updateShareStatus(artId: string, isPublic: boolean): Promise<Art> {
@@ -175,16 +173,14 @@ export async function updateShareStatus(artId: string, isPublic: boolean): Promi
     mockArts = mockArts.map((item) => (item.id === artId ? updated : item))
     return updated
   }
-  const response = await apiClient.patch<Art>(`/arts/${artId}/share`, { isPublic })
-  return response.data
+  throw unsupportedBackendEndpoint("작품 공개 공유 API")
 }
 
 export async function fetchGalleryArts(): Promise<Art[]> {
   if (isMockEnabled()) {
     return mockArts.filter((item) => item.isPublic)
   }
-  const response = await apiClient.get<Art[]>("/arts")
-  return response.data
+  throw unsupportedBackendEndpoint("public gallery API")
 }
 
 export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
@@ -211,8 +207,7 @@ export async function getRunningArtSample(): Promise<RunningArtDetail> {
       createdAt: new Date(0).toISOString(),
     })
   }
-  const response = await apiClient.get("/api/v1/running-arts/sample")
-  return normalizeSampleRunningArt(unwrapApiResponse<RunningArtDetail>(response.data))
+  throw unsupportedBackendEndpoint("샘플 작품 API")
 }
 
 export async function getRunningArtDetail(runningArtId: number | string): Promise<RunningArtDetail> {

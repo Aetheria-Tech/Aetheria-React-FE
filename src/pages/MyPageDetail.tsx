@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Link as LinkIcon } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import MapComponent from "@/components/map-component"
 import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
-import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
-import { isDevEnvironment } from "@/lib/runtime"
 import { deleteRunningArt, patchRunningArt } from "@/services/art-service"
 
 export default function MyPageDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { notify } = useToast()
-  const { art, isLoading, loadArt, updateShare, setArt } = useArtDetail()
-  const { user } = useAuth()
+  const { art, isLoading, loadArt, setArt } = useArtDetail()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isEditingContent, setIsEditingContent] = useState(false)
@@ -30,10 +27,8 @@ export default function MyPageDetail() {
   }, [id, loadArt])
 
   const isSampleArt = useMemo(() => String(art?.id ?? "") === "-1", [art])
-  const isOwner = useMemo(() => Boolean(art && user && art.ownerId === user.id), [art, user])
-  // 샘플은 읽기 전용이고, 실제 작품 관리는 소유자 또는 개발 환경에서만 허용한다.
-  const canManageArt = !isSampleArt && (isOwner || isDevEnvironment())
-  const shareUrl = typeof window !== "undefined" && art ? `${window.location.origin}/share/${art.id}` : ""
+  // BE 상세 조회가 이미 소유자 검증을 통과한 리소스만 반환한다.
+  const canManageArt = Boolean(art && !isSampleArt)
 
   useEffect(() => {
     if (isEditingContent) return
@@ -194,32 +189,7 @@ export default function MyPageDetail() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-white/80">공개 공유</span>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={art.isPublic}
-                    onChange={(event) => updateShare(art.id, event.target.checked)}
-                    disabled={!canManageArt || isLoading}
-                    className="h-4 w-4"
-                  />
-                  {art.isPublic ? "공개" : "비공개"}
-                </label>
-              </div>
-              {isSampleArt && <p className="text-white/60 text-sm">샘플 작품은 읽기 전용으로 제공됩니다.</p>}
-              {!canManageArt && <p className="text-white/60 text-sm">공유 설정은 소유자만 변경할 수 있습니다.</p>}
-            </div>
-
-            {art.isPublic ? (
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <LinkIcon className="w-4 h-4" />
-                <span className="truncate">{shareUrl}</span>
-              </div>
-            ) : (
-              <p className="text-white/60 text-sm">이 작품은 비공개입니다.</p>
-            )}
+            {isSampleArt && <p className="text-white/60 text-sm">샘플 작품은 읽기 전용으로 제공됩니다.</p>}
           </div>
         )}
       </div>
