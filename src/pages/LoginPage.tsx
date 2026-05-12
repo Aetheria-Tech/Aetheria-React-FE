@@ -44,7 +44,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <Button
                 onClick={() => handleSocialLogin("kakao")}
-                className="flex w-full items-center justify-center gap-3 bg-primary py-6 text-lg font-semibold text-primary-foreground hover:bg-primary-container"
+                className="flex w-full items-center justify-center gap-3 bg-[#FEE500] py-6 text-lg font-semibold text-[#000000] hover:bg-[#FDD835]"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
