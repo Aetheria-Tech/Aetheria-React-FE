@@ -188,33 +188,39 @@ describe("MyPage", () => {
 
   it("saves edited profile via patch and updates the rendered profile", async () => {
     const user = userEvent.setup()
+    const auth = {
+      ...mockAuthPayload,
+      user: {
+        ...mockAuthPayload.user,
+        statusMessage: "기존 상태 메시지",
+      },
+    }
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
     ;(updateMyProfile as jest.Mock).mockResolvedValue({
       id: "user@example.com",
       name: "수정된 닉네임",
       email: "user@example.com",
-      statusMessage: "오늘도 달립니다.",
+      statusMessage: "기존 상태 메시지",
     })
 
-    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+    renderWithProviders(<MyPage />, { auth })
 
     await user.click(await screen.findByRole("button", { name: "수정" }))
     const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
     await user.clear(nameInput)
     await user.type(nameInput, "수정된 닉네임")
-    const statusTextarea = screen.getByRole("textbox", { name: "상태 메시지 입력" })
-    await user.type(statusTextarea, "오늘도 달립니다.")
+    expect(screen.queryByRole("textbox", { name: "상태 메시지 입력" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "저장" }))
 
     await waitFor(() =>
       expect(updateMyProfile).toHaveBeenCalledWith({
         nickname: "수정된 닉네임",
-        statusMessage: "오늘도 달립니다.",
+        statusMessage: "기존 상태 메시지",
       }),
     )
     expect(await screen.findByText("프로필이 저장되었습니다.")).toBeInTheDocument()
     expect(screen.getByText("수정된 닉네임")).toBeInTheDocument()
-    expect(screen.getByText("오늘도 달립니다.")).toBeInTheDocument()
+    expect(screen.queryByText("기존 상태 메시지")).not.toBeInTheDocument()
   })
 
   it("keeps edit mode when profile save fails", async () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Edit2, Mail, MessageSquareText, Plus, User } from "lucide-react"
+import { Edit2, Mail, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import RouteThumbnail from "@/components/route-thumbnail"
@@ -231,15 +231,9 @@ export default function MyPage() {
     if (isSavingProfile) return
 
     const nickname = userProfile.name.trim()
-    const statusMessage = userProfile.statusMessage.trim()
 
     if (nickname.length < 2 || nickname.length > 20) {
       notify("닉네임은 2자 이상 20자 이하로 입력해 주세요.", "error")
-      return
-    }
-
-    if (statusMessage.length > 100) {
-      notify("상태 메시지는 100자 이하로 입력해 주세요.", "error")
       return
     }
 
@@ -247,7 +241,7 @@ export default function MyPage() {
     try {
       const updatedUser = await updateMyProfile({
         nickname,
-        statusMessage,
+        statusMessage: userProfile.statusMessage.trim(),
       })
 
       updateUser(updatedUser)
@@ -381,24 +375,6 @@ export default function MyPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 md:col-span-2">
-                <MessageSquareText className="mt-1 h-5 w-5 text-indigo-300" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-300">상태 메시지</p>
-                  {isEditingProfile ? (
-                    <textarea
-                      aria-label="상태 메시지 입력"
-                      value={userProfile.statusMessage}
-                      onChange={(event) => setUserProfile({ ...userProfile, statusMessage: event.target.value })}
-                      rows={3}
-                      maxLength={100}
-                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap text-lg text-white">{userProfile.statusMessage?.trim() || "-"}</p>
-                  )}
-                </div>
-              </div>
             </div>
 
             {isEditingProfile && (

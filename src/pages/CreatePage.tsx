@@ -22,6 +22,14 @@ const proficiencyOptions: Array<{ value: RunningArtProficiency; label: string }>
   { value: "EXPERT", label: "전문가 (40km)" },
 ]
 
+const routePath = "M 48 72 C 98 28 142 25 182 58 S 284 94 376 34"
+const routeMarkerPositions = [
+  { x: 128, y: 34 },
+  { x: 248, y: 78 },
+  { x: 376, y: 34 },
+] as const
+const runnerPositions = [{ x: 48, y: 72 }, ...routeMarkerPositions] as const
+
 export default function CreatePage() {
   const navigate = useNavigate()
   const { notify } = useToast()
@@ -120,6 +128,29 @@ export default function CreatePage() {
     }).open()
   }
 
+  const selectedProficiencyLabel =
+    proficiencyOptions.find((option) => option.value === formData.proficiency)?.label ?? ""
+  const routeProgressSteps = [
+    {
+      label: "거리",
+      value: selectedProficiencyLabel,
+      completed: Boolean(formData.proficiency),
+    },
+    {
+      label: "테마",
+      value: formData.theme.trim(),
+      completed: formData.theme.trim().length > 0,
+    },
+    {
+      label: "출발지",
+      value: formData.startPoint.trim(),
+      completed: formData.startPoint.trim().length > 0,
+    },
+  ]
+  const completedOptionCount = routeProgressSteps.filter((step) => step.completed).length
+  const routeProgressPercent = Math.round((completedOptionCount / routeProgressSteps.length) * 100)
+  const runnerPosition = runnerPositions[completedOptionCount]
+
   return (
     <AppBackground overlayClassName="bg-black/55">
       <GlobalHeader />
@@ -135,6 +166,95 @@ export default function CreatePage() {
             <section className="rounded-2xl border border-white/20 bg-black/35 p-6 shadow-2xl backdrop-blur-md sm:p-8">
               <h2 className="text-2xl font-black text-white">생성 설정</h2>
               <p className="mt-2 text-sm text-white/70">생성 요청 후 전용 화면으로 이동해 진행 상태를 확인할 수 있습니다.</p>
+
+              <div className="mt-6 space-y-3">
+                <div className="text-center text-xs font-semibold text-white/80">
+                  {completedOptionCount}/{routeProgressSteps.length}
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label="생성 옵션 진행도"
+                  aria-valuemin={0}
+                  aria-valuemax={routeProgressSteps.length}
+                  aria-valuenow={completedOptionCount}
+                  className="relative h-28 overflow-hidden"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 400 112" className="absolute inset-0 h-full w-full">
+                    <defs>
+                      <linearGradient id="create-route-progress" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stopColor="#80e87a" />
+                        <stop offset="55%" stopColor="#67e8f9" />
+                        <stop offset="100%" stopColor="#c4b5fd" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d={routePath}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.18)"
+                      strokeDasharray="2 15"
+                      strokeLinecap="round"
+                      strokeWidth="8"
+                    />
+                    <path
+                      d={routePath}
+                      fill="none"
+                      pathLength={100}
+                      stroke="url(#create-route-progress)"
+                      strokeDasharray={`${routeProgressPercent} 100`}
+                      strokeLinecap="round"
+                      strokeWidth="8"
+                      style={{ transition: "stroke-dasharray 520ms ease" }}
+                    />
+                    {routeMarkerPositions.map((marker, index) => {
+                      const isCompleted = Boolean(routeProgressSteps[index]?.completed)
+                      return (
+                        <g key={`route-marker-${index}`}>
+                          <circle
+                            cx={marker.x}
+                            cy={marker.y}
+                            fill={isCompleted ? "#80e87a" : "rgba(255,255,255,0.12)"}
+                            r="11"
+                            stroke={isCompleted ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.28)"}
+                            strokeWidth="2"
+                            style={{ transition: "fill 260ms ease, stroke 260ms ease" }}
+                          />
+                          {isCompleted && (
+                            <path
+                              d={`M ${marker.x - 4} ${marker.y} L ${marker.x - 1} ${marker.y + 4} L ${marker.x + 6} ${
+                                marker.y - 5
+                              }`}
+                              fill="none"
+                              stroke="#102010"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2.5"
+                            />
+                          )}
+                        </g>
+                      )
+                    })}
+                    <g
+                      style={{
+                        transform: `translate(${runnerPosition.x}px, ${runnerPosition.y}px)`,
+                        transition: "transform 520ms ease",
+                      }}
+                    >
+                      <circle fill="rgba(128,232,122,0.24)" r="17" />
+                      <circle fill="#80e87a" r="8" stroke="white" strokeWidth="2" />
+                    </g>
+                  </svg>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center text-xs sm:text-sm">
+                  {routeProgressSteps.map((step) => (
+                    <div key={step.label} className="min-w-0">
+                      <p className={step.completed ? "font-bold text-brand" : "font-semibold text-white/45"}>
+                        {step.label}
+                      </p>
+                      <p className="mt-1 truncate text-white/70">{step.completed ? step.value : "대기 중"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-6 space-y-5">
                 <div className="space-y-2">

@@ -69,4 +69,23 @@ describe("CreatePage", () => {
     )
     expect(await screen.findByText("생성 상태 페이지")).toBeInTheDocument()
   })
+
+  it("updates route progress as generation options are filled", async () => {
+    const user = userEvent.setup()
+
+    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+
+    const progress = screen.getByRole("progressbar", { name: "생성 옵션 진행도" })
+    expect(progress).toHaveAttribute("aria-valuenow", "0")
+
+    await user.click(screen.getByRole("combobox"))
+    await user.click(screen.getByText("입문 (3km)"))
+    expect(progress).toHaveAttribute("aria-valuenow", "1")
+
+    await user.type(screen.getByLabelText("테마"), "하트")
+    expect(progress).toHaveAttribute("aria-valuenow", "2")
+
+    await user.type(screen.getByLabelText("출발지"), "서울시청")
+    expect(progress).toHaveAttribute("aria-valuenow", "3")
+  })
 })
