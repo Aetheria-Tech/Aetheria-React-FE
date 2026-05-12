@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
-import createMascot from "@/assets/creat ime.png"
 import { toLatLngFromKakao } from "@/lib/coords"
 import { saveStoredGeocode } from "@/mocks/geocode-map"
 import { searchAddress as searchKakaoAddress } from "@/services/kakao-service"
@@ -30,6 +29,7 @@ const routeMarkerPositions = [
   { x: 376, y: 34 },
 ] as const
 const runnerPositions = [{ x: 48, y: 72 }, ...routeMarkerPositions] as const
+const faviconMascot = "/favicon.png"
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -341,7 +341,7 @@ export default function CreatePage() {
                     {isLoading ? (
                       <>
                         <img
-                          src={createMascot}
+                          src={faviconMascot}
                           alt=""
                           aria-hidden="true"
                           className="mr-2 h-6 w-6 rounded-full object-cover animate-pulse"
@@ -351,7 +351,7 @@ export default function CreatePage() {
                     ) : (
                       <>
                         <img
-                          src={createMascot}
+                          src={faviconMascot}
                           alt=""
                           aria-hidden="true"
                           className="mr-2 h-6 w-6 rounded-full object-cover"

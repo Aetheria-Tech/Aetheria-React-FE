@@ -4,7 +4,6 @@ import { AlertCircle, ArrowLeft, RefreshCcw } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import { Button } from "@/components/ui/button"
-import createMascot from "@/assets/creat ime.png"
 import { formatDateTime } from "@/lib/formatters"
 import { env } from "@/services/env"
 import {
@@ -27,6 +26,7 @@ import type {
 
 const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
+const faviconMascot = "/favicon.png"
 
 const getSseConnectTimeoutMs = () => {
   const timeoutMs = Number(env.generationSseConnectTimeoutMs)
@@ -62,7 +62,7 @@ function LoadingMotion() {
         <div className="relative flex h-28 w-28 items-center justify-center">
           <div className="generation-loader-shadow absolute bottom-1 h-3 w-14 rounded-full bg-black/35 blur-sm" />
           <img
-            src={createMascot}
+            src={faviconMascot}
             alt="생성 중인 러닝화"
             className="generation-loader-float relative z-10 h-16 w-16 rounded-full object-cover drop-shadow-[0_0_18px_rgba(255,255,255,0.2)]"
           />
