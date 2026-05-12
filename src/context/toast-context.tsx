@@ -17,9 +17,9 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined)
 
 const variantClasses: Record<ToastVariant, string> = {
-  success: "border-emerald-400/50 bg-emerald-500/20 text-emerald-100",
-  error: "border-rose-400/50 bg-rose-500/20 text-rose-100",
-  info: "border-slate-400/50 bg-slate-500/20 text-slate-100",
+  success: "border-white/20 bg-surface-container-high text-white",
+  error: "border-destructive/40 bg-destructive-container/60 text-on-destructive-container",
+  info: "border-white/15 bg-surface-container-high text-white/85",
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {

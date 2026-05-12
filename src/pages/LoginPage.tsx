@@ -35,7 +35,7 @@ export default function LoginPage() {
 
       <main className="flex-1 flex items-center justify-center px-6 pb-12 pt-24">
         <div className="w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+          <div className="rounded-2xl border border-white/15 bg-surface-container/90 p-8 backdrop-blur-md">
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">로그인</h1>
               <p className="text-white/70">러닝 아트를 생성하고 공유하려면 로그인하세요.</p>
@@ -44,7 +44,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               <Button
                 onClick={() => handleSocialLogin("kakao")}
-                className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#000000] py-6 text-lg font-semibold flex items-center justify-center gap-3"
+                className="flex w-full items-center justify-center gap-3 bg-primary py-6 text-lg font-semibold text-primary-foreground hover:bg-primary-container"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -58,7 +58,7 @@ export default function LoginPage() {
               <Button
                 onClick={() => handleSocialLogin("google")}
                 variant="outline"
-                className="w-full bg-white/10 hover:bg-white/20 text-white py-6 text-lg font-semibold flex items-center justify-center gap-3 border border-white/30"
+                className="flex w-full items-center justify-center gap-3 border border-white/15 bg-surface-container-high py-6 text-lg font-semibold text-white hover:bg-white/10"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path

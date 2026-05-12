@@ -16,7 +16,7 @@ export default function RouteThumbnail({ gpxData, title }: RouteThumbnailProps) 
     return (
       <div
         data-testid="route-thumbnail"
-        className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.25),_transparent_55%),linear-gradient(180deg,_#111827,_#020617)]"
+        className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,_#201f1f,_#0e0e0e)]"
       >
         <span className="text-xs uppercase tracking-[0.35em] text-white/35">No Route</span>
       </div>
@@ -27,7 +27,7 @@ export default function RouteThumbnail({ gpxData, title }: RouteThumbnailProps) 
     <div
       data-testid="route-thumbnail"
       data-point-count={preview.pointCount}
-      className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.25),_transparent_55%),linear-gradient(180deg,_#111827,_#020617)]"
+      className="h-full w-full bg-[linear-gradient(180deg,_#201f1f,_#0e0e0e)]"
     >
       <svg viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`} className="h-full w-full" aria-label={`${title} 경로 미리보기`}>
         <defs>
@@ -60,14 +60,14 @@ export default function RouteThumbnail({ gpxData, title }: RouteThumbnailProps) 
         />
         <path
           d={preview.path}
-          stroke="#a855f7"
+          stroke="#ffffff"
           strokeWidth="2.8"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
         />
-        <circle cx={preview.start[0]} cy={preview.start[1]} r="3.2" fill="#22c55e" stroke="#ffffff" strokeWidth="1.2" />
-        <circle cx={preview.end[0]} cy={preview.end[1]} r="3.2" fill="#ef4444" stroke="#ffffff" strokeWidth="1.2" />
+        <circle cx={preview.start[0]} cy={preview.start[1]} r="3.2" fill="#ffffff" stroke="#8e9192" strokeWidth="1.2" />
+        <circle cx={preview.end[0]} cy={preview.end[1]} r="3.2" fill="#8e9192" stroke="#ffffff" strokeWidth="1.2" />
       </svg>
     </div>
   )

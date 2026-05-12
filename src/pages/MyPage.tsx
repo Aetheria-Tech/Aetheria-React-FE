@@ -28,20 +28,20 @@ const getArtworkStatus = (artwork: Art) => {
   if (artwork.generationState === "FAILED") {
     return {
       label: "생성 실패",
-      className: "border-rose-300/20 bg-rose-500/15 text-rose-100",
+      className: "border-destructive/30 bg-destructive-container/35 text-on-destructive-container",
     }
   }
 
   if (artwork.isGenerationTask) {
     return {
       label: "생성 중",
-      className: "border-amber-300/20 bg-amber-400/15 text-amber-100",
+      className: "border-white/15 bg-surface-container-high text-white/75",
     }
   }
 
   return {
     label: "생성 완료",
-    className: "border-emerald-300/20 bg-emerald-400/15 text-emerald-100",
+    className: "border-primary/30 bg-white/10 text-white",
   }
 }
 
@@ -301,7 +301,7 @@ export default function MyPage() {
 
       <main className="flex-1 px-6 pb-8 pt-24">
         <div className="mx-auto max-w-6xl space-y-8">
-          <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
+          <section className="rounded-2xl border border-white/15 bg-surface-container/90 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white">프로필</h2>
               {!isEditingProfile ? (
@@ -309,7 +309,7 @@ export default function MyPage() {
                   onClick={() => setIsEditingProfile(true)}
                   variant="ghost"
                   size="sm"
-                  className="gap-2 text-indigo-300 transition-all duration-300 hover:bg-white/10 hover:text-indigo-200"
+                  className="gap-2 text-white transition-all duration-300 hover:bg-white/10"
                 >
                   <Edit2 className="h-4 w-4" />
                   수정
@@ -320,7 +320,7 @@ export default function MyPage() {
                     onClick={handleSaveProfile}
                     size="sm"
                     disabled={isSavingProfile}
-                    className="bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600"
+                    className="bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container"
                   >
                     {isSavingProfile ? "저장 중..." : "저장"}
                   </Button>
@@ -342,14 +342,14 @@ export default function MyPage() {
                 <img
                   src={userProfile.profileImage || "/placeholder.svg"}
                   alt="프로필 이미지"
-                  className="h-20 w-20 rounded-full border-2 border-indigo-300 object-cover"
+                  className="h-20 w-20 rounded-full border-2 border-white object-cover"
                 />
               )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-center gap-3">
-                <User className="h-5 w-5 text-indigo-300" />
+                <User className="h-5 w-5 text-white/75" />
                 <div className="flex-1">
                   <p className="text-sm text-gray-300">이름</p>
                   {isEditingProfile ? (
@@ -359,7 +359,7 @@ export default function MyPage() {
                       value={userProfile.name}
                       onChange={(event) => setUserProfile({ ...userProfile, name: event.target.value })}
                       maxLength={20}
-                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-white/15 bg-surface-container-high px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50"
                     />
                   ) : (
                     <p className="text-lg text-white">{userProfile.name || "-"}</p>
@@ -368,7 +368,7 @@ export default function MyPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-indigo-300" />
+                <Mail className="h-5 w-5 text-white/75" />
                 <div className="flex-1">
                   <p className="text-sm text-gray-300">이메일</p>
                   <p className="text-lg text-white">{userProfile.email || "-"}</p>
@@ -394,7 +394,7 @@ export default function MyPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-semibold text-white drop-shadow-lg md:text-5xl">내 작품</h1>
             <Link to="/create">
-              <Button className="gap-2 bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600">
+              <Button className="gap-2 bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container">
                 <Plus className="h-4 w-4" />
                 생성하기
               </Button>
@@ -414,12 +414,12 @@ export default function MyPage() {
                 return (
                   <article
                     key={artwork.id}
-                    className="group overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-white/15"
+                    className="group overflow-hidden rounded-2xl border border-white/15 bg-surface-container/90 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-surface-container-high"
                   >
                     <Link to={artworkPath} aria-label={artwork.title} className="block">
                       <div
                         data-testid={`art-card-map-${artwork.id}`}
-                        className="relative aspect-square overflow-hidden bg-slate-950/40"
+                        className="relative aspect-square overflow-hidden bg-surface-container-lowest"
                       >
                         <div className="absolute left-3 top-3 z-10">
                           <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${status.className}`}>
@@ -441,7 +441,7 @@ export default function MyPage() {
                                 {[0, 1, 2].map((index) => (
                                   <span
                                     key={index}
-                                    className="h-2.5 w-2.5 rounded-full bg-brand animate-bounce"
+                                    className="h-2.5 w-2.5 animate-bounce rounded-full bg-primary"
                                     style={{ animationDelay: `${index * 120}ms` }}
                                   />
                                 ))}
@@ -480,7 +480,7 @@ export default function MyPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdraw-title"
-            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-surface-container p-6 text-white shadow-2xl"
           >
             <h2 id="withdraw-title" className="mb-3 text-xl font-semibold">
               회원탈퇴

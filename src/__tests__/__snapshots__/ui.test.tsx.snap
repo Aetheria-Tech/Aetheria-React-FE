@@ -3,13 +3,13 @@
 exports[`UI snapshots matches the home page layout 1`] = `
 <div>
   <div
-    class="min-h-screen bg-zinc-950 text-white"
+    class="min-h-screen bg-background text-foreground"
   >
     <header
       class="fixed inset-x-0 top-0 z-50 bg-transparent text-white"
     >
       <div
-        class="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8"
+        class="flex h-16 w-full items-center justify-between border-b border-white/10 bg-surface-container-low/90 px-4 shadow-lg backdrop-blur-md sm:px-8"
       >
         <a
           aria-label="메인페이지 이동"
@@ -28,7 +28,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
             href="/login"
           >
             <button
-              class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 border-white/30 bg-white/10 text-white hover:bg-white/20"
+              class="inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
               data-slot="button"
             >
               로그인
@@ -75,7 +75,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
               href="/login"
             >
               <button
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-8 h-auto rounded-full bg-brand px-7 py-2.5 font-black text-zinc-900 hover:bg-brand-hover"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 mt-8 h-auto rounded-full bg-primary px-7 py-2.5 font-black text-primary-foreground hover:bg-primary-container"
                 data-slot="button"
               >
                 JOIN US
@@ -105,7 +105,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
         </div>
       </section>
       <section
-        class="snap-start min-h-screen bg-brand-surface px-4 py-16 text-zinc-950 sm:px-8 sm:py-20"
+        class="snap-start min-h-screen bg-surface-container px-4 py-16 text-foreground sm:px-8 sm:py-20"
       >
         <div
           class="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl grid-cols-1 items-center gap-8 lg:grid-cols-12"
@@ -114,7 +114,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
             class="z-10 flex flex-col gap-7 transition-all duration-1000 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 lg:col-span-6 translate-y-0 opacity-100 blur-0"
           >
             <h2
-              class="text-pretty text-5xl font-black leading-[0.9] tracking-tighter sm:text-6xl lg:text-7xl"
+              class="text-pretty text-5xl font-black leading-[0.9] sm:text-6xl lg:text-7xl"
             >
               <span
                 class="block"
@@ -141,7 +141,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
               class="flex max-w-md flex-col gap-4"
             >
               <p
-                class="text-lg font-medium leading-snug text-black/80 sm:text-xl"
+                class="text-lg font-medium leading-snug text-white/75 sm:text-xl"
               >
                 거리와 테마, 출발지만 정하면 달릴 수 있는 경로가 준비됩니다.
               </p>
@@ -155,7 +155,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
                 href="/login"
               >
                 <button
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 group h-auto rounded-full bg-black px-7 py-3 font-black text-white transition-all hover:bg-black/90 active:scale-95 focus-visible:ring-black/40"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive has-[>svg]:px-3 group h-auto rounded-full bg-primary px-7 py-3 font-black text-primary-foreground transition-all hover:bg-primary-container active:scale-95 focus-visible:ring-white/40"
                   data-slot="button"
                 >
                   러닝 아트 만들기
@@ -215,7 +215,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
         </div>
       </section>
       <footer
-        class="relative snap-start min-h-screen overflow-hidden bg-zinc-950 px-4 py-10 text-white sm:px-8 sm:py-14"
+        class="relative snap-start min-h-screen overflow-hidden bg-background px-4 py-10 text-white sm:px-8 sm:py-14"
       >
         <div
           class="absolute inset-0 bg-gradient-to-br from-black/70 via-transparent to-black/70"
@@ -267,7 +267,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
               >
                 <button
                   aria-label="인스타그램"
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground size-9 h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                   data-slot="button"
                 >
                   <svg
@@ -304,7 +304,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
                 </button>
                 <button
                   aria-label="트위터"
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground size-9 h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                   data-slot="button"
                 >
                   <svg
@@ -327,7 +327,7 @@ exports[`UI snapshots matches the home page layout 1`] = `
                 </button>
                 <button
                   aria-label="페이스북"
-                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 size-9 h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border shadow-xs hover:text-accent-foreground size-9 h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                   data-slot="button"
                 >
                   <svg

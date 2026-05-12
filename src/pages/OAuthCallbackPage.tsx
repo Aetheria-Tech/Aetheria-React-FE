@@ -118,7 +118,7 @@ export default function OAuthCallbackPage() {
     <AppBackground overlayClassName="bg-black/70">
       {errorMessage ? (
         <main className="flex min-h-screen items-center justify-center px-6">
-          <div className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0d1224]/90 p-8 text-white shadow-2xl backdrop-blur-md">
+          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-surface-container/90 p-8 text-white shadow-2xl backdrop-blur-md">
             <h1 className="mb-3 text-2xl font-bold">로그인 처리 실패</h1>
             <p className="mb-6 text-sm leading-relaxed text-white/75">{errorMessage}</p>
             <div className="flex gap-3">
@@ -127,7 +127,7 @@ export default function OAuthCallbackPage() {
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 border-white/30 text-white hover:bg-white/10"
+                className="flex-1 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                 onClick={() => navigate("/login", { replace: true })}
               >
                 로그인으로 이동

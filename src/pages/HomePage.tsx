@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import GlobalHeader from "@/components/layouts/global-header"
-import aetheriaBackground from "@/assets/배경화면.png"
+import aetheriaBackground from "@/assets/main bg.png"
 import dogSkeleton from "@/assets/dog skel.png"
 import flowerSkeleton from "@/assets/flower skele.png"
 
@@ -60,7 +60,7 @@ export default function HomePage() {
   const communityRevealClass = isCommunitySectionVisible ? "translate-y-0 opacity-100 blur-0" : "translate-y-24 opacity-0 blur-sm"
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <GlobalHeader />
 
       <main className="snap-y snap-mandatory pt-24">
@@ -85,7 +85,7 @@ export default function HomePage() {
                 아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
               </p>
               <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
-                <Button className="mt-8 h-auto rounded-full bg-brand px-7 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
+                <Button className="mt-8 h-auto rounded-full bg-primary px-7 py-2.5 font-black text-primary-foreground hover:bg-primary-container">
                   JOIN US
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
@@ -153,28 +153,28 @@ export default function HomePage() {
 
         <section
           ref={communitySectionRef}
-          className="snap-start min-h-screen bg-brand-surface px-4 py-16 text-zinc-950 sm:px-8 sm:py-20"
+          className="snap-start min-h-screen bg-surface-container px-4 py-16 text-foreground sm:px-8 sm:py-20"
         >
           <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl grid-cols-1 items-center gap-8 lg:grid-cols-12">
             <div
               className={`z-10 flex flex-col gap-7 transition-all duration-1000 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 lg:col-span-6 ${communityRevealClass}`}
             >
-              <h2 className="text-pretty text-5xl font-black leading-[0.9] tracking-tighter sm:text-6xl lg:text-7xl">
-                <span className="block">아테리아는</span>
+              <h2 className="text-pretty text-5xl font-black leading-[0.9] sm:text-6xl lg:text-7xl">
+                <span className="block">Aetheria는</span>
                 <span className="block">당신의 다음</span>
                 <span className="block">러닝 아트를</span>
                 <span className="block">기다립니다.</span>
               </h2>
 
               <div className="flex max-w-md flex-col gap-4">
-                <p className="text-lg font-medium leading-snug text-black/80 sm:text-xl">
+                <p className="text-lg font-medium leading-snug text-white/75 sm:text-xl">
                   거리와 테마, 출발지만 정하면 달릴 수 있는 경로가 준비됩니다.
                 </p>
               </div>
 
               <div className="mt-1">
                 <Link to={createEntryPath} aria-label={isLoggedIn ? "러닝 아트 생성하기" : "로그인 후 러닝 아트 생성하기"}>
-                  <Button className="group h-auto rounded-full bg-black px-7 py-3 font-black text-white transition-all hover:bg-black/90 active:scale-95 focus-visible:ring-black/40">
+                  <Button className="group h-auto rounded-full bg-primary px-7 py-3 font-black text-primary-foreground transition-all hover:bg-primary-container active:scale-95 focus-visible:ring-white/40">
                     러닝 아트 만들기
                     <ArrowUpRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
@@ -200,7 +200,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <footer className="relative snap-start min-h-screen overflow-hidden bg-zinc-950 px-4 py-10 text-white sm:px-8 sm:py-14">
+        <footer className="relative snap-start min-h-screen overflow-hidden bg-background px-4 py-10 text-white sm:px-8 sm:py-14">
           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-transparent to-black/70" />
           <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col justify-between">
             <div className="grid gap-8 md:grid-cols-[1fr_auto]">
@@ -221,7 +221,7 @@ export default function HomePage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    className="h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                     aria-label="인스타그램"
                   >
                     <Instagram className="h-4 w-4" />
@@ -229,7 +229,7 @@ export default function HomePage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    className="h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                     aria-label="트위터"
                   >
                     <Twitter className="h-4 w-4" />
@@ -237,7 +237,7 @@ export default function HomePage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 border-white/30 bg-black/50 text-white hover:bg-white/10"
+                    className="h-8 w-8 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
                     aria-label="페이스북"
                   >
                     <Facebook className="h-4 w-4" />

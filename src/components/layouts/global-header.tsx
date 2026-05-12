@@ -21,7 +21,7 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-transparent text-white">
-      <div className="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8">
+      <div className="flex h-16 w-full items-center justify-between border-b border-white/10 bg-surface-container-low/90 px-4 shadow-lg backdrop-blur-md sm:px-8">
         <Link to="/" className="text-xl font-black hover:opacity-80 sm:text-4xl" aria-label="메인페이지 이동">
           Aetheria
         </Link>
@@ -38,14 +38,14 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="border-white/30 bg-white/10 text-white hover:bg-white/20"
+                className="border-white/15 bg-surface-container-high text-white hover:bg-white/10"
               >
                 로그아웃
               </Button>
             </>
           ) : !hideGuestLoginButton ? (
             <Link to="/login" aria-label="로그인 페이지 이동">
-              <Button variant="outline" size="sm" className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+              <Button variant="outline" size="sm" className="border-white/15 bg-surface-container-high text-white hover:bg-white/10">
                 로그인
               </Button>
             </Link>
