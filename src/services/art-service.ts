@@ -10,7 +10,14 @@ const SAMPLE_ROUTE_ID = String(SAMPLE_RUNNING_ART_ID)
 
 type PagedResponse<T> = {
   content?: T[]
+  last?: boolean
+  number?: number
+  totalPages?: number
 }
+
+const MY_RUNNING_ART_PAGE_SIZE = 100
+const MY_RUNNING_ART_SORT = "createdAt,desc"
+const MAX_MY_RUNNING_ART_PAGE_COUNT = 50
 
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Aetheria">
@@ -92,14 +99,32 @@ const normalizeSampleRunningArt = (runningArt: RunningArtDetail): RunningArtDeta
   id: SAMPLE_RUNNING_ART_ID,
 })
 
-const unwrapRunningArtList = (value: unknown): RunningArtSummary[] => {
+const unwrapRunningArtPage = (value: unknown): PagedResponse<RunningArtSummary> => {
   const data = unwrapApiResponse<RunningArtSummary[] | PagedResponse<RunningArtSummary>>(value)
 
   if (Array.isArray(data)) {
-    return data
+    return {
+      content: data,
+      last: true,
+      number: 0,
+      totalPages: 1,
+    }
   }
 
-  return Array.isArray(data.content) ? data.content : []
+  return {
+    ...data,
+    content: Array.isArray(data.content) ? data.content : [],
+  }
+}
+
+const shouldFetchNextRunningArtPage = (page: PagedResponse<RunningArtSummary>, requestedPage: number) => {
+  if (page.last === true) return false
+
+  if (typeof page.totalPages === "number" && Number.isFinite(page.totalPages)) {
+    return requestedPage + 1 < page.totalPages
+  }
+
+  return (page.content?.length ?? 0) >= MY_RUNNING_ART_PAGE_SIZE
 }
 
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
@@ -188,8 +213,27 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
   if (isMockEnabled()) {
     return mockArts.map((art, index) => mapArtToRunningArt(art, index))
   }
-  const response = await apiClient.get("/api/v1/running-arts/me")
-  return unwrapRunningArtList(response.data)
+
+  const runningArts: RunningArtSummary[] = []
+
+  for (let pageNumber = 0; pageNumber < MAX_MY_RUNNING_ART_PAGE_COUNT; pageNumber += 1) {
+    const response = await apiClient.get("/api/v1/running-arts/me", {
+      params: {
+        page: pageNumber,
+        size: MY_RUNNING_ART_PAGE_SIZE,
+        sort: MY_RUNNING_ART_SORT,
+      },
+    })
+    const page = unwrapRunningArtPage(response.data)
+
+    runningArts.push(...(page.content ?? []))
+
+    if (!shouldFetchNextRunningArtPage(page, pageNumber)) {
+      break
+    }
+  }
+
+  return runningArts
 }
 
 export async function getRunningArtSample(): Promise<RunningArtDetail> {

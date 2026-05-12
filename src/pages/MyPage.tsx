@@ -26,6 +26,8 @@ import {
 const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
 const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
 
+type ArtDateSortOrder = "desc" | "asc"
+
 const REPORT_DEMO_ART: Art = {
   id: "-1",
   title: "경복궁 댕댕런",
@@ -114,6 +116,22 @@ const getArtworkStatus = (artwork: Art) => {
   }
 }
 
+const toCreatedAtTime = (artwork: Art) => {
+  const time = new Date(artwork.createdAt).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const compareByCreatedAt = (left: Art, right: Art, order: ArtDateSortOrder) => {
+  const leftTime = toCreatedAtTime(left)
+  const rightTime = toCreatedAtTime(right)
+
+  if (leftTime !== rightTime) {
+    return order === "desc" ? rightTime - leftTime : leftTime - rightTime
+  }
+
+  return String(right.id).localeCompare(String(left.id))
+}
+
 export default function MyPage() {
   const { user, logout } = useAuth()
   const { notify } = useToast()
@@ -125,6 +143,7 @@ export default function MyPage() {
   const [isProfileActionsOpen, setIsProfileActionsOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [dateSortOrder, setDateSortOrder] = useState<ArtDateSortOrder>("desc")
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
@@ -205,17 +224,17 @@ export default function MyPage() {
 
     const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 
+    let completedTaskIds = new Set<string>()
+
     if (completedTaskUpdates.length > 0) {
       // 완료된 task는 서버 작품 목록 갱신 전까지 추적 카드로 유지해 목록이 비는 순간을 줄인다.
       setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
 
-      const didRefreshArts = await loadArts()
-        .then(() => true)
-        .catch(() => false)
+      const refreshedArts = await loadArts().catch(() => null)
 
       if (isDisposed()) return
 
-      if (!didRefreshArts) {
+      if (!refreshedArts) {
         const now = Date.now()
         if (now - taskRefreshErrorNotifiedAtRef.current >= TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS) {
           taskRefreshErrorNotifiedAtRef.current = now
@@ -226,13 +245,19 @@ export default function MyPage() {
 
       taskRefreshErrorNotifiedAtRef.current = 0
 
+      const refreshedArtIds = new Set(refreshedArts.map((artwork) => artwork.id))
+      completedTaskIds = new Set(
+        completedTaskUpdates
+          .filter(({ response }) => refreshedArtIds.has(String(response.resultArtId)))
+          .map(({ trackedTask }) => trackedTask.taskId),
+      )
       completedTaskUpdates.forEach(({ trackedTask, response }) => {
+        if (!refreshedArtIds.has(String(response.resultArtId))) return
         syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
       })
     }
 
-    const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
-    // 작품 목록 갱신 후에는 완료 task 카드를 제거해 같은 작품이 두 번 보이지 않게 한다.
+    // 작품 목록에서 완료 결과가 확인된 task 카드만 제거해 같은 작품이 두 번 보이지 않게 한다.
     const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
     if (isDisposed()) return
 
@@ -313,8 +338,8 @@ export default function MyPage() {
     })
 
     const withoutReportDemo = [...filteredTrackedArts, ...arts].filter((artwork) => artwork.id !== REPORT_DEMO_ART.id)
-    return [REPORT_DEMO_ART, ...withoutReportDemo]
-  }, [arts, trackedArts])
+    return [REPORT_DEMO_ART, ...withoutReportDemo].sort((left, right) => compareByCreatedAt(left, right, dateSortOrder))
+  }, [arts, trackedArts, dateSortOrder])
 
   const providerLabel = getProviderLabel(userProfile.provider)
 
@@ -388,14 +413,43 @@ export default function MyPage() {
             )}
           </section>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-4xl font-semibold text-white drop-shadow-lg md:text-5xl">내 작품</h1>
-            <Link to="/create">
-              <Button className="gap-2 bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container">
-                <Plus className="h-4 w-4" />
-                생성하기
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                role="group"
+                aria-label="작품 정렬"
+                className="flex rounded-full border border-white/15 bg-surface-container/80 p-1 shadow-lg backdrop-blur-md"
+              >
+                {[
+                  { label: "최신순", value: "desc" as const },
+                  { label: "오래된순", value: "asc" as const },
+                ].map((option) => {
+                  const isSelected = dateSortOrder === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setDateSortOrder(option.value)}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+                        isSelected
+                          ? "bg-white text-black shadow"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <Link to="/create">
+                <Button className="gap-2 bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container">
+                  <Plus className="h-4 w-4" />
+                  생성하기
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {isLoading && <p className="text-white/70">작품을 불러오는 중...</p>}

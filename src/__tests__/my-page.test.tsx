@@ -235,6 +235,44 @@ describe("MyPage", () => {
     expect(screen.getAllByText("생성 완료").length).toBeGreaterThan(0)
   })
 
+  it("sorts artworks by created date", async () => {
+    const user = userEvent.setup()
+    const arts = [
+      {
+        id: 1,
+        title: "Old run",
+        content: "오래된 경로",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        gpx: "_p~iF~ps|U",
+        userId: 10,
+        createdAt: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        id: 2,
+        title: "New run",
+        content: "최신 경로",
+        shape: "STAR",
+        proficiency: "BEGINNER",
+        gpx: "_izlhA~rlgdF",
+        userId: 10,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]
+
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue(arts)
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    const newRunTitle = await screen.findByText("New run")
+    const oldRunTitle = screen.getByText("Old run")
+    expect(newRunTitle.compareDocumentPosition(oldRunTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "오래된순" }))
+
+    expect(oldRunTitle.compareDocumentPosition(newRunTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it("shows tracked generation tasks with status badges", async () => {
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
     ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([
