@@ -2,6 +2,7 @@ export interface User {
   id: string
   name: string
   email: string
+  provider?: "kakao" | "google"
   statusMessage?: string
   profileImage?: string
 }

@@ -4,13 +4,15 @@ import { Edit2, Mail, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import RouteThumbnail from "@/components/route-thumbnail"
+import reportDemoGpx from "@/assets/report-gyeongbokgung-dog-run.gpx?raw"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useMyArts } from "@/hooks/use-my-arts"
 import { formatDate, formatDistance } from "@/lib/formatters"
-import { updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { withdrawMe } from "@/services/auth-service"
 import { useToast } from "@/context/toast-context"
 import type { Art } from "@/types/art"
+import type { User as AuthUser } from "@/types/auth"
 import {
   GENERATION_STATUS_POLLING_INTERVAL_MS,
   cleanupExpiredTrackedGenerationTasks,
@@ -23,6 +25,73 @@ import {
 
 const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
 const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
+
+const REPORT_DEMO_ART: Art = {
+  id: "-1",
+  title: "경복궁 댕댕런",
+  content: "예시 gpx",
+  imageUrl: "/placeholder.svg",
+  distanceKm: 8.7,
+  theme: "댕댕런",
+  isPublic: false,
+  createdAt: "2025-05-06T02:46:07.000Z",
+  ownerId: "report-demo",
+  gpxData: reportDemoGpx,
+  startAddress: "경복궁",
+}
+
+const getProviderLabel = (provider?: AuthUser["provider"]) => {
+  if (provider === "kakao") return "카카오"
+  if (provider === "google") return "구글"
+  return null
+}
+
+function ProviderIcon({ provider }: { provider?: AuthUser["provider"] }) {
+  if (provider === "kakao") {
+    return (
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FEE500] text-black"
+        aria-label="카카오 계정"
+        title="카카오 계정"
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 3C6.477 3 2 6.477 2 10.8c0 2.586 1.563 4.879 4 6.3V21l3.75-2.25c.72.15 1.47.25 2.25.25 5.523 0 10-3.477 10-7.8C22 6.877 17.523 3 12 3Z"
+            fill="currentColor"
+          />
+        </svg>
+      </span>
+    )
+  }
+
+  if (provider === "google") {
+    return (
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white"
+        aria-label="구글 계정"
+        title="구글 계정"
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
+            fill="#4285F4"
+          />
+          <path
+            d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.88-3.02c-1.08.72-2.46 1.15-4.05 1.15-3.12 0-5.77-2.1-6.72-4.93H1.27v3.1A12 12 0 0 0 12 24Z"
+            fill="#34A853"
+          />
+          <path d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.27a12 12 0 0 0 0 10.8l4.01-3.1Z" fill="#FBBC05" />
+          <path
+            d="M12 4.77c1.76 0 3.34.6 4.58 1.8l3.43-3.43C17.95 1.15 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4.01 3.1C6.23 6.87 8.88 4.77 12 4.77Z"
+            fill="#EA4335"
+          />
+        </svg>
+      </span>
+    )
+  }
+
+  return <User className="h-5 w-5 shrink-0 text-white/75" aria-hidden="true" />
+}
 
 const getArtworkStatus = (artwork: Art) => {
   if (artwork.generationState === "FAILED") {
@@ -46,30 +115,29 @@ const getArtworkStatus = (artwork: Art) => {
 }
 
 export default function MyPage() {
-  const { user, logout, updateUser } = useAuth()
+  const { user, logout } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
   const [trackedArts, setTrackedArts] = useState<Art[]>([])
   const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const taskRefreshErrorNotifiedAtRef = useRef(0)
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isProfileActionsOpen, setIsProfileActionsOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
-    statusMessage: "",
     profileImage: "",
+    provider: undefined as AuthUser["provider"],
   })
 
   useEffect(() => {
     setUserProfile({
       name: user?.name ?? "",
       email: user?.email ?? "",
-      statusMessage: user?.statusMessage ?? "",
       profileImage: user?.profileImage ?? "",
+      provider: user?.provider,
     })
   }, [user])
 
@@ -212,55 +280,6 @@ export default function MyPage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isWithdrawOpen, isWithdrawing])
 
-  const resetProfileForm = () => {
-    setUserProfile({
-      name: user?.name ?? "",
-      email: user?.email ?? "",
-      statusMessage: user?.statusMessage ?? "",
-      profileImage: user?.profileImage ?? "",
-    })
-  }
-
-  const handleCancelProfileEdit = () => {
-    if (isSavingProfile) return
-    resetProfileForm()
-    setIsEditingProfile(false)
-  }
-
-  const handleSaveProfile = async () => {
-    if (isSavingProfile) return
-
-    const nickname = userProfile.name.trim()
-
-    if (nickname.length < 2 || nickname.length > 20) {
-      notify("닉네임은 2자 이상 20자 이하로 입력해 주세요.", "error")
-      return
-    }
-
-    setIsSavingProfile(true)
-    try {
-      const updatedUser = await updateMyProfile({
-        nickname,
-        statusMessage: userProfile.statusMessage.trim(),
-      })
-
-      updateUser(updatedUser)
-      setUserProfile({
-        name: updatedUser.name,
-        email: updatedUser.email,
-        statusMessage: updatedUser.statusMessage ?? "",
-        profileImage: updatedUser.profileImage ?? "",
-      })
-      setIsEditingProfile(false)
-      notify("프로필이 저장되었습니다.", "success")
-    } catch (error) {
-      console.error("프로필 저장 실패:", error)
-      notify("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.", "error")
-    } finally {
-      setIsSavingProfile(false)
-    }
-  }
-
   const handleWithdraw = async () => {
     if (isWithdrawing) return
 
@@ -270,6 +289,7 @@ export default function MyPage() {
       logout()
       notify("회원탈퇴가 완료되었습니다.", "success")
       setIsWithdrawOpen(false)
+      setIsProfileActionsOpen(false)
       navigate("/", { replace: true })
     } catch (error) {
       console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
@@ -292,8 +312,11 @@ export default function MyPage() {
       return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
     })
 
-    return [...filteredTrackedArts, ...arts]
+    const withoutReportDemo = [...filteredTrackedArts, ...arts].filter((artwork) => artwork.id !== REPORT_DEMO_ART.id)
+    return [REPORT_DEMO_ART, ...withoutReportDemo]
   }, [arts, trackedArts])
+
+  const providerLabel = getProviderLabel(userProfile.provider)
 
   return (
     <AppBackground overlayClassName="bg-black/50">
@@ -304,37 +327,15 @@ export default function MyPage() {
           <section className="rounded-2xl border border-white/15 bg-surface-container/90 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white">프로필</h2>
-              {!isEditingProfile ? (
-                <Button
-                  onClick={() => setIsEditingProfile(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-white transition-all duration-300 hover:bg-white/10"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  수정
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSaveProfile}
-                    size="sm"
-                    disabled={isSavingProfile}
-                    className="bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container"
-                  >
-                    {isSavingProfile ? "저장 중..." : "저장"}
-                  </Button>
-                  <Button
-                    onClick={handleCancelProfileEdit}
-                    variant="ghost"
-                    size="sm"
-                    disabled={isSavingProfile}
-                    className="text-white transition-all duration-300 hover:bg-white/10"
-                  >
-                    취소
-                  </Button>
-                </div>
-              )}
+              <Button
+                onClick={() => setIsProfileActionsOpen((current) => !current)}
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-white transition-all duration-300 hover:bg-white/10"
+              >
+                <Edit2 className="h-4 w-4" />
+                수정
+              </Button>
             </div>
 
             <div className="mb-6 flex items-start gap-6">
@@ -349,21 +350,17 @@ export default function MyPage() {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-center gap-3">
-                <User className="h-5 w-5 text-white/75" />
+                <ProviderIcon provider={userProfile.provider} />
                 <div className="flex-1">
                   <p className="text-sm text-gray-300">이름</p>
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      aria-label="닉네임 입력"
-                      value={userProfile.name}
-                      onChange={(event) => setUserProfile({ ...userProfile, name: event.target.value })}
-                      maxLength={20}
-                      className="w-full rounded-lg border border-white/15 bg-surface-container-high px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50"
-                    />
-                  ) : (
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg text-white">{userProfile.name || "-"}</p>
-                  )}
+                    {providerLabel && (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/65">
+                        {providerLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -377,8 +374,8 @@ export default function MyPage() {
 
             </div>
 
-            {isEditingProfile && (
-              <div className="mt-6 flex justify-end">
+            {isProfileActionsOpen && (
+              <div className="mt-6 flex justify-end border-t border-white/10 pt-5">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -430,23 +427,13 @@ export default function MyPage() {
                         {artwork.gpxData ? (
                           <RouteThumbnail gpxData={artwork.gpxData} title={artwork.title} />
                         ) : artwork.isGenerationTask ? (
-                          <div className="flex h-full flex-col justify-between p-5">
-                            <div className="space-y-3">
-                              <div className="h-3 w-24 rounded-full bg-white/10" />
-                              <div className="h-3 w-32 rounded-full bg-white/10" />
-                            </div>
-                            <div className="space-y-3">
-                              <div className="h-px w-full bg-white/10" />
-                              <div className="flex items-center justify-center gap-2">
-                                {[0, 1, 2].map((index) => (
-                                  <span
-                                    key={index}
-                                    className="h-2.5 w-2.5 animate-bounce rounded-full bg-primary"
-                                    style={{ animationDelay: `${index * 120}ms` }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
+                          <div className="flex h-full items-center justify-center bg-surface-container-lowest p-5">
+                            <img
+                              src="/favicon.png"
+                              alt=""
+                              aria-hidden="true"
+                              className="h-16 w-16 animate-bounce object-contain opacity-90 drop-shadow-[0_0_18px_rgba(255,255,255,0.28)] motion-reduce:animate-none"
+                            />
                           </div>
                         ) : (
                           <img

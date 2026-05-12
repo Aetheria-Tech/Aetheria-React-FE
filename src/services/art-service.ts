@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api-client"
+import reportDemoGpx from "@/assets/report-gyeongbokgung-dog-run.gpx?raw"
 import { env } from "@/services/env"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
@@ -192,25 +193,25 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
 }
 
 export async function getRunningArtSample(): Promise<RunningArtDetail> {
-  if (isMockEnabled()) {
-    return normalizeSampleRunningArt({
-      id: SAMPLE_RUNNING_ART_ID,
-      title: "샘플 작품",
-      content: "로그인한 사용자가 바로 확인할 수 있는 polyline 샘플 경로입니다.",
-      shape: "SAMPLE",
-      proficiency: "BEGINNER",
-      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-      userId: 0,
-      imageUrl: "/placeholder.svg",
-      distanceKm: 3.2,
-      isPublic: false,
-      createdAt: new Date(0).toISOString(),
-    })
-  }
-  throw unsupportedBackendEndpoint("샘플 작품 API")
+  return normalizeSampleRunningArt({
+    id: SAMPLE_RUNNING_ART_ID,
+    title: "경복궁 댕댕런",
+    content: "예시 gpx",
+    shape: "DOG_RUN",
+    proficiency: "BEGINNER",
+    gpx: reportDemoGpx,
+    userId: 0,
+    imageUrl: "/placeholder.svg",
+    distanceKm: 8.7,
+    isPublic: false,
+    createdAt: "2025-05-06T02:46:07.000Z",
+  })
 }
 
 export async function getRunningArtDetail(runningArtId: number | string): Promise<RunningArtDetail> {
+  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
+    return getRunningArtSample()
+  }
   if (isMockEnabled()) {
     const numericId = Number(runningArtId)
     const index = Number.isFinite(numericId) ? numericId - 1 : -1
@@ -219,9 +220,6 @@ export async function getRunningArtDetail(runningArtId: number | string): Promis
       throw new Error("작품을 찾을 수 없습니다.")
     }
     return mapArtToRunningArt(art, index)
-  }
-  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
-    return getRunningArtSample()
   }
   const response = await apiClient.get(`/api/v1/running-arts/${runningArtId}`)
   return unwrapApiResponse<RunningArtDetail>(response.data)

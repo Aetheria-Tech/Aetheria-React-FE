@@ -69,7 +69,7 @@ export default function OAuthCallbackPage() {
         completionRequest =
           existingRequest ??
           (accessToken
-            ? completeOAuthLoginWithAccessToken(accessToken)
+            ? completeOAuthLoginWithAccessToken(accessToken, provider)
             : completeOAuthLogin(provider, code as string))
 
         if (!existingRequest) {

@@ -17,6 +17,7 @@ interface MapComponentProps {
   onMapClick?: (coords: [number, number]) => void
   showLocationButton?: boolean
   displayOnly?: boolean
+  routeColor?: string
 }
 
 interface MapInstance {
@@ -59,6 +60,7 @@ export default function MapComponent({
   onMapClick,
   showLocationButton = true,
   displayOnly = false,
+  routeColor = "#ffffff",
 }: MapComponentProps) {
   const mapRef = useRef<MapInstance | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -195,7 +197,7 @@ export default function MapComponent({
           shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
         },
         polyline_options: {
-          color: "#ffffff",
+          color: routeColor,
           weight: 4,
           opacity: 0.8,
         },
@@ -221,7 +223,7 @@ export default function MapComponent({
       }
 
       const polyline = L.polyline(coordinates, {
-        color: "#ffffff",
+        color: routeColor,
         weight: 6,
         opacity: 0.95,
       })
@@ -250,7 +252,7 @@ export default function MapComponent({
     } catch (error) {
       console.error("경로 디코딩 실패:", error)
     }
-  }, [gpxData, isLoading])
+  }, [gpxData, isLoading, routeColor])
 
   const handleLocationClick = () => {
     if (!mapRef.current?.map) return

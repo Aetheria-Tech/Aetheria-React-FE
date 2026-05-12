@@ -10,14 +10,13 @@ import {
   patchRunningArt,
 } from "@/services/art-service"
 import { authStorage } from "@/services/auth-storage"
-import { logoutMe, updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { logoutMe, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
 import { getRunningArtTaskStatus, listTrackedGenerationTasks } from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
   logoutMe: jest.fn(),
-  updateMyProfile: jest.fn(),
   withdrawMe: jest.fn(),
 }))
 
@@ -125,7 +124,6 @@ const createDeferred = <T,>() => {
 
 describe("MyPage", () => {
   beforeEach(() => {
-    ;(updateMyProfile as jest.Mock).mockReset()
     ;(logoutMe as jest.Mock).mockReset()
     ;(logoutMe as jest.Mock).mockResolvedValue(undefined)
     ;(withdrawMe as jest.Mock).mockReset()
@@ -151,7 +149,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: null })
 
-    await screen.findByText("아직 작품이 없습니다.")
+    await screen.findByText("경복궁 댕댕런")
     expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument()
   })
@@ -186,59 +184,34 @@ describe("MyPage", () => {
     clearSpy.mockRestore()
   })
 
-  it("saves edited profile via patch and updates the rendered profile", async () => {
-    const user = userEvent.setup()
-    const auth = {
-      ...mockAuthPayload,
-      user: {
-        ...mockAuthPayload.user,
-        statusMessage: "기존 상태 메시지",
-      },
-    }
-    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(updateMyProfile as jest.Mock).mockResolvedValue({
-      id: "user@example.com",
-      name: "수정된 닉네임",
-      email: "user@example.com",
-      statusMessage: "기존 상태 메시지",
-    })
-
-    renderWithProviders(<MyPage />, { auth })
-
-    await user.click(await screen.findByRole("button", { name: "수정" }))
-    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
-    await user.clear(nameInput)
-    await user.type(nameInput, "수정된 닉네임")
-    expect(screen.queryByRole("textbox", { name: "상태 메시지 입력" })).not.toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "저장" }))
-
-    await waitFor(() =>
-      expect(updateMyProfile).toHaveBeenCalledWith({
-        nickname: "수정된 닉네임",
-        statusMessage: "기존 상태 메시지",
-      }),
-    )
-    expect(await screen.findByText("프로필이 저장되었습니다.")).toBeInTheDocument()
-    expect(screen.getByText("수정된 닉네임")).toBeInTheDocument()
-    expect(screen.queryByText("기존 상태 메시지")).not.toBeInTheDocument()
-  })
-
-  it("keeps edit mode when profile save fails", async () => {
+  it("shows only the withdraw action after clicking profile edit", async () => {
     const user = userEvent.setup()
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(updateMyProfile as jest.Mock).mockRejectedValue(new Error("save-fail"))
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
     await user.click(await screen.findByRole("button", { name: "수정" }))
-    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
-    await user.clear(nameInput)
-    await user.type(nameInput, "실패한 닉네임")
-    await user.click(screen.getByRole("button", { name: "저장" }))
 
-    expect(await screen.findByText("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.")).toBeInTheDocument()
-    expect(screen.getByDisplayValue("실패한 닉네임")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "닉네임 입력" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "취소" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "회원탈퇴" })).toBeInTheDocument()
+  })
+
+  it("shows the social provider icon next to the profile name", async () => {
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
+    const auth = {
+      ...mockAuthPayload,
+      user: {
+        ...mockAuthPayload.user,
+        provider: "kakao" as const,
+      },
+    }
+
+    renderWithProviders(<MyPage />, { auth })
+
+    expect(await screen.findByLabelText("카카오 계정")).toBeInTheDocument()
+    expect(screen.getByText("카카오")).toBeInTheDocument()
   })
 
   it("loads and displays artworks", async () => {
@@ -259,7 +232,7 @@ describe("MyPage", () => {
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    expect(screen.getByText("생성 완료")).toBeInTheDocument()
+    expect(screen.getAllByText("생성 완료").length).toBeGreaterThan(0)
   })
 
   it("shows tracked generation tasks with status badges", async () => {
@@ -409,12 +382,13 @@ describe("MyPage", () => {
     expect(screen.getByText("샘플 작품은 읽기 전용으로 제공됩니다.")).toBeInTheDocument()
   })
 
-  it("shows empty state when there are no artworks", async () => {
+  it("shows the report GPX sample when there are no artworks", async () => {
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    expect(await screen.findByText("아직 작품이 없습니다.")).toBeInTheDocument()
+    expect(await screen.findByText("경복궁 댕댕런")).toBeInTheDocument()
+    expect(screen.queryByText("아직 작품이 없습니다.")).not.toBeInTheDocument()
   })
 
   it("shows toast when loading artworks fails", async () => {
