@@ -190,7 +190,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
 
     expect(screen.queryByRole("textbox", { name: "닉네임 입력" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument()
@@ -663,7 +663,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     const button = await screen.findByRole("button", { name: "회원탈퇴" })
     await user.click(button)
 
@@ -677,7 +677,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: "취소" }))
@@ -699,7 +699,7 @@ describe("MyPage", () => {
       { route: "/mypage", auth: mockAuthPayload },
     )
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await act(async () => {
@@ -726,7 +726,7 @@ describe("MyPage", () => {
       { route: "/mypage", auth: mockAuthPayload },
     )
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await act(async () => {
@@ -750,7 +750,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     const confirm = within(dialog).getByRole("button", { name: "회원탈퇴" })

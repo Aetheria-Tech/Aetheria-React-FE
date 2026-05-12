@@ -359,7 +359,7 @@ export default function MyPage() {
                 className="gap-2 text-white transition-all duration-300 hover:bg-white/10"
               >
                 <Edit2 className="h-4 w-4" />
-                수정
+                계정 관리
               </Button>
             </div>
 
@@ -381,7 +381,7 @@ export default function MyPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg text-white">{userProfile.name || "-"}</p>
                     {providerLabel && (
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/65">
+                      <span className="rounded-full border border-outline-variant bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
                         {providerLabel}
                       </span>
                     )}

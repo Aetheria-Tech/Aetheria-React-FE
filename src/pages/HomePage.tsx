@@ -12,7 +12,6 @@ export default function HomePage() {
   const { isLoggedIn } = useAuth()
   // 로그인 사용자는 생성 화면으로, 게스트는 로그인 화면으로 CTA를 연결한다.
   const createEntryPath = isLoggedIn ? "/create" : "/login"
-  // const myArtsEntryPath = isLoggedIn ? "/mypage" : "/login"
   const supportsIntersectionObserver = typeof window !== "undefined" && "IntersectionObserver" in window
   const communitySectionRef = useRef<HTMLElement | null>(null)
   const [isCommunitySectionVisible, setIsCommunitySectionVisible] = useState(() => !supportsIntersectionObserver)
@@ -160,7 +159,7 @@ export default function HomePage() {
               className={`z-10 flex flex-col gap-7 transition-all duration-1000 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 lg:col-span-6 ${communityRevealClass}`}
             >
               <h2 className="text-pretty text-5xl font-black leading-[0.9] sm:text-6xl lg:text-7xl">
-                <span className="block">Aetheria는</span>
+                <span className="block">아테리아는</span>
                 <span className="block">당신의 다음</span>
                 <span className="block">러닝 아트를</span>
                 <span className="block">기다립니다.</span>

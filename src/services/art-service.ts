@@ -127,6 +127,26 @@ const shouldFetchNextRunningArtPage = (page: PagedResponse<RunningArtSummary>, r
   return (page.content?.length ?? 0) >= MY_RUNNING_ART_PAGE_SIZE
 }
 
+const getKnownRunningArtPageCount = (page: PagedResponse<RunningArtSummary>) => {
+  if (typeof page.totalPages !== "number" || !Number.isFinite(page.totalPages)) {
+    return null
+  }
+
+  return Math.min(Math.max(0, Math.ceil(page.totalPages)), MAX_MY_RUNNING_ART_PAGE_COUNT)
+}
+
+const fetchMyRunningArtPage = async (pageNumber: number) => {
+  const response = await apiClient.get("/api/v1/running-arts/me", {
+    params: {
+      page: pageNumber,
+      size: MY_RUNNING_ART_PAGE_SIZE,
+      sort: MY_RUNNING_ART_SORT,
+    },
+  })
+
+  return unwrapRunningArtPage(response.data)
+}
+
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
   if (isMockEnabled()) {
     const gpxData = payload.startCoords && payload.endCoords
@@ -214,18 +234,28 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
     return mockArts.map((art, index) => mapArtToRunningArt(art, index))
   }
 
-  const runningArts: RunningArtSummary[] = []
+  const firstPage = await fetchMyRunningArtPage(0)
+  const runningArts = [...(firstPage.content ?? [])]
+  const knownPageCount = getKnownRunningArtPageCount(firstPage)
 
-  for (let pageNumber = 0; pageNumber < MAX_MY_RUNNING_ART_PAGE_COUNT; pageNumber += 1) {
-    const response = await apiClient.get("/api/v1/running-arts/me", {
-      params: {
-        page: pageNumber,
-        size: MY_RUNNING_ART_PAGE_SIZE,
-        sort: MY_RUNNING_ART_SORT,
-      },
-    })
-    const page = unwrapRunningArtPage(response.data)
+  if (knownPageCount !== null) {
+    if (knownPageCount <= 1) {
+      return runningArts
+    }
 
+    const remainingPages = await Promise.all(
+      Array.from({ length: knownPageCount - 1 }, (_, index) => fetchMyRunningArtPage(index + 1)),
+    )
+
+    return runningArts.concat(...remainingPages.map((page) => page.content ?? []))
+  }
+
+  if (!shouldFetchNextRunningArtPage(firstPage, 0)) {
+    return runningArts
+  }
+
+  for (let pageNumber = 1; pageNumber < MAX_MY_RUNNING_ART_PAGE_COUNT; pageNumber += 1) {
+    const page = await fetchMyRunningArtPage(pageNumber)
     runningArts.push(...(page.content ?? []))
 
     if (!shouldFetchNextRunningArtPage(page, pageNumber)) {
