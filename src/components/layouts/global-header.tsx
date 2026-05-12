@@ -23,7 +23,7 @@ export default function GlobalHeader({ hideGuestLoginButton = false }: GlobalHea
     <header className="fixed inset-x-0 top-0 z-50 bg-transparent text-white">
       <div className="flex h-16 w-full items-center justify-between border-b border-white/15 bg-black/25 px-4 shadow-lg backdrop-blur-md sm:px-8">
         <Link to="/" className="text-xl font-black hover:opacity-80 sm:text-4xl" aria-label="메인페이지 이동">
-          Aetheria Logo
+          Aetheria
         </Link>
 
         <div className="flex items-center gap-2 text-xs font-black sm:gap-3 sm:text-base">

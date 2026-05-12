@@ -1,5 +1,6 @@
 ﻿import type { ReactNode } from "react"
 import ShootingStars from "@/components/shooting-stars"
+import aetheriaBackground from "@/assets/배경화면.png"
 
 interface AppBackgroundProps {
   children: ReactNode
@@ -13,8 +14,7 @@ export default function AppBackground({ children, overlayClassName = "bg-black/5
       <div
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage:
-            "url(https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mainimage-Y4rlZOTP9RUdC9Xor2mwCYia19aP9V.png)",
+          backgroundImage: `url(${aetheriaBackground})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
