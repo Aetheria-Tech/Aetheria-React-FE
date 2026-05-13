@@ -7,17 +7,8 @@ import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
+import { sanitizeGpxFileName } from "@/lib/gpx-download"
 import { deleteRunningArt, patchRunningArt } from "@/services/art-service"
-
-const sanitizeGpxFileName = (value: string) => {
-  const sanitized = value
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .replace(/\s+/g, "_")
-    .slice(0, 80)
-
-  return sanitized || "aetheria-route"
-}
 
 export default function MyPageDetail() {
   const { id } = useParams()

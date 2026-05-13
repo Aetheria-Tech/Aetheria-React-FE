@@ -93,63 +93,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/*
-        <section className="relative snap-start min-h-screen overflow-hidden bg-gradient-to-br from-[#0a4ea1] via-[#0a66c2] to-[#063f86]">
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="relative flex min-h-screen flex-col">
-            <div className="mt-auto flex flex-col gap-4 px-4 pb-8 sm:px-8 sm:pb-10 md:flex-row md:items-end md:justify-between">
-              <div className="w-full rounded-xl bg-black/45 p-4 text-sm text-white/90 backdrop-blur-sm md:max-w-lg">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs uppercase text-white/60">Location</p>
-                    <p className="mt-1">내 위치 기반 러닝</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-white/60">Date</p>
-                    <p className="mt-1">매일 누적되는 기록</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-white/60">Time</p>
-                    <p className="mt-1">아침 - 저녁</p>
-                  </div>
-                </div>
-              </div>
-              <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
-                <Button className="h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
-                  REGISTER
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="snap-start grid min-h-screen grid-cols-1 md:grid-cols-2">
-          <article className="relative min-h-[50vh] overflow-hidden bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
-            <div className="absolute inset-0 bg-black/15" />
-            <div className="relative">
-              <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">초보부터 마라토너까지</h2>
-              <p className="mt-4 text-sm text-white/75">속도보다 궤적으로, 매일의 러닝을 시작하세요.</p>
-              <Link to={createEntryPath} aria-label="러닝 아트 생성 시작">
-                <Button className="mt-6 h-auto rounded-full bg-brand px-6 py-2.5 font-black text-zinc-900 hover:bg-brand-hover">
-                  START
-                </Button>
-              </Link>
-            </div>
-          </article>
-
-          <article className="min-h-[50vh] bg-zinc-900 px-6 py-10 sm:px-10 sm:py-12">
-            <h2 className="text-pretty text-5xl font-black leading-[0.92] text-white sm:text-6xl">기록하고 관리하며 달리세요</h2>
-            <p className="mt-4 text-sm text-white/75">매번의 러닝을 하나의 작품으로 남겨보세요.</p>
-            <Link to={myArtsEntryPath} aria-label="내 러닝 아트 목록 이동">
-              <Button className="mt-6 h-auto rounded-full bg-zinc-700 px-6 py-2.5 font-black text-brand hover:bg-zinc-600">
-                MY ARTS
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </article>
-        </section>
-        */}
-
         <section
           ref={communitySectionRef}
           className="snap-start min-h-screen bg-surface-container px-4 py-16 text-foreground sm:px-8 sm:py-20"
