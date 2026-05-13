@@ -66,6 +66,19 @@ jest.mock("@/services/generation-service", () => ({
 }))
 
 jest.mock("@/services/art-service", () => ({
+  REPORT_DEMO_ART: {
+    id: "-1",
+    title: "경복궁 댕댕런",
+    content: "예시 gpx",
+    imageUrl: "/placeholder.svg",
+    distanceKm: 8.7,
+    theme: "댕댕런",
+    isPublic: false,
+    createdAt: "2025-05-06T02:46:07.000Z",
+    ownerId: "report-demo",
+    gpxData: "report-demo-gpx",
+    startAddress: "경복궁",
+  },
   createArt: jest.fn(),
   saveArt: jest.fn(),
   fetchMyArts: jest.fn(),

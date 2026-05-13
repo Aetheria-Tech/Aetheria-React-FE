@@ -19,6 +19,20 @@ const MY_RUNNING_ART_PAGE_SIZE = 100
 const MY_RUNNING_ART_SORT = "createdAt,desc"
 const MAX_MY_RUNNING_ART_PAGE_COUNT = 50
 
+export const REPORT_DEMO_ART: Art = {
+  id: SAMPLE_ROUTE_ID,
+  title: "경복궁 댕댕런",
+  content: "예시 gpx",
+  imageUrl: "/placeholder.svg",
+  distanceKm: 8.7,
+  theme: "댕댕런",
+  isPublic: false,
+  createdAt: "2025-05-06T02:46:07.000Z",
+  ownerId: "report-demo",
+  gpxData: reportDemoGpx,
+  startAddress: "경복궁",
+}
+
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Aetheria">
   <trk>
@@ -268,17 +282,17 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
 
 export async function getRunningArtSample(): Promise<RunningArtDetail> {
   return normalizeSampleRunningArt({
-    id: SAMPLE_RUNNING_ART_ID,
-    title: "경복궁 댕댕런",
-    content: "예시 gpx",
+    id: Number(REPORT_DEMO_ART.id),
+    title: REPORT_DEMO_ART.title,
+    content: REPORT_DEMO_ART.content ?? "",
     shape: "DOG_RUN",
     proficiency: "BEGINNER",
-    gpx: reportDemoGpx,
+    gpx: REPORT_DEMO_ART.gpxData ?? "",
     userId: 0,
-    imageUrl: "/placeholder.svg",
-    distanceKm: 8.7,
-    isPublic: false,
-    createdAt: "2025-05-06T02:46:07.000Z",
+    imageUrl: REPORT_DEMO_ART.imageUrl,
+    distanceKm: REPORT_DEMO_ART.distanceKm,
+    isPublic: REPORT_DEMO_ART.isPublic,
+    createdAt: REPORT_DEMO_ART.createdAt,
   })
 }
 

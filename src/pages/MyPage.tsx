@@ -4,11 +4,11 @@ import { Edit2, Mail, Plus, User } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import RouteThumbnail from "@/components/route-thumbnail"
-import reportDemoGpx from "@/assets/report-gyeongbokgung-dog-run.gpx?raw"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useMyArts } from "@/hooks/use-my-arts"
 import { formatDate, formatDistance } from "@/lib/formatters"
+import { REPORT_DEMO_ART } from "@/services/art-service"
 import { withdrawMe } from "@/services/auth-service"
 import { useToast } from "@/context/toast-context"
 import type { Art } from "@/types/art"
@@ -27,20 +27,6 @@ const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
 const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
 
 type ArtDateSortOrder = "desc" | "asc"
-
-const REPORT_DEMO_ART: Art = {
-  id: "-1",
-  title: "경복궁 댕댕런",
-  content: "예시 gpx",
-  imageUrl: "/placeholder.svg",
-  distanceKm: 8.7,
-  theme: "댕댕런",
-  isPublic: false,
-  createdAt: "2025-05-06T02:46:07.000Z",
-  ownerId: "report-demo",
-  gpxData: reportDemoGpx,
-  startAddress: "경복궁",
-}
 
 const getProviderLabel = (provider?: AuthUser["provider"]) => {
   if (provider === "kakao") return "카카오"
@@ -92,7 +78,7 @@ function ProviderIcon({ provider }: { provider?: AuthUser["provider"] }) {
     )
   }
 
-  return <User className="h-5 w-5 shrink-0 text-white/75" aria-hidden="true" />
+  return <User className="h-7 w-7 shrink-0 text-white/75" aria-hidden="true" />
 }
 
 const getArtworkStatus = (artwork: Art) => {
@@ -245,14 +231,14 @@ export default function MyPage() {
 
       taskRefreshErrorNotifiedAtRef.current = 0
 
-      const refreshedArtIds = new Set(refreshedArts.map((artwork) => artwork.id))
+      const refreshedArtIds = new Set(refreshedArts.map((artwork) => String(artwork.id)))
       completedTaskIds = new Set(
         completedTaskUpdates
-          .filter(({ response }) => refreshedArtIds.has(String(response.resultArtId)))
+          .filter(({ response }) => response.resultArtId !== null && refreshedArtIds.has(String(response.resultArtId)))
           .map(({ trackedTask }) => trackedTask.taskId),
       )
       completedTaskUpdates.forEach(({ trackedTask, response }) => {
-        if (!refreshedArtIds.has(String(response.resultArtId))) return
+        if (response.resultArtId === null || !refreshedArtIds.has(String(response.resultArtId))) return
         syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
       })
     }
@@ -337,7 +323,7 @@ export default function MyPage() {
       return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
     })
 
-    const withoutReportDemo = [...filteredTrackedArts, ...arts].filter((artwork) => artwork.id !== REPORT_DEMO_ART.id)
+    const withoutReportDemo = [...filteredTrackedArts, ...arts].filter((artwork) => String(artwork.id) !== String(REPORT_DEMO_ART.id))
     return [REPORT_DEMO_ART, ...withoutReportDemo].sort((left, right) => compareByCreatedAt(left, right, dateSortOrder))
   }, [arts, trackedArts, dateSortOrder])
 
