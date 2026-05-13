@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { MapPin, Sparkles } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,6 +21,15 @@ const proficiencyOptions: Array<{ value: RunningArtProficiency; label: string }>
   { value: "SKILLED", label: "중급 (20km)" },
   { value: "EXPERT", label: "전문가 (40km)" },
 ]
+
+const routePath = "M 48 72 C 98 28 142 25 182 58 S 284 94 376 34"
+const routeMarkerPositions = [
+  { x: 128, y: 34 },
+  { x: 248, y: 78 },
+  { x: 376, y: 34 },
+] as const
+const runnerPositions = [{ x: 48, y: 72 }, ...routeMarkerPositions] as const
+const faviconMascot = "/favicon.png"
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -120,6 +129,29 @@ export default function CreatePage() {
     }).open()
   }
 
+  const selectedProficiencyLabel =
+    proficiencyOptions.find((option) => option.value === formData.proficiency)?.label ?? ""
+  const routeProgressSteps = [
+    {
+      label: "거리",
+      value: selectedProficiencyLabel,
+      completed: Boolean(formData.proficiency),
+    },
+    {
+      label: "테마",
+      value: formData.theme.trim(),
+      completed: formData.theme.trim().length > 0,
+    },
+    {
+      label: "출발지",
+      value: formData.startPoint.trim(),
+      completed: formData.startPoint.trim().length > 0,
+    },
+  ]
+  const completedOptionCount = routeProgressSteps.filter((step) => step.completed).length
+  const routeProgressPercent = Math.round((completedOptionCount / routeProgressSteps.length) * 100)
+  const runnerPosition = runnerPositions[completedOptionCount]
+
   return (
     <AppBackground overlayClassName="bg-black/55">
       <GlobalHeader />
@@ -132,9 +164,95 @@ export default function CreatePage() {
           </section>
 
           <div className="mx-auto max-w-3xl">
-            <section className="rounded-2xl border border-white/20 bg-black/35 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+            <section className="rounded-2xl border border-white/15 bg-surface-container/90 p-6 shadow-2xl backdrop-blur-md sm:p-8">
               <h2 className="text-2xl font-black text-white">생성 설정</h2>
               <p className="mt-2 text-sm text-white/70">생성 요청 후 전용 화면으로 이동해 진행 상태를 확인할 수 있습니다.</p>
+
+              <div className="mt-6 space-y-3">
+                <div
+                  role="progressbar"
+                  aria-label="생성 옵션 진행도"
+                  aria-valuemin={0}
+                  aria-valuemax={routeProgressSteps.length}
+                  aria-valuenow={completedOptionCount}
+                  className="relative h-28 overflow-hidden"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 400 112" className="absolute inset-0 h-full w-full">
+                    <defs>
+                      <linearGradient id="create-route-progress" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stopColor="#ffffff" />
+                        <stop offset="55%" stopColor="#c7c6c6" />
+                        <stop offset="100%" stopColor="#8e9192" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d={routePath}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.18)"
+                      strokeDasharray="2 15"
+                      strokeLinecap="round"
+                      strokeWidth="8"
+                    />
+                    <path
+                      d={routePath}
+                      fill="none"
+                      pathLength={100}
+                      stroke="url(#create-route-progress)"
+                      strokeDasharray={`${routeProgressPercent} 100`}
+                      strokeLinecap="round"
+                      strokeWidth="8"
+                      style={{ transition: "stroke-dasharray 520ms ease" }}
+                    />
+                    {routeMarkerPositions.map((marker, index) => {
+                      const isCompleted = Boolean(routeProgressSteps[index]?.completed)
+                      return (
+                        <g key={`route-marker-${index}`}>
+                          <circle
+                            cx={marker.x}
+                            cy={marker.y}
+                            fill={isCompleted ? "#ffffff" : "rgba(255,255,255,0.12)"}
+                            r="11"
+                            stroke={isCompleted ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.28)"}
+                            strokeWidth="2"
+                            style={{ transition: "fill 260ms ease, stroke 260ms ease" }}
+                          />
+                          {isCompleted && (
+                            <path
+                              d={`M ${marker.x - 4} ${marker.y} L ${marker.x - 1} ${marker.y + 4} L ${marker.x + 6} ${
+                                marker.y - 5
+                              }`}
+                              fill="none"
+                              stroke="#2f3131"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2.5"
+                            />
+                          )}
+                        </g>
+                      )
+                    })}
+                    <g
+                      style={{
+                        transform: `translate(${runnerPosition.x}px, ${runnerPosition.y}px)`,
+                        transition: "transform 520ms ease",
+                      }}
+                    >
+                      <circle fill="rgba(255,255,255,0.22)" r="17" />
+                      <circle fill="#ffffff" r="8" stroke="#8e9192" strokeWidth="2" />
+                    </g>
+                  </svg>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center text-xs sm:text-sm">
+                  {routeProgressSteps.map((step) => (
+                    <div key={step.label} className="min-w-0">
+                      <p className={step.completed ? "font-bold text-primary" : "font-semibold text-white/45"}>
+                        {step.label}
+                      </p>
+                      <p className="mt-1 truncate text-white/70">{step.completed ? step.value : "대기 중"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-6 space-y-5">
                 <div className="space-y-2">
@@ -198,7 +316,7 @@ export default function CreatePage() {
                     />
                   </div>
                   {showStartResults && startAddressResults.length > 0 && (
-                    <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/20 bg-zinc-900/95 backdrop-blur-md">
+                    <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/15 bg-surface-container-highest/95 backdrop-blur-md">
                       {startAddressResults.map((result) => (
                         <button
                           key={`${result.addressName}-${result.x}-${result.y}`}
@@ -218,16 +336,26 @@ export default function CreatePage() {
                   <Button
                     onClick={handleGenerate}
                     disabled={isLoading}
-                    className="mt-4 w-full rounded-full bg-brand py-6 text-base font-black text-zinc-900 hover:bg-brand-hover"
+                    className="mt-4 w-full rounded-full border border-white/20 bg-white/10 py-6 text-base font-black text-white hover:bg-white/15"
                   >
                     {isLoading ? (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5 animate-spin" />
+                        <img
+                          src={faviconMascot}
+                          alt=""
+                          aria-hidden="true"
+                          className="mr-2 h-6 w-6 rounded-full object-cover animate-pulse"
+                        />
                         생성 요청 중...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="mr-2 h-5 w-5" />
+                        <img
+                          src={faviconMascot}
+                          alt=""
+                          aria-hidden="true"
+                          className="mr-2 h-6 w-6 rounded-full object-cover"
+                        />
                         작품 생성
                       </>
                     )}

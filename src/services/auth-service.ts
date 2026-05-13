@@ -16,6 +16,7 @@ interface AccessTokenResponse {
 interface UserProfileResponse {
   email?: string
   nickname?: string
+  provider?: "kakao" | "google"
   statusMessage?: string
 }
 
@@ -32,7 +33,7 @@ const authClient = axios.create({
   },
 })
 
-const mapUserProfile = (data: UserProfileResponse): User => {
+const mapUserProfile = (data: UserProfileResponse, provider?: User["provider"]): User => {
   const email = data.email?.trim()
 
   if (!email) {
@@ -43,6 +44,7 @@ const mapUserProfile = (data: UserProfileResponse): User => {
     id: email,
     name: data.nickname || email,
     email,
+    provider: provider ?? data.provider,
     statusMessage: data.statusMessage?.trim() || "",
     profileImage: undefined,
   }
@@ -55,9 +57,14 @@ export async function exchangeOAuthCode(provider: "kakao" | "google", code: stri
   return unwrapApiResponse<AccessTokenResponse>(response.data)
 }
 
-async function storeAuthPayload(accessToken: string, refreshToken = "cookie", expireIn?: number): Promise<AuthPayload> {
+async function storeAuthPayload(
+  accessToken: string,
+  refreshToken = "cookie",
+  expireIn?: number,
+  provider?: User["provider"],
+): Promise<AuthPayload> {
   try {
-    const user = await fetchMyProfile(accessToken)
+    const user = await fetchMyProfile(accessToken, provider)
     const tokens = buildAuthTokens(accessToken, refreshToken, expireIn)
 
     authStorage.setTokens(tokens)
@@ -76,21 +83,21 @@ async function storeAuthPayload(accessToken: string, refreshToken = "cookie", ex
 
 export async function completeOAuthLogin(provider: "kakao" | "google", code: string): Promise<AuthPayload> {
   const tokenData = await exchangeOAuthCode(provider, code)
-  return storeAuthPayload(tokenData.accessToken, "cookie", tokenData.expireIn)
+  return storeAuthPayload(tokenData.accessToken, "cookie", tokenData.expireIn, provider)
 }
 
-export async function completeOAuthLoginWithAccessToken(accessToken: string): Promise<AuthPayload> {
-  return storeAuthPayload(accessToken)
+export async function completeOAuthLoginWithAccessToken(accessToken: string, provider?: User["provider"]): Promise<AuthPayload> {
+  return storeAuthPayload(accessToken, "cookie", undefined, provider)
 }
 
-export async function fetchMyProfile(accessToken: string): Promise<User> {
+export async function fetchMyProfile(accessToken: string, provider?: User["provider"]): Promise<User> {
   const response = await authClient.get("/api/v1/users/me", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   })
   const data = unwrapApiResponse<UserProfileResponse>(response.data)
-  return mapUserProfile(data)
+  return mapUserProfile(data, provider)
 }
 
 export async function updateMyProfile(request: UpdateMyProfileRequest): Promise<User> {

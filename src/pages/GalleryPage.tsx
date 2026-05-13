@@ -30,7 +30,7 @@ export default function GalleryPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0f29] relative">
+    <div className="relative min-h-screen bg-background">
       <ShootingStars />
       <GlobalHeader />
 
@@ -55,21 +55,21 @@ export default function GalleryPage() {
                 placeholder="작품 검색..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="pl-12 bg-white/20 border-white/30 text-white placeholder:text-white/50 h-12"
+                className="h-12 border-white/15 bg-surface-container-high pl-12 text-white placeholder:text-white/50"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-4 overflow-x-auto pb-2">
-            <Button className="bg-[#836FFF] hover:bg-[#6b5acc] gap-2">
+            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary-container">
               <TrendingUp className="w-4 h-4" />
               인기
             </Button>
-            <Button variant="outline" className="border-white/30 text-white hover:bg-white/20 gap-2 bg-transparent">
+            <Button variant="outline" className="gap-2 border-white/15 bg-surface-container-high text-white hover:bg-white/10">
               <Clock className="w-4 h-4" />
               최신
             </Button>
-            <Button variant="outline" className="border-white/30 text-white hover:bg-white/20 gap-2 bg-transparent">
+            <Button variant="outline" className="gap-2 border-white/15 bg-surface-container-high text-white hover:bg-white/10">
               <Heart className="w-4 h-4" />
               좋아요 순
             </Button>
@@ -81,7 +81,7 @@ export default function GalleryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => (
               <Link key={item.id} to={`/share/${item.id}`}>
-                <div className="group bg-white/10 rounded-xl overflow-hidden border border-white/20 hover:border-[#836FFF]/50 transition-all hover:scale-105">
+                <div className="group overflow-hidden rounded-xl border border-white/15 bg-surface-container transition-all hover:scale-105 hover:border-white/40">
                   <div className="aspect-square relative overflow-hidden">
                     <img
                       src={item.imageUrl || "/placeholder.svg"}
@@ -93,7 +93,7 @@ export default function GalleryPage() {
                     <h3 className="text-lg font-semibold text-white">{item.title}</h3>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/60">{formatDistance(item.distanceKm)}</span>
-                      <span className="text-[#836FFF] font-medium">{formatDate(item.createdAt)}</span>
+                      <span className="font-medium text-white">{formatDate(item.createdAt)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white/60">테마: {item.theme}</span>

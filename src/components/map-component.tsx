@@ -17,6 +17,7 @@ interface MapComponentProps {
   onMapClick?: (coords: [number, number]) => void
   showLocationButton?: boolean
   displayOnly?: boolean
+  routeColor?: string
 }
 
 interface MapInstance {
@@ -59,6 +60,7 @@ export default function MapComponent({
   onMapClick,
   showLocationButton = true,
   displayOnly = false,
+  routeColor = "#ffffff",
 }: MapComponentProps) {
   const mapRef = useRef<MapInstance | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
@@ -195,7 +197,7 @@ export default function MapComponent({
           shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
         },
         polyline_options: {
-          color: "#8b5cf6",
+          color: routeColor,
           weight: 4,
           opacity: 0.8,
         },
@@ -221,7 +223,7 @@ export default function MapComponent({
       }
 
       const polyline = L.polyline(coordinates, {
-        color: "#f43f5e",
+        color: routeColor,
         weight: 6,
         opacity: 0.95,
       })
@@ -229,14 +231,14 @@ export default function MapComponent({
         radius: 7,
         color: "#ffffff",
         weight: 2,
-        fillColor: "#22c55e",
+        fillColor: "#ffffff",
         fillOpacity: 1,
       })
       const endMarker = L.circleMarker(coordinates[coordinates.length - 1], {
         radius: 7,
         color: "#ffffff",
         weight: 2,
-        fillColor: "#ef4444",
+        fillColor: "#8e9192",
         fillOpacity: 1,
       })
 
@@ -250,7 +252,7 @@ export default function MapComponent({
     } catch (error) {
       console.error("경로 디코딩 실패:", error)
     }
-  }, [gpxData, isLoading])
+  }, [gpxData, isLoading, routeColor])
 
   const handleLocationClick = () => {
     if (!mapRef.current?.map) return
@@ -305,7 +307,7 @@ export default function MapComponent({
   return (
     <div className="relative w-full h-full">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50 rounded-lg z-10">
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/60">
           <div className="text-white">지도 불러오는 중...</div>
         </div>
       )}
@@ -316,15 +318,15 @@ export default function MapComponent({
             onClick={handleLocationClick}
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
-            className="bg-white hover:bg-gray-100 p-3 rounded-full shadow-lg transition-all duration-300 relative"
+            className="relative rounded-full bg-primary p-3 text-primary-foreground shadow-lg transition-all duration-300 hover:bg-primary-container"
             title="내 위치 찾기"
           >
-            <Navigation className="w-5 h-5 text-purple-600" />
+            <Navigation className="w-5 h-5" />
           </button>
           {showTooltip && currentLocation && currentAddress && (
-            <div className="absolute bottom-full right-0 mb-2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-purple-200 whitespace-nowrap text-sm text-gray-800 max-w-xs">
-              <div className="font-semibold text-purple-600 mb-1">현재 위치</div>
-              <div className="text-xs break-words max-w-[200px]">{currentAddress}</div>
+            <div className="absolute bottom-full right-0 mb-2 max-w-xs whitespace-nowrap rounded-lg border border-white/15 bg-surface-container-high px-3 py-2 text-sm text-white shadow-xl backdrop-blur-sm">
+              <div className="mb-1 font-semibold text-white">현재 위치</div>
+              <div className="max-w-[200px] break-words text-xs text-white/75">{currentAddress}</div>
             </div>
           )}
         </div>

@@ -10,14 +10,13 @@ import {
   patchRunningArt,
 } from "@/services/art-service"
 import { authStorage } from "@/services/auth-storage"
-import { logoutMe, updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { logoutMe, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
 import { getRunningArtTaskStatus, listTrackedGenerationTasks } from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
   logoutMe: jest.fn(),
-  updateMyProfile: jest.fn(),
   withdrawMe: jest.fn(),
 }))
 
@@ -67,6 +66,19 @@ jest.mock("@/services/generation-service", () => ({
 }))
 
 jest.mock("@/services/art-service", () => ({
+  REPORT_DEMO_ART: {
+    id: "-1",
+    title: "경복궁 댕댕런",
+    content: "예시 gpx",
+    imageUrl: "/placeholder.svg",
+    distanceKm: 8.7,
+    theme: "댕댕런",
+    isPublic: false,
+    createdAt: "2025-05-06T02:46:07.000Z",
+    ownerId: "report-demo",
+    gpxData: "report-demo-gpx",
+    startAddress: "경복궁",
+  },
   createArt: jest.fn(),
   saveArt: jest.fn(),
   fetchMyArts: jest.fn(),
@@ -125,7 +137,6 @@ const createDeferred = <T,>() => {
 
 describe("MyPage", () => {
   beforeEach(() => {
-    ;(updateMyProfile as jest.Mock).mockReset()
     ;(logoutMe as jest.Mock).mockReset()
     ;(logoutMe as jest.Mock).mockResolvedValue(undefined)
     ;(withdrawMe as jest.Mock).mockReset()
@@ -151,7 +162,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: null })
 
-    await screen.findByText("아직 작품이 없습니다.")
+    await screen.findByText("경복궁 댕댕런")
     expect(screen.queryByRole("button", { name: "로그아웃" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "로그인" })).toBeInTheDocument()
   })
@@ -186,53 +197,34 @@ describe("MyPage", () => {
     clearSpy.mockRestore()
   })
 
-  it("saves edited profile via patch and updates the rendered profile", async () => {
+  it("shows only the withdraw action after clicking profile edit", async () => {
     const user = userEvent.setup()
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(updateMyProfile as jest.Mock).mockResolvedValue({
-      id: "user@example.com",
-      name: "수정된 닉네임",
-      email: "user@example.com",
-      statusMessage: "오늘도 달립니다.",
-    })
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
-    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
-    await user.clear(nameInput)
-    await user.type(nameInput, "수정된 닉네임")
-    const statusTextarea = screen.getByRole("textbox", { name: "상태 메시지 입력" })
-    await user.type(statusTextarea, "오늘도 달립니다.")
-    await user.click(screen.getByRole("button", { name: "저장" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
 
-    await waitFor(() =>
-      expect(updateMyProfile).toHaveBeenCalledWith({
-        nickname: "수정된 닉네임",
-        statusMessage: "오늘도 달립니다.",
-      }),
-    )
-    expect(await screen.findByText("프로필이 저장되었습니다.")).toBeInTheDocument()
-    expect(screen.getByText("수정된 닉네임")).toBeInTheDocument()
-    expect(screen.getByText("오늘도 달립니다.")).toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "닉네임 입력" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "저장" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "취소" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "회원탈퇴" })).toBeInTheDocument()
   })
 
-  it("keeps edit mode when profile save fails", async () => {
-    const user = userEvent.setup()
+  it("shows the social provider icon next to the profile name", async () => {
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
-    ;(updateMyProfile as jest.Mock).mockRejectedValue(new Error("save-fail"))
+    const auth = {
+      ...mockAuthPayload,
+      user: {
+        ...mockAuthPayload.user,
+        provider: "kakao" as const,
+      },
+    }
 
-    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+    renderWithProviders(<MyPage />, { auth })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
-    const nameInput = screen.getByRole("textbox", { name: "닉네임 입력" })
-    await user.clear(nameInput)
-    await user.type(nameInput, "실패한 닉네임")
-    await user.click(screen.getByRole("button", { name: "저장" }))
-
-    expect(await screen.findByText("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.")).toBeInTheDocument()
-    expect(screen.getByDisplayValue("실패한 닉네임")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument()
+    expect(await screen.findByLabelText("카카오 계정")).toBeInTheDocument()
+    expect(screen.getByText("카카오")).toBeInTheDocument()
   })
 
   it("loads and displays artworks", async () => {
@@ -253,7 +245,45 @@ describe("MyPage", () => {
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    expect(screen.getByText("생성 완료")).toBeInTheDocument()
+    expect(screen.getAllByText("생성 완료").length).toBeGreaterThan(0)
+  })
+
+  it("sorts artworks by created date", async () => {
+    const user = userEvent.setup()
+    const arts = [
+      {
+        id: 1,
+        title: "Old run",
+        content: "오래된 경로",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+        gpx: "_p~iF~ps|U",
+        userId: 10,
+        createdAt: "2024-01-01T00:00:00.000Z",
+      },
+      {
+        id: 2,
+        title: "New run",
+        content: "최신 경로",
+        shape: "STAR",
+        proficiency: "BEGINNER",
+        gpx: "_izlhA~rlgdF",
+        userId: 10,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]
+
+    ;(getMyRunningArts as jest.Mock).mockResolvedValue(arts)
+
+    renderWithProviders(<MyPage />, { auth: mockAuthPayload })
+
+    const newRunTitle = await screen.findByText("New run")
+    const oldRunTitle = screen.getByText("Old run")
+    expect(newRunTitle.compareDocumentPosition(oldRunTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "오래된순" }))
+
+    expect(oldRunTitle.compareDocumentPosition(newRunTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it("shows tracked generation tasks with status badges", async () => {
@@ -403,12 +433,13 @@ describe("MyPage", () => {
     expect(screen.getByText("샘플 작품은 읽기 전용으로 제공됩니다.")).toBeInTheDocument()
   })
 
-  it("shows empty state when there are no artworks", async () => {
+  it("shows the report GPX sample when there are no artworks", async () => {
     ;(getMyRunningArts as jest.Mock).mockResolvedValue([])
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    expect(await screen.findByText("아직 작품이 없습니다.")).toBeInTheDocument()
+    expect(await screen.findByText("경복궁 댕댕런")).toBeInTheDocument()
+    expect(screen.queryByText("아직 작품이 없습니다.")).not.toBeInTheDocument()
   })
 
   it("shows toast when loading artworks fails", async () => {
@@ -496,6 +527,43 @@ describe("MyPage", () => {
     await waitFor(() => expect(deleteRunningArt).toHaveBeenCalledWith("1"))
     expect(await screen.findByText("작품이 삭제되었습니다.")).toBeInTheDocument()
     expect(await screen.findByText("마이페이지 목록")).toBeInTheDocument()
+  })
+
+  it("downloads GPX data from the detail page", async () => {
+    const user = userEvent.setup()
+    const createObjectURL = jest.fn((_blob: Blob) => "blob:gpx-download")
+    const revokeObjectURL = jest.fn()
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined)
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    })
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    })
+
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "GPX 다운로드" }))
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+    const downloadedBlob = createObjectURL.mock.calls[0][0]
+    expect(downloadedBlob).toBeInstanceOf(Blob)
+    expect(downloadedBlob.size).toBe(detailArt.gpx.length)
+    expect(downloadedBlob.type).toBe("application/gpx+xml;charset=utf-8")
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:gpx-download")
+
+    clickSpy.mockRestore()
   })
 
   it("shows error toast and stays on detail page when delete fails", async () => {
@@ -645,7 +713,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     const button = await screen.findByRole("button", { name: "회원탈퇴" })
     await user.click(button)
 
@@ -659,7 +727,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: "취소" }))
@@ -681,7 +749,7 @@ describe("MyPage", () => {
       { route: "/mypage", auth: mockAuthPayload },
     )
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await act(async () => {
@@ -708,7 +776,7 @@ describe("MyPage", () => {
       { route: "/mypage", auth: mockAuthPayload },
     )
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     await act(async () => {
@@ -732,7 +800,7 @@ describe("MyPage", () => {
 
     renderWithProviders(<MyPage />, { auth: mockAuthPayload })
 
-    await user.click(await screen.findByRole("button", { name: "수정" }))
+    await user.click(await screen.findByRole("button", { name: "계정 관리" }))
     await user.click(await screen.findByRole("button", { name: "회원탈퇴" }))
     const dialog = await screen.findByRole("dialog")
     const confirm = within(dialog).getByRole("button", { name: "회원탈퇴" })

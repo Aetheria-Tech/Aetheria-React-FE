@@ -4,7 +4,6 @@ import { AlertCircle, ArrowLeft, RefreshCcw } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import { Button } from "@/components/ui/button"
-import generationLoaderMascot from "@/assets/generation-loader.png"
 import { formatDateTime } from "@/lib/formatters"
 import { env } from "@/services/env"
 import {
@@ -27,6 +26,7 @@ import type {
 
 const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
+const faviconMascot = "/favicon.png"
 
 const getSseConnectTimeoutMs = () => {
   const timeoutMs = Number(env.generationSseConnectTimeoutMs)
@@ -62,9 +62,9 @@ function LoadingMotion() {
         <div className="relative flex h-28 w-28 items-center justify-center">
           <div className="generation-loader-shadow absolute bottom-1 h-3 w-14 rounded-full bg-black/35 blur-sm" />
           <img
-            src={generationLoaderMascot}
-            alt="Generation mascot"
-            className="generation-loader-float relative z-10 h-11 w-11 object-contain drop-shadow-[0_0_10px_rgba(128,232,122,0.18)]"
+            src={faviconMascot}
+            alt="생성 중인 러닝화"
+            className="generation-loader-float relative z-10 h-16 w-16 rounded-full object-cover drop-shadow-[0_0_18px_rgba(255,255,255,0.2)]"
           />
         </div>
       </div>
@@ -401,28 +401,28 @@ export default function GenerationStatusPage() {
               variant="outline"
               size="sm"
               onClick={() => void syncTaskStatus()}
-              className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+              className="border-white/15 bg-surface-container-high text-white hover:bg-white/10"
             >
               <RefreshCcw className="h-4 w-4" />
               상태 다시 확인
             </Button>
           </div>
 
-          <section className="rounded-3xl border border-white/20 bg-black/35 p-6 shadow-2xl backdrop-blur-md sm:p-8">
+          <section className="rounded-3xl border border-white/15 bg-surface-container/90 p-6 shadow-2xl backdrop-blur-md sm:p-8">
             <div className="text-center">
-              <p className="text-sm font-semibold text-brand">Running Art Task</p>
+              <p className="text-sm font-semibold text-primary">Running Art Task</p>
               <h1 className="mt-3 text-3xl font-black text-white sm:text-4xl">{heading}</h1>
               <p className="mt-3 text-sm text-white/75 sm:text-base">{description}</p>
             </div>
 
             <div className="mt-8">
               {status === "FAILED" ? (
-                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-6 text-left">
+                <div className="rounded-2xl border border-destructive/30 bg-destructive-container/35 p-6 text-left">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-rose-300" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
                     <div className="space-y-2">
-                      <p className="font-semibold text-rose-100">생성 작업을 완료하지 못했습니다.</p>
-                      <p className="text-sm text-rose-100/80">
+                      <p className="font-semibold text-on-destructive-container">생성 작업을 완료하지 못했습니다.</p>
+                      <p className="text-sm text-on-destructive-container/80">
                         {task?.errorMessage?.trim() || "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
                       </p>
                     </div>
@@ -434,46 +434,46 @@ export default function GenerationStatusPage() {
             </div>
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
                 <p className="text-xs text-white/55">도형</p>
                 <p className="mt-2 text-sm text-white/85">{task?.shape || "확인 중"}</p>
               </div>
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
                 <p className="text-xs text-white/55">출발지</p>
                 <p className="mt-2 text-sm text-white/85">{task?.startPosition || "상태 불러오는 중"}</p>
               </div>
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
                 <p className="text-xs text-white/55">현재 상태</p>
                 <p className="mt-2 text-sm font-semibold text-white">
                   {status === "FAILED" ? "생성 실패" : status === "PROCESSING" ? "생성 중" : "생성 요청 접수"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
                 <p className="text-xs text-white/55">요청 시각</p>
                 <p className="mt-2 text-sm text-white/85">{getCreatedAtLabel(task?.createdAt)}</p>
               </div>
             </div>
 
             {syncError && (
-              <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+              <div className="mt-4 rounded-2xl border border-white/10 bg-surface-container-high p-4 text-sm text-white/75">
                 {syncError}
               </div>
             )}
 
-            <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-white/75">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-surface-container-high p-4 text-sm text-white/75">
               페이지를 닫거나 새로고침해도 마이페이지에서 다시 상태를 확인할 수 있습니다.
             </div>
 
             {status === "FAILED" && !isChecking && (
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link to="/create">
-                  <Button className="bg-brand text-zinc-900 hover:bg-brand-hover">다시 생성하기</Button>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary-container">다시 생성하기</Button>
                 </Link>
                 <Link to="/mypage">
-                  <Button variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15">
+                  <Button variant="outline" className="border-white/15 bg-surface-container-high text-white hover:bg-white/10">
                     마이페이지로 이동
                   </Button>
                 </Link>

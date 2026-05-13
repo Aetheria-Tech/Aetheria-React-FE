@@ -34,6 +34,18 @@ describe("HomePage", () => {
     expect(screen.queryByRole("button", { name: "로그인" })).not.toBeInTheDocument()
   })
 
+  it("links the hero join button to login for guests", () => {
+    renderWithProviders(<HomePage />, { auth: null })
+
+    expect(screen.getByRole("button", { name: /JOIN US/i }).closest("a")).toHaveAttribute("href", "/login")
+  })
+
+  it("links the hero join button to create page for authenticated users", () => {
+    renderWithProviders(<HomePage />, { auth: mockAuthPayload })
+
+    expect(screen.getByRole("button", { name: /JOIN US/i }).closest("a")).toHaveAttribute("href", "/create")
+  })
+
   it("logs out and navigates home when clicking logout button", async () => {
     const user = userEvent.setup()
     const clearSpy = jest.spyOn(authStorage, "clear")

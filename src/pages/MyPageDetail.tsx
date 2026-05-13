@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import MapComponent from "@/components/map-component"
 import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
 import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
+import { sanitizeGpxFileName } from "@/lib/gpx-download"
 import { deleteRunningArt, patchRunningArt } from "@/services/art-service"
 
 export default function MyPageDetail() {
@@ -80,8 +81,27 @@ export default function MyPageDetail() {
     }
   }
 
+  const handleDownloadGpx = () => {
+    const gpxData = art?.gpxData?.trim()
+    if (!art || !gpxData) {
+      notify("다운로드할 GPX 파일이 없습니다.", "error")
+      return
+    }
+
+    const blob = new Blob([gpxData], { type: "application/gpx+xml;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = `${sanitizeGpxFileName(art.title)}.gpx`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="min-h-screen bg-[#0a0f29] text-white">
+    <div className="min-h-screen bg-background text-white">
       <GlobalHeader />
       <div className="mx-auto max-w-3xl space-y-6 px-6 pb-10 pt-24">
         <div className="flex items-center justify-between">
@@ -97,7 +117,7 @@ export default function MyPageDetail() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            className="text-destructive hover:bg-destructive-container/30 hover:text-destructive"
             onClick={() => setIsDeleteConfirmOpen(true)}
             disabled={!canManageArt || isLoading || isDeleting}
           >
@@ -108,13 +128,13 @@ export default function MyPageDetail() {
         {isLoading && <p className="text-white/70">작품을 불러오는 중...</p>}
 
         {!isLoading && !art && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 space-y-4">
+          <div className="space-y-4 rounded-2xl border border-white/15 bg-surface-container p-6 backdrop-blur-md">
             <p className="text-white/80">작품을 찾을 수 없습니다.</p>
           </div>
         )}
 
         {art && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 space-y-6">
+          <div className="space-y-6 rounded-2xl border border-white/15 bg-surface-container p-6 backdrop-blur-md">
             <div className="space-y-2">
               <h2 className="text-2xl font-semibold">{art.title}</h2>
               <p className="text-white/70">거리: {formatDistance(art.distanceKm)}</p>
@@ -128,7 +148,7 @@ export default function MyPageDetail() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10"
+                    className="text-white hover:bg-white/10"
                     onClick={handleStartEditContent}
                   >
                     설명 수정
@@ -146,7 +166,7 @@ export default function MyPageDetail() {
                     value={draftContent}
                     onChange={(event) => setDraftContent(event.target.value)}
                     rows={4}
-                    className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full rounded-lg border border-white/15 bg-surface-container-high px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50"
                     disabled={isSavingContent}
                   />
                   <div className="flex justify-end gap-2">
@@ -171,18 +191,31 @@ export default function MyPageDetail() {
 
 
             <div className="space-y-3">
-              <span className="text-white/80">경로</span>
-              <div className="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:h-[420px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/80">경로</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
+                  onClick={handleDownloadGpx}
+                  disabled={!art.gpxData}
+                >
+                  <Download className="h-4 w-4" />
+                  GPX 다운로드
+                </Button>
+              </div>
+              <div className="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-surface-container-high md:h-[420px]">
                 {art.gpxData ? (
                   <MapComponent
                     center={[37.5665, 126.978]}
                     gpxData={art.gpxData}
+                    routeColor="#ef4444"
                     onLocationFound={() => undefined}
                     showLocationButton={false}
                     displayOnly
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center rounded-2xl bg-white/5 text-sm text-white/60">
+                  <div className="flex h-full items-center justify-center rounded-2xl bg-surface-container-high text-sm text-white/60">
                     표시할 경로 데이터가 없습니다.
                   </div>
                 )}
@@ -200,7 +233,7 @@ export default function MyPageDetail() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-title"
-            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-surface-container p-6 text-white shadow-2xl"
           >
             <h2 id="delete-title" className="text-xl font-semibold mb-3">
               작품 삭제
@@ -218,7 +251,7 @@ export default function MyPageDetail() {
               >
                 취소
               </Button>
-              <Button onClick={handleDelete} className="bg-rose-500 hover:bg-rose-600 text-white" disabled={isDeleting}>
+              <Button onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
                 {isDeleting ? "삭제 중..." : "삭제"}
               </Button>
             </div>
