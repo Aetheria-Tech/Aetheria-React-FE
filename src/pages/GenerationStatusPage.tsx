@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { AlertCircle, ArrowLeft, RefreshCcw } from "lucide-react"
+import { AlertCircle, ArrowLeft, RefreshCcw, Trash2 } from "lucide-react"
 import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/context/toast-context"
+import { useCreateArt } from "@/hooks/use-create-art"
 import { formatDateTime } from "@/lib/formatters"
 import { env } from "@/services/env"
 import {
@@ -12,6 +14,7 @@ import {
   getRunningArtTaskStatus,
   getTrackedGenerationTask,
   isGeneratingTaskStatus,
+  removeTrackedGenerationTask,
   subscribeRunningArtTaskEvents,
   syncTrackedGenerationTask,
   upsertTrackedGenerationTask,
@@ -75,6 +78,8 @@ function LoadingMotion() {
 export default function GenerationStatusPage() {
   const { taskId } = useParams()
   const navigate = useNavigate()
+  const { notify } = useToast()
+  const { createArt, isLoading: isRetrying } = useCreateArt()
   const navigateOnceRef = useRef(false)
   const failureCountRef = useRef(0)
   const activeTaskIdRef = useRef(taskId ?? null)
@@ -348,6 +353,47 @@ export default function GenerationStatusPage() {
     updateFailedTask,
   ])
 
+  const handleRetryTask = useCallback(async () => {
+    const currentTask = taskRef.current
+    const startPosition = currentTask?.startPosition?.trim() ?? ""
+    const shape = currentTask?.shape?.trim() ?? ""
+    const proficiency = currentTask?.proficiency
+
+    if (!startPosition || !shape || !proficiency) {
+      notify("다시 생성할 작업 정보를 찾을 수 없습니다.", "error")
+      return
+    }
+
+    try {
+      const response = await createArt({
+        startPosition,
+        shape,
+        proficiency,
+      })
+
+      if (taskId) {
+        removeTrackedGenerationTask(taskId)
+      }
+
+      closeSseSubscription()
+      stopPolling()
+      navigate(`/mypage/tasks/${response.taskId}`, { replace: true })
+    } catch {
+      // useCreateArt에서 실패 토스트를 표시한다.
+    }
+  }, [closeSseSubscription, createArt, navigate, notify, stopPolling, taskId])
+
+  const handleDeleteTask = useCallback(() => {
+    if (taskId) {
+      removeTrackedGenerationTask(taskId)
+    }
+
+    closeSseSubscription()
+    stopPolling()
+    notify("생성 작업을 삭제했습니다.", "success")
+    navigate("/mypage", { replace: true })
+  }, [closeSseSubscription, navigate, notify, stopPolling, taskId])
+
   useEffect(() => {
     if (!taskId) {
       setIsChecking(false)
@@ -469,9 +515,22 @@ export default function GenerationStatusPage() {
 
             {status === "FAILED" && !isChecking && (
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link to="/create">
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary-container">다시 생성하기</Button>
-                </Link>
+                <Button
+                  onClick={() => void handleRetryTask()}
+                  disabled={isRetrying}
+                  className="bg-primary text-primary-foreground hover:bg-primary-container"
+                >
+                  {isRetrying ? "재요청 중..." : "다시 생성하기"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteTask}
+                  disabled={isRetrying}
+                  className="border-rose-300/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20 hover:text-rose-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  작업 삭제
+                </Button>
                 <Link to="/mypage">
                   <Button variant="outline" className="border-white/15 bg-surface-container-high text-white hover:bg-white/10">
                     마이페이지로 이동
