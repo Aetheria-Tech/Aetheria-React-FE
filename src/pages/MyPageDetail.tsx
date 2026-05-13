@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import MapComponent from "@/components/map-component"
 import GlobalHeader from "@/components/layouts/global-header"
@@ -8,6 +8,16 @@ import { useArtDetail } from "@/hooks/use-art-detail"
 import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
 import { deleteRunningArt, patchRunningArt } from "@/services/art-service"
+
+const sanitizeGpxFileName = (value: string) => {
+  const sanitized = value
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 80)
+
+  return sanitized || "aetheria-route"
+}
 
 export default function MyPageDetail() {
   const { id } = useParams()
@@ -78,6 +88,25 @@ export default function MyPageDetail() {
     } finally {
       setIsSavingContent(false)
     }
+  }
+
+  const handleDownloadGpx = () => {
+    const gpxData = art?.gpxData?.trim()
+    if (!art || !gpxData) {
+      notify("다운로드할 GPX 파일이 없습니다.", "error")
+      return
+    }
+
+    const blob = new Blob([gpxData], { type: "application/gpx+xml;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = `${sanitizeGpxFileName(art.title)}.gpx`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -171,7 +200,19 @@ export default function MyPageDetail() {
 
 
             <div className="space-y-3">
-              <span className="text-white/80">경로</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/80">경로</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-white/15 bg-surface-container-high text-white hover:bg-white/10"
+                  onClick={handleDownloadGpx}
+                  disabled={!art.gpxData}
+                >
+                  <Download className="h-4 w-4" />
+                  GPX 다운로드
+                </Button>
+              </div>
               <div className="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-surface-container-high md:h-[420px]">
                 {art.gpxData ? (
                   <MapComponent

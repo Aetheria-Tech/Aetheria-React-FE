@@ -529,6 +529,43 @@ describe("MyPage", () => {
     expect(await screen.findByText("마이페이지 목록")).toBeInTheDocument()
   })
 
+  it("downloads GPX data from the detail page", async () => {
+    const user = userEvent.setup()
+    const createObjectURL = jest.fn((_blob: Blob) => "blob:gpx-download")
+    const revokeObjectURL = jest.fn()
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined)
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    })
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    })
+
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "GPX 다운로드" }))
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+    const downloadedBlob = createObjectURL.mock.calls[0][0]
+    expect(downloadedBlob).toBeInstanceOf(Blob)
+    expect(downloadedBlob.size).toBe(detailArt.gpx.length)
+    expect(downloadedBlob.type).toBe("application/gpx+xml;charset=utf-8")
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:gpx-download")
+
+    clickSpy.mockRestore()
+  })
+
   it("shows error toast and stays on detail page when delete fails", async () => {
     const user = userEvent.setup()
     ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
