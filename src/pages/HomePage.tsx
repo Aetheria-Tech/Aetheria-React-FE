@@ -78,10 +78,10 @@ export default function HomePage() {
           <div className="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center justify-center">
             <div className="text-center">
               <h1 className="text-balance text-5xl font-black leading-[0.95] text-white md:text-7xl">
-                러닝 경로, 그냥 달리기만 하세요
+                JUST RUN <br className="hidden sm:block" />
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-sm text-white/85 sm:text-base">
-                아트 생성을 위해 더 이상 고민하지 마세요. 경로는 Aetheria가 작품 형태로 정리합니다.
+               더 이상 고민하지 마세요   경로는 Aetheria가 제공합니다
               </p>
               <Link to={createEntryPath} aria-label={isLoggedIn ? "생성페이지 이동" : "회원가입/로그인 페이지 이동"}>
                 <Button className="mt-8 h-auto rounded-full bg-primary px-7 py-2.5 font-black text-primary-foreground hover:bg-primary-container">
