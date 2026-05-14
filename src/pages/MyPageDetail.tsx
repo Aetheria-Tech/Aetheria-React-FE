@@ -79,8 +79,9 @@ export default function MyPageDetail() {
 
     setIsSavingContent(true)
     try {
-      await patchRunningArt(id, { title: nextTitle, content: draftContent })
-      setArt((prev) => (prev ? { ...prev, title: nextTitle, content: draftContent } : null))
+      const nextContent = draftContent.trim()
+      await patchRunningArt(id, { title: nextTitle, content: nextContent })
+      setArt((prev) => (prev ? { ...prev, title: nextTitle, content: nextContent } : null))
       setIsEditingContent(false)
       notify("작품 정보가 저장되었습니다.", "success")
     } catch (error) {

@@ -678,7 +678,7 @@ describe("MyPage", () => {
     await user.clear(titleInput)
     await user.type(titleInput, "수정된 제목")
     await user.clear(textarea)
-    await user.type(textarea, "수정된 설명")
+    await user.type(textarea, "  수정된 설명  ")
     await user.click(screen.getByRole("button", { name: "변경사항 저장" }))
 
     await waitFor(() =>
