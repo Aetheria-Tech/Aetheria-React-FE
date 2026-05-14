@@ -242,6 +242,21 @@ export function removeTrackedGenerationTask(taskId: string) {
   writeTrackedTasks(readStoredTrackedTasks().filter((task) => task.taskId !== taskId || task.userId !== currentUserId))
 }
 
+export function clearCurrentUserTrackedGenerationTasks() {
+  if (!isBrowser()) return
+
+  const currentUserId = getCurrentTrackedTaskUserId()
+  if (!currentUserId) return
+
+  const remainingTasks = readStoredTrackedTasks().filter((task) => task.userId !== currentUserId)
+  if (remainingTasks.length === 0) {
+    window.localStorage.removeItem(STORAGE_KEY)
+    return
+  }
+
+  writeTrackedTasks(remainingTasks)
+}
+
 export function cleanupExpiredTrackedGenerationTasks(): TrackedRunningArtTask[] {
   const storedTasks = readStoredTrackedTasks()
   const retainedTasks = storedTasks.filter((task) => shouldRetainTrackedTask(task))

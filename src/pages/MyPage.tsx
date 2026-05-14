@@ -15,6 +15,7 @@ import type { Art } from "@/types/art"
 import type { User as AuthUser } from "@/types/auth"
 import {
   GENERATION_STATUS_POLLING_INTERVAL_MS,
+  clearCurrentUserTrackedGenerationTasks,
   cleanupExpiredTrackedGenerationTasks,
   getRunningArtTaskStatus,
   isGeneratingTaskStatus,
@@ -297,6 +298,7 @@ export default function MyPage() {
     setIsWithdrawing(true)
     try {
       await withdrawMe()
+      clearCurrentUserTrackedGenerationTasks()
       logout()
       notify("회원탈퇴가 완료되었습니다.", "success")
       setIsWithdrawOpen(false)

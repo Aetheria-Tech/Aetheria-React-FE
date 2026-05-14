@@ -13,7 +13,11 @@ import { authStorage } from "@/services/auth-storage"
 import { logoutMe, withdrawMe } from "@/services/auth-service"
 import { isDevEnvironment } from "@/lib/runtime"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
-import { getRunningArtTaskStatus, listTrackedGenerationTasks } from "@/services/generation-service"
+import {
+  clearCurrentUserTrackedGenerationTasks,
+  getRunningArtTaskStatus,
+  listTrackedGenerationTasks,
+} from "@/services/generation-service"
 
 jest.mock("@/services/auth-service", () => ({
   logoutMe: jest.fn(),
@@ -26,6 +30,7 @@ jest.mock("@/lib/runtime", () => ({
 
 jest.mock("@/services/generation-service", () => ({
   GENERATION_STATUS_POLLING_INTERVAL_MS: 5000,
+  clearCurrentUserTrackedGenerationTasks: jest.fn(),
   cleanupExpiredTrackedGenerationTasks: jest.fn(() => []),
   getRunningArtTaskStatus: jest.fn(),
   getTrackedGenerationTask: jest.fn(),
@@ -145,6 +150,7 @@ describe("MyPage", () => {
     ;(getRunningArtDetail as jest.Mock).mockReset()
     ;(deleteRunningArt as jest.Mock).mockReset()
     ;(patchRunningArt as jest.Mock).mockReset()
+    ;(clearCurrentUserTrackedGenerationTasks as jest.Mock).mockReset()
     ;(listTrackedGenerationTasks as jest.Mock).mockReturnValue([])
     ;(getRunningArtTaskStatus as jest.Mock).mockReset()
   })
@@ -646,12 +652,13 @@ describe("MyPage", () => {
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+    await user.click(screen.getByRole("button", { name: "제목/설명 수정" }))
 
+    expect(screen.getByRole("textbox", { name: "제목 입력" })).toBeInTheDocument()
     expect(screen.getByRole("textbox", { name: "설명 입력" })).toBeInTheDocument()
   })
 
-  it("saves edited description via patch and returns to view mode on success", async () => {
+  it("saves edited title and description via patch and returns to view mode on success", async () => {
     const user = userEvent.setup()
     ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
     ;(patchRunningArt as jest.Mock).mockResolvedValue(undefined)
@@ -664,20 +671,24 @@ describe("MyPage", () => {
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+    await user.click(screen.getByRole("button", { name: "제목/설명 수정" }))
 
+    const titleInput = screen.getByRole("textbox", { name: "제목 입력" })
     const textarea = screen.getByRole("textbox", { name: "설명 입력" })
+    await user.clear(titleInput)
+    await user.type(titleInput, "수정된 제목")
     await user.clear(textarea)
-    await user.type(textarea, "수정된 설명")
-    await user.click(screen.getByRole("button", { name: "설명 저장" }))
+    await user.type(textarea, "  수정된 설명  ")
+    await user.click(screen.getByRole("button", { name: "변경사항 저장" }))
 
     await waitFor(() =>
       expect(patchRunningArt).toHaveBeenCalledWith("1", {
-        title: "Morning run",
+        title: "수정된 제목",
         content: "수정된 설명",
       }),
     )
-    expect(await screen.findByText("설명이 저장되었습니다.")).toBeInTheDocument()
+    expect(await screen.findByText("작품 정보가 저장되었습니다.")).toBeInTheDocument()
+    expect(screen.getByText("수정된 제목")).toBeInTheDocument()
     expect(screen.getByText("수정된 설명")).toBeInTheDocument()
     expect(screen.queryByRole("textbox", { name: "설명 입력" })).not.toBeInTheDocument()
   })
@@ -695,16 +706,38 @@ describe("MyPage", () => {
     )
 
     expect(await screen.findByText("Morning run")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "설명 수정" }))
+    await user.click(screen.getByRole("button", { name: "제목/설명 수정" }))
 
     const textarea = screen.getByRole("textbox", { name: "설명 입력" })
     await user.clear(textarea)
     await user.type(textarea, "저장 실패 후 유지")
-    await user.click(screen.getByRole("button", { name: "설명 저장" }))
+    await user.click(screen.getByRole("button", { name: "변경사항 저장" }))
 
-    expect(await screen.findByText("설명 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
+    expect(await screen.findByText("작품 정보 저장에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
     expect(screen.getByRole("textbox", { name: "설명 입력" })).toHaveValue("저장 실패 후 유지")
-    expect(screen.getByRole("button", { name: "설명 저장" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "변경사항 저장" })).toBeInTheDocument()
+  })
+
+  it("does not save when edited title is empty", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtDetail as jest.Mock).mockResolvedValue(detailArt)
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/:id" element={<MyPageDetail />} />
+      </Routes>,
+      { route: "/mypage/1", auth: detailAuth },
+    )
+
+    expect(await screen.findByText("Morning run")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "제목/설명 수정" }))
+
+    const titleInput = screen.getByRole("textbox", { name: "제목 입력" })
+    await user.clear(titleInput)
+    await user.click(screen.getByRole("button", { name: "변경사항 저장" }))
+
+    expect(await screen.findByText("제목을 입력해주세요.")).toBeInTheDocument()
+    expect(patchRunningArt).not.toHaveBeenCalled()
   })
 
   it("renders withdraw button and opens modal", async () => {
@@ -757,6 +790,7 @@ describe("MyPage", () => {
     })
 
     await waitFor(() => expect(withdrawMe).toHaveBeenCalledTimes(1))
+    expect(clearCurrentUserTrackedGenerationTasks).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(clearSpy).toHaveBeenCalled())
     expect(await screen.findByText("홈")).toBeInTheDocument()
     clearSpy.mockRestore()
@@ -784,6 +818,7 @@ describe("MyPage", () => {
     })
 
     expect(await screen.findByText("회원탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.")).toBeInTheDocument()
+    expect(clearCurrentUserTrackedGenerationTasks).not.toHaveBeenCalled()
     expect(clearSpy).not.toHaveBeenCalled()
     expect(screen.queryByText("홈")).not.toBeInTheDocument()
     clearSpy.mockRestore()

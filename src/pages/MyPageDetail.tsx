@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import MapComponent from "@/components/map-component"
 import GlobalHeader from "@/components/layouts/global-header"
 import { useArtDetail } from "@/hooks/use-art-detail"
@@ -9,6 +10,8 @@ import { useToast } from "@/context/toast-context"
 import { formatDateTime, formatDistance } from "@/lib/formatters"
 import { sanitizeGpxFileName } from "@/lib/gpx-download"
 import { deleteRunningArt, patchRunningArt } from "@/services/art-service"
+
+const DETAIL_MAP_CENTER: [number, number] = [37.5665, 126.978]
 
 export default function MyPageDetail() {
   const { id } = useParams()
@@ -18,6 +21,7 @@ export default function MyPageDetail() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isEditingContent, setIsEditingContent] = useState(false)
+  const [draftTitle, setDraftTitle] = useState("")
   const [draftContent, setDraftContent] = useState("")
   const [isSavingContent, setIsSavingContent] = useState(false)
 
@@ -33,6 +37,7 @@ export default function MyPageDetail() {
 
   useEffect(() => {
     if (isEditingContent) return
+    setDraftTitle(art?.title ?? "")
     setDraftContent(art?.content ?? "")
   }, [art, isEditingContent])
 
@@ -66,16 +71,22 @@ export default function MyPageDetail() {
   const handleSaveContent = async () => {
     if (!id || !art || isSavingContent) return
 
-    // 설명만 바꾸더라도 백엔드 patch 요청에는 기존 title을 함께 보낸다.
+    const nextTitle = draftTitle.trim()
+    if (!nextTitle) {
+      notify("제목을 입력해주세요.", "error")
+      return
+    }
+
     setIsSavingContent(true)
     try {
-      await patchRunningArt(id, { title: art.title, content: draftContent })
-      setArt({ ...art, content: draftContent })
+      const nextContent = draftContent.trim()
+      await patchRunningArt(id, { title: nextTitle, content: nextContent })
+      setArt((prev) => (prev ? { ...prev, title: nextTitle, content: nextContent } : null))
       setIsEditingContent(false)
-      notify("설명이 저장되었습니다.", "success")
+      notify("작품 정보가 저장되었습니다.", "success")
     } catch (error) {
-      console.error("설명 저장 실패:", error)
-      notify("설명 저장에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
+      console.error("작품 정보 저장 실패:", error)
+      notify("작품 정보 저장에 실패했습니다. 잠시 후 다시 시도해주세요.", "error")
     } finally {
       setIsSavingContent(false)
     }
@@ -136,7 +147,23 @@ export default function MyPageDetail() {
         {art && (
           <div className="space-y-6 rounded-2xl border border-white/15 bg-surface-container p-6 backdrop-blur-md">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold">{art.title}</h2>
+              {isEditingContent ? (
+                <div className="space-y-2">
+                  <label htmlFor="art-title-editor" className="text-sm font-semibold text-white/80">
+                    제목
+                  </label>
+                  <Input
+                    id="art-title-editor"
+                    aria-label="제목 입력"
+                    value={draftTitle}
+                    onChange={(event) => setDraftTitle(event.target.value)}
+                    className="border-white/15 bg-surface-container-high text-2xl font-semibold text-white"
+                    disabled={isSavingContent}
+                  />
+                </div>
+              ) : (
+                <h2 className="text-2xl font-semibold">{art.title}</h2>
+              )}
               <p className="text-white/70">거리: {formatDistance(art.distanceKm)}</p>
               <p className="text-white/60">생성일: {formatDateTime(art.createdAt)}</p>
             </div>
@@ -151,7 +178,7 @@ export default function MyPageDetail() {
                     className="text-white hover:bg-white/10"
                     onClick={handleStartEditContent}
                   >
-                    설명 수정
+                    제목/설명 수정
                   </Button>
                 )}
               </div>
@@ -180,7 +207,7 @@ export default function MyPageDetail() {
                       취소
                     </Button>
                     <Button size="sm" onClick={handleSaveContent} disabled={isSavingContent}>
-                      {isSavingContent ? "저장 중..." : "설명 저장"}
+                      {isSavingContent ? "저장 중..." : "변경사항 저장"}
                     </Button>
                   </div>
                 </div>
@@ -207,7 +234,7 @@ export default function MyPageDetail() {
               <div className="h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-surface-container-high md:h-[420px]">
                 {art.gpxData ? (
                   <MapComponent
-                    center={[37.5665, 126.978]}
+                    center={DETAIL_MAP_CENTER}
                     gpxData={art.gpxData}
                     routeColor="#ef4444"
                     onLocationFound={() => undefined}

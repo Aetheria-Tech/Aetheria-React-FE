@@ -62,6 +62,8 @@ export default function MapComponent({
   displayOnly = false,
   routeColor = "#ffffff",
 }: MapComponentProps) {
+  const centerLat = center[0]
+  const centerLng = center[1]
   const mapRef = useRef<MapInstance | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -80,7 +82,7 @@ export default function MapComponent({
       boxZoom: !displayOnly,
       keyboard: !displayOnly,
       touchZoom: !displayOnly,
-    }).setView(center, 13)
+    }).setView([centerLat, centerLng], 13)
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map)
@@ -103,13 +105,13 @@ export default function MapComponent({
       map.remove()
       mapRef.current = null
     }
-  }, [center, displayOnly])
+  }, [centerLat, centerLng, displayOnly])
 
   useEffect(() => {
     if (mapRef.current?.map) {
-      mapRef.current.map.setView(center, 13)
+      mapRef.current.map.setView([centerLat, centerLng], 13)
     }
-  }, [center])
+  }, [centerLat, centerLng])
 
   useEffect(() => {
     if (!mapRef.current?.map || !onMapClick) return
