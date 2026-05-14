@@ -112,4 +112,34 @@ describe("CreatePage", () => {
     await waitFor(() => expect(searchAddressMock).toHaveBeenCalledTimes(1), { timeout: 1000 })
     expect(searchAddressMock).toHaveBeenCalledWith("seoul")
   })
+  it("opens postcode lookup from the address button only", async () => {
+    const user = userEvent.setup()
+
+    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+
+    const startInput = document.querySelector<HTMLInputElement>("#start_point")
+    expect(startInput).not.toBeNull()
+
+    await user.click(startInput!)
+    expect(window.daum?.Postcode).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole("button", { name: "주소 찾기" }))
+    expect(window.daum?.Postcode).toHaveBeenCalledTimes(1)
+  })
+
+  it("closes address results when focus leaves the start point field", async () => {
+    const user = userEvent.setup()
+    searchAddressMock.mockResolvedValue([{ addressName: "서울시청", x: 126.978, y: 37.5665 }])
+
+    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+
+    const startInput = document.querySelector<HTMLInputElement>("#start_point")
+    expect(startInput).not.toBeNull()
+
+    await user.type(startInput!, "seo")
+    expect(await screen.findByText("서울시청")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "3km" }))
+    await waitFor(() => expect(screen.queryByText("서울시청")).not.toBeInTheDocument())
+  })
 })

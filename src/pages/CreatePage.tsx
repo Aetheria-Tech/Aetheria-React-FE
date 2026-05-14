@@ -328,18 +328,32 @@ export default function CreatePage() {
 
             <section className="pointer-events-auto mx-auto w-full max-w-6xl px-1 sm:px-2">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-              <div className="relative space-y-2">
+              <div
+                className="relative space-y-2"
+                onBlur={(event) => {
+                  const nextTarget = event.relatedTarget as Node | null
+                  if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+                    setShowStartResults(false)
+                  }
+                }}
+              >
                 <Label htmlFor="start_point" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
                   Step 1. 시작 위치
                 </Label>
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-white/50" />
+                  <button
+                    type="button"
+                    aria-label="주소 찾기"
+                    onClick={openDaumPostcode}
+                    className="absolute left-3 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-white/55 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  >
+                    <MapPin className="h-4 w-4" />
+                  </button>
                   <Input
                     id="start_point"
                     aria-label="출발지"
                     placeholder="주소 검색"
                     value={formData.startPoint}
-                    onClick={openDaumPostcode}
                     onChange={(event) => {
                       const nextValue = event.target.value
                       setFormData((prev) => ({ ...prev, startPoint: nextValue }))
@@ -357,6 +371,7 @@ export default function CreatePage() {
                     {startAddressResults.map((result) => (
                       <button
                         key={`${result.addressName}-${result.x}-${result.y}`}
+                        onMouseDown={(event) => event.preventDefault()}
                         onClick={() => handleAddressSelect(result)}
                         className="w-full px-4 py-2 text-left text-sm text-white/90 transition-colors hover:bg-white/10"
                       >
