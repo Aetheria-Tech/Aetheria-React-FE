@@ -28,7 +28,6 @@ const routeMarkerPositions = [
   { x: 650, y: 140 },
 ] as const
 const runnerPositions = [{ x: 70, y: 235 }, ...routeMarkerPositions] as const
-const faviconMascot = "/favicon.png"
 
 const getRouteStepDisplayValue = (value: string) => {
   const trimmed = value.trim()
@@ -368,7 +367,7 @@ export default function CreatePage() {
                         setShowStartResults(true)
                       }
                     }}
-                    className="h-12 rounded-full border-white/15 bg-white/[0.06] pl-11 text-white shadow-lg shadow-black/20 backdrop-blur-sm placeholder:text-white/40 hover:bg-white/[0.08] focus-visible:bg-white/[0.08]"
+                    className="h-12 rounded-full border-white/20 bg-surface-container-high pl-11 text-white shadow-lg shadow-black/20 placeholder:text-white/40 hover:bg-surface-container-highest focus-visible:bg-surface-container-highest"
                   />
                 </div>
                 {showStartResults && startAddressResults.length > 0 && (
@@ -407,7 +406,7 @@ export default function CreatePage() {
                         className={`h-12 rounded-full border text-sm font-black transition-all ${
                           isSelected
                             ? "border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.22)]"
-                            : "border-white/15 bg-white/[0.06] text-white shadow-lg shadow-black/15 backdrop-blur-sm hover:border-white/35 hover:bg-white/[0.1]"
+                            : "border-white/20 bg-surface-container-high text-white shadow-lg shadow-black/15 hover:border-white/35 hover:bg-surface-container-highest"
                         }`}
                       >
                         {option.label}
@@ -427,7 +426,7 @@ export default function CreatePage() {
                   placeholder="하트, 별, 나비..."
                   value={formData.theme}
                   onChange={(event) => setFormData((prev) => ({ ...prev, theme: event.target.value }))}
-                  className="h-12 rounded-full border-white/15 bg-white/[0.06] text-white shadow-lg shadow-black/20 backdrop-blur-sm placeholder:text-white/40 hover:bg-white/[0.08] focus-visible:bg-white/[0.08]"
+                  className="h-12 rounded-full border-white/20 bg-surface-container-high text-white shadow-lg shadow-black/20 placeholder:text-white/40 hover:bg-surface-container-highest focus-visible:bg-surface-container-highest"
                 />
               </div>
             </div>
@@ -438,22 +437,7 @@ export default function CreatePage() {
                 disabled={isLoading}
                 className="h-14 w-full rounded-full bg-white px-8 text-base font-black text-black hover:bg-white/90 md:w-auto md:min-w-[300px]"
               >
-                {isLoading ? (
-                  <>
-                    <img
-                      src={faviconMascot}
-                      alt=""
-                      aria-hidden="true"
-                      className="mr-2 h-6 w-6 rounded-full object-cover animate-pulse"
-                    />
-                    생성 요청 중...
-                  </>
-                ) : (
-                  <>
-                    <img src={faviconMascot} alt="" aria-hidden="true" className="mr-2 h-6 w-6 rounded-full object-cover" />
-                    작품 생성
-                  </>
-                )}
+                {isLoading ? "생성 요청 중..." : "작품 생성"}
               </Button>
             </div>
           </section>
