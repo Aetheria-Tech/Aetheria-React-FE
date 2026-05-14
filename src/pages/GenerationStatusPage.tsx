@@ -29,6 +29,7 @@ import type {
 
 const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
+const PROCESSING_SAFE_REVIEW_DELAY_MS = 15000
 
 const getSseConnectTimeoutMs = () => {
   const timeoutMs = Number(env.generationSseConnectTimeoutMs)
@@ -70,9 +71,12 @@ const generationSteps = [
   },
 ] as const
 
-const getActiveStepIndex = (status: RunningArtTaskStatus | null) => {
-  if (status === "COMPLETED") return 3
-  if (status === "PROCESSING") return 1
+const getActiveStepIndex = (status: RunningArtTaskStatus | null, createdAt?: string | null, now = Date.now()) => {
+  if (status === "COMPLETED") return generationSteps.length - 1
+  if (status === "PROCESSING") {
+    const startedAt = Date.parse(createdAt ?? "")
+    return Number.isFinite(startedAt) && now - startedAt >= PROCESSING_SAFE_REVIEW_DELAY_MS ? 2 : 1
+  }
   if (status === "FAILED") return 1
   return 0
 }
@@ -95,6 +99,7 @@ export default function GenerationStatusPage() {
   const [status, setStatus] = useState<RunningArtTaskStatus | null>(task?.status ?? null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(true)
+  const [progressNow, setProgressNow] = useState(() => Date.now())
 
   const taskRef = useRef(task)
   const statusRef = useRef(status)
@@ -105,6 +110,13 @@ export default function GenerationStatusPage() {
 
   useEffect(() => {
     statusRef.current = status
+  }, [status])
+
+  useEffect(() => {
+    if (status !== "PROCESSING") return
+
+    const progressTimer = window.setInterval(() => setProgressNow(Date.now()), 1000)
+    return () => window.clearInterval(progressTimer)
   }, [status])
 
   const clearSseConnectTimeout = useCallback(() => {
@@ -425,7 +437,7 @@ export default function GenerationStatusPage() {
     }
   }, [closeSseSubscription, isActiveTask, openSseSubscription, stopPolling, syncTaskStatus, taskId])
 
-  const activeStepIndex = getActiveStepIndex(status)
+  const activeStepIndex = getActiveStepIndex(status, task?.createdAt, progressNow)
   const currentStep = generationSteps[Math.min(activeStepIndex, generationSteps.length - 1)]
   const currentStepTitle = status === "FAILED" ? "생성에 실패했습니다" : `${currentStep.label} 중`
   const currentStepDescription =

@@ -147,7 +147,7 @@ export default function MyPageDetail() {
                 <MapComponent
                   center={DETAIL_MAP_CENTER}
                   gpxData={art.gpxData}
-                  routeColor="#e5e2e1"
+                  routeColor="var(--on-surface)"
                   onLocationFound={() => undefined}
                   showLocationButton={false}
                   displayOnly

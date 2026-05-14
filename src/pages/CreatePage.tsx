@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import GlobalHeader from "@/components/layouts/global-header"
 import ShootingStars from "@/components/shooting-stars"
 import { toLatLngFromKakao } from "@/lib/coords"
+import { getRouteStepDisplayValue } from "@/lib/route-step-display"
 import { saveStoredGeocode } from "@/mocks/geocode-map"
 import { searchAddress as searchKakaoAddress } from "@/services/kakao-service"
 import { useCreateArt } from "@/hooks/use-create-art"
@@ -28,11 +29,6 @@ const routeMarkerPositions = [
   { x: 650, y: 140 },
 ] as const
 const runnerPositions = [{ x: 70, y: 235 }, ...routeMarkerPositions] as const
-
-const getRouteStepDisplayValue = (value: string) => {
-  const trimmed = value.trim()
-  return trimmed.length > 14 ? `${trimmed.slice(0, 14)}...` : trimmed
-}
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -151,46 +147,14 @@ export default function CreatePage() {
       completed: formData.startPoint.trim().length > 0,
     },
   ]
-  const completedRouteSteps = routeProgressSteps.filter((step) => step.completed)
-  const completedOptionCount = completedRouteSteps.length
+  const completedOptionCount = routeProgressSteps.filter((step) => step.completed).length
+  const activeRouteStepIndex = routeProgressSteps.findIndex((step) => !step.completed)
   const routeProgressPercent = Math.round((completedOptionCount / routeProgressSteps.length) * 100)
   const runnerPosition = runnerPositions[completedOptionCount]
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface-container text-white">
       <ShootingStars />
-      <style>{`
-        @keyframes create-route-flow {
-          from {
-            stroke-dashoffset: 130;
-          }
-          to {
-            stroke-dashoffset: 0;
-          }
-        }
-
-        @keyframes create-route-marker {
-          0%,
-          100% {
-            opacity: 0.25;
-            transform: scale(0.88);
-          }
-          50% {
-            opacity: 0.9;
-            transform: scale(1.08);
-          }
-        }
-
-        .create-route-flow {
-          animation: create-route-flow 5.2s linear infinite;
-        }
-
-        .create-route-marker {
-          animation: create-route-marker 2.8s ease-in-out infinite;
-          transform-origin: center;
-          transform-box: fill-box;
-        }
-      `}</style>
       <div className="relative z-10 flex min-h-screen flex-col">
         <GlobalHeader />
 
@@ -259,14 +223,16 @@ export default function CreatePage() {
                       strokeWidth="15"
                       className="create-route-flow"
                     />
-                    {routeMarkerPositions.map((marker, index) => {
-                      const step = completedRouteSteps[index]
-                      const isCompleted = Boolean(step)
+                    {routeProgressSteps.map((step, index) => {
+                      const marker = routeMarkerPositions[index]
+                      const isCompleted = step.completed
                       const isActiveMarker =
-                        !isCompleted && completedOptionCount === index && completedOptionCount < routeProgressSteps.length
+                        !isCompleted &&
+                        activeRouteStepIndex === index &&
+                        completedOptionCount < routeProgressSteps.length
                       return (
                         <g key={`route-marker-${index}`}>
-                          {step && (
+                          {isCompleted && (
                             <g transform={`translate(${marker.x} ${marker.y - 62})`}>
                               <text
                                 fill="rgba(255,255,255,0.95)"

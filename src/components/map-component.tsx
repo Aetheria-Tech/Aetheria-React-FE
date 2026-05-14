@@ -60,7 +60,7 @@ export default function MapComponent({
   onMapClick,
   showLocationButton = true,
   displayOnly = false,
-  routeColor = "#ffffff",
+  routeColor = "var(--primary)",
 }: MapComponentProps) {
   const centerLat = center[0]
   const centerLng = center[1]
