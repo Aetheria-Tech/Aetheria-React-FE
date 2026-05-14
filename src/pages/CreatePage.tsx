@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,7 @@ export default function CreatePage() {
 
   const [showStartResults, setShowStartResults] = useState(false)
   const [startAddressResults, setStartAddressResults] = useState<KakaoAddressResult[]>([])
+  const addressSearchRequestRef = useRef(0)
 
   useEffect(() => {
     const script = document.createElement("script")
@@ -59,20 +60,36 @@ export default function CreatePage() {
     }
   }, [])
 
-  const searchAddress = async (query: string) => {
+  useEffect(() => {
+    const query = formData.startPoint.trim()
+    const requestId = addressSearchRequestRef.current + 1
+    addressSearchRequestRef.current = requestId
+
     if (query.length < 2) {
       setStartAddressResults([])
+      setShowStartResults(false)
       return
     }
 
-    try {
-      const results = await searchKakaoAddress(query)
-      setStartAddressResults(results)
-      setShowStartResults(true)
-    } catch {
-      notify("주소 검색에 실패했습니다.", "error")
+    const timeoutId = window.setTimeout(() => {
+      void searchKakaoAddress(query)
+        .then((results) => {
+          if (addressSearchRequestRef.current !== requestId) return
+
+          setStartAddressResults(results)
+          setShowStartResults(results.length > 0)
+        })
+        .catch(() => {
+          if (addressSearchRequestRef.current !== requestId) return
+
+          notify("주소 검색에 실패했습니다.", "error")
+        })
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timeoutId)
     }
-  }
+  }, [formData.startPoint, notify])
 
   const handleAddressSelect = (address: KakaoAddressResult) => {
     setFormData((prev) => ({ ...prev, startPoint: address.addressName }))
@@ -326,7 +343,6 @@ export default function CreatePage() {
                     onChange={(event) => {
                       const nextValue = event.target.value
                       setFormData((prev) => ({ ...prev, startPoint: nextValue }))
-                      searchAddress(nextValue)
                     }}
                     onFocus={() => {
                       if (startAddressResults.length > 0) {
