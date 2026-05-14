@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Edit2, Mail, Plus, User } from "lucide-react"
-import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
 import RouteThumbnail from "@/components/route-thumbnail"
+import ShootingStars from "@/components/shooting-stars"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useMyArts } from "@/hooks/use-my-arts"
@@ -332,10 +332,12 @@ export default function MyPage() {
   const providerLabel = getProviderLabel(userProfile.provider)
 
   return (
-    <AppBackground overlayClassName="bg-black/50">
-      <GlobalHeader />
+    <div className="relative min-h-screen overflow-hidden bg-surface-container text-white">
+      <ShootingStars />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <GlobalHeader />
 
-      <main className="flex-1 px-6 pb-8 pt-24">
+        <main className="flex-1 px-6 pb-8 pt-24">
         <div className="mx-auto max-w-6xl space-y-8">
           <section className="rounded-2xl border border-white/15 bg-surface-container/90 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
             <div className="mb-6 flex items-center justify-between">
@@ -501,9 +503,9 @@ export default function MyPage() {
             </section>
           )}
         </div>
-      </main>
+        </main>
 
-      {isWithdrawOpen && (
+        {isWithdrawOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
           <div
             role="dialog"
@@ -537,7 +539,8 @@ export default function MyPage() {
             </div>
           </div>
         </div>
-      )}
-    </AppBackground>
+        )}
+      </div>
+    </div>
   )
 }
