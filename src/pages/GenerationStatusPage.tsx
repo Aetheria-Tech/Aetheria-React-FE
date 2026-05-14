@@ -526,7 +526,7 @@ export default function GenerationStatusPage() {
                   variant="outline"
                   onClick={handleDeleteTask}
                   disabled={isRetrying}
-                  className="border-rose-300/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20 hover:text-rose-50"
+                  className="border-destructive/30 bg-destructive-container/35 text-on-destructive-container hover:bg-destructive-container/50 hover:text-on-destructive-container"
                 >
                   <Trash2 className="h-4 w-4" />
                   작업 삭제
