@@ -102,15 +102,15 @@ export default function HomePage() {
               className={`z-10 flex flex-col gap-7 transition-all duration-1000 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 lg:col-span-6 ${communityRevealClass}`}
             >
               <h2 className="text-pretty text-5xl font-black leading-[0.9] sm:text-6xl lg:text-7xl">
-                <span className="block">아테리아는</span>
+                <span className="block">Aetheria는</span>
                 <span className="block">당신의 다음</span>
                 <span className="block">러닝 아트를</span>
-                <span className="block">기다립니다.</span>
+                <span className="block">기다립니다</span>
               </h2>
 
               <div className="flex max-w-md flex-col gap-4">
                 <p className="text-lg font-medium leading-snug text-white/75 sm:text-xl">
-                  거리와 테마, 출발지만 정하면 달릴 수 있는 경로가 준비됩니다.
+                  거리와 테마 출발지만 정하면 달릴 수 있는 경로가 준비됩니다
                 </p>
               </div>
 

@@ -51,6 +51,17 @@ interface GpxOptions {
 
 type LeafletWithGpx = typeof L & { GPX: new (gpx: string, options?: GpxOptions) => GpxLayer }
 
+const cssVariableColorPattern = /^var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)$/
+
+const resolveRouteColor = (color: string, element: HTMLElement | null) => {
+  const match = color.match(cssVariableColorPattern)
+  if (!match || !element) return color
+
+  const [, variableName, fallback] = match
+  const resolvedColor = window.getComputedStyle(element).getPropertyValue(variableName).trim()
+  return resolvedColor || fallback?.trim() || color
+}
+
 export default function MapComponent({
   center,
   startCoords,
@@ -60,7 +71,7 @@ export default function MapComponent({
   onMapClick,
   showLocationButton = true,
   displayOnly = false,
-  routeColor = "#ffffff",
+  routeColor = "var(--primary)",
 }: MapComponentProps) {
   const centerLat = center[0]
   const centerLng = center[1]
@@ -189,6 +200,8 @@ export default function MapComponent({
 
     if (!routeData) return
 
+    const resolvedRouteColor = resolveRouteColor(routeColor, mapContainerRef.current)
+
     if (isXmlRouteData(routeData)) {
       const leafletWithGpx = L as LeafletWithGpx
       const newGpxLayer = new leafletWithGpx.GPX(routeData, {
@@ -199,7 +212,7 @@ export default function MapComponent({
           shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
         },
         polyline_options: {
-          color: routeColor,
+          color: resolvedRouteColor,
           weight: 4,
           opacity: 0.8,
         },
@@ -225,7 +238,7 @@ export default function MapComponent({
       }
 
       const polyline = L.polyline(coordinates, {
-        color: routeColor,
+        color: resolvedRouteColor,
         weight: 6,
         opacity: 0.95,
       })

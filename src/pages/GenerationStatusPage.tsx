@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { AlertCircle, ArrowLeft, RefreshCcw, Trash2 } from "lucide-react"
-import AppBackground from "@/components/layouts/app-background"
+import { AlertCircle, ArrowLeft, Check, Loader2, RefreshCcw, Trash2 } from "lucide-react"
 import GlobalHeader from "@/components/layouts/global-header"
+import ShootingStars from "@/components/shooting-stars"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/context/toast-context"
 import { useCreateArt } from "@/hooks/use-create-art"
@@ -29,17 +29,12 @@ import type {
 
 const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
-const faviconMascot = "/favicon.png"
+// UI-only fallback until the backend exposes granular generation phases.
+const PROCESSING_SAFE_REVIEW_DELAY_MS = 15000
 
 const getSseConnectTimeoutMs = () => {
   const timeoutMs = Number(env.generationSseConnectTimeoutMs)
   return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_SSE_CONNECT_TIMEOUT_MS
-}
-
-const getGuideMessage = (status: RunningArtTaskStatus | null) => {
-  if (status === "PROCESSING") return "경로가 만들어지고 있습니다. 잠시만 기다려주세요."
-  if (status === "FAILED") return "생성에 실패했습니다. 다시 시도하거나 마이페이지에서 상태를 확인해 주세요."
-  return "생성 요청이 접수되었습니다. 상태를 확인하는 중입니다."
 }
 
 const normalizeTaskStatus = (response: RunningArtTaskStatusResponse): RunningArtTaskStatus =>
@@ -58,21 +53,33 @@ const getCreatedAtLabel = (createdAt: string | null | undefined) => {
   return trimmed ? formatDateTime(trimmed) : "확인 중"
 }
 
-function LoadingMotion() {
-  return (
-    <div className="flex justify-center">
-      <div className="flex items-center justify-center">
-        <div className="relative flex h-28 w-28 items-center justify-center">
-          <div className="generation-loader-shadow absolute bottom-1 h-3 w-14 rounded-full bg-black/35 blur-sm" />
-          <img
-            src={faviconMascot}
-            alt="생성 중인 러닝화"
-            className="generation-loader-float relative z-10 h-16 w-16 rounded-full object-cover drop-shadow-[0_0_18px_rgba(255,255,255,0.2)]"
-          />
-        </div>
-      </div>
-    </div>
-  )
+const generationSteps = [
+  {
+    label: "요청 확인",
+    description: "입력한 도형, 출발지, 거리 조건을 확인하고 있어요.",
+  },
+  {
+    label: "경로 후보 설계",
+    description: "도로망 위에서 달릴 수 있는 러닝 아트 경로를 그리고 있어요.",
+  },
+  {
+    label: "거리 안전 검토",
+    description: "거리 오차와 이동 안전성을 함께 검토하고 있어요.",
+  },
+  {
+    label: "결과 저장",
+    description: "완성된 러닝 아트를 마이페이지에 저장하고 있어요.",
+  },
+] as const
+
+const getActiveStepIndex = (status: RunningArtTaskStatus | null, createdAt?: string | null, now = Date.now()) => {
+  if (status === "COMPLETED") return generationSteps.length - 1
+  if (status === "PROCESSING") {
+    const startedAt = Date.parse(createdAt ?? "")
+    return Number.isFinite(startedAt) && now - startedAt >= PROCESSING_SAFE_REVIEW_DELAY_MS ? 2 : 1
+  }
+  if (status === "FAILED") return 1
+  return 0
 }
 
 export default function GenerationStatusPage() {
@@ -93,6 +100,7 @@ export default function GenerationStatusPage() {
   const [status, setStatus] = useState<RunningArtTaskStatus | null>(task?.status ?? null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(true)
+  const [progressNow, setProgressNow] = useState(() => Date.now())
 
   const taskRef = useRef(task)
   const statusRef = useRef(status)
@@ -103,6 +111,13 @@ export default function GenerationStatusPage() {
 
   useEffect(() => {
     statusRef.current = status
+  }, [status])
+
+  useEffect(() => {
+    if (status !== "PROCESSING") return
+
+    const progressTimer = window.setInterval(() => setProgressNow(Date.now()), 1000)
+    return () => window.clearInterval(progressTimer)
   }, [status])
 
   const clearSseConnectTimeout = useCallback(() => {
@@ -423,124 +438,198 @@ export default function GenerationStatusPage() {
     }
   }, [closeSseSubscription, isActiveTask, openSseSubscription, stopPolling, syncTaskStatus, taskId])
 
-  const heading = useMemo(() => {
-    if (status === "FAILED") return "생성에 실패했습니다"
-    return "생성 중입니다"
-  }, [status])
-
-  const description = useMemo(() => getGuideMessage(status), [status])
+  const activeStepIndex = getActiveStepIndex(status, task?.createdAt, progressNow)
+  const currentStep = generationSteps[Math.min(activeStepIndex, generationSteps.length - 1)]
+  const currentStepTitle = status === "FAILED" ? "생성에 실패했습니다" : `${currentStep.label} 중`
+  const currentStepDescription =
+    status === "FAILED"
+      ? task?.errorMessage?.trim() || "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+      : currentStep.description
+  const heroDescription =
+    status === "FAILED" ? "요청을 완료하지 못했습니다. 아래 버튼에서 다음 작업을 선택해 주세요." : currentStepDescription
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, (activeStepIndex / Math.max(1, generationSteps.length - 1)) * 100),
+  )
 
   return (
-    <AppBackground overlayClassName="bg-black/60">
-      <GlobalHeader />
+    <div className="relative min-h-screen overflow-hidden bg-black text-white">
+      <ShootingStars />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <GlobalHeader />
 
-      <main className="flex-1 px-4 pb-12 pt-24 sm:px-8">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div className="flex items-center justify-between">
-            <Link to="/mypage">
-              <Button variant="ghost" size="sm" className="gap-2 text-white hover:bg-white/10">
-                <ArrowLeft className="h-4 w-4" />
-                마이페이지로
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void syncTaskStatus()}
-              className="border-white/15 bg-surface-container-high text-white hover:bg-white/10"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              상태 다시 확인
-            </Button>
-          </div>
-
-          <section className="rounded-3xl border border-white/15 bg-surface-container/90 p-6 shadow-2xl backdrop-blur-md sm:p-8">
-            <div className="text-center">
-              <p className="text-sm font-semibold text-primary">Running Art Task</p>
-              <h1 className="mt-3 text-3xl font-black text-white sm:text-4xl">{heading}</h1>
-              <p className="mt-3 text-sm text-white/75 sm:text-base">{description}</p>
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-5 py-24 text-center sm:px-8">
+          <section className="w-full">
+            <div className="mb-8 space-y-5">
+              <h1 className="text-lg font-semibold tracking-tight text-white sm:text-xl">{currentStepTitle}</h1>
+              <p className="mx-auto max-w-xl text-sm leading-7 text-white/60 sm:text-base">{heroDescription}</p>
             </div>
 
-            <div className="mt-8">
+            <div className="relative mx-auto mb-12 flex h-72 w-72 items-center justify-center sm:h-80 sm:w-80">
               {status === "FAILED" ? (
-                <div className="rounded-2xl border border-destructive/30 bg-destructive-container/35 p-6 text-left">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
-                    <div className="space-y-2">
-                      <p className="font-semibold text-on-destructive-container">생성 작업을 완료하지 못했습니다.</p>
-                      <p className="text-sm text-on-destructive-container/80">
-                        {task?.errorMessage?.trim() || "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}
-                      </p>
-                    </div>
+                <>
+                  <div className="absolute inset-0 rounded-full border border-destructive/10" />
+                  <div className="absolute inset-16 rounded-full border border-destructive/25" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-destructive/35 bg-destructive-container/50 text-destructive shadow-[0_0_42px_rgba(255,68,68,0.22)]">
+                    <AlertCircle className="h-9 w-9" />
                   </div>
-                </div>
+                </>
               ) : (
-                <LoadingMotion />
+                <>
+                  <div
+                    className="absolute inset-0 rounded-full border border-white/10 animate-ping"
+                    style={{ animationDuration: "4.8s" }}
+                  />
+                  <div
+                    className="absolute inset-16 rounded-full border border-white/35 animate-ping"
+                    style={{ animationDelay: "1s", animationDuration: "4.8s" }}
+                  />
+                  <div className="absolute inset-20 rounded-full border border-white/30 border-l-transparent border-r-transparent animate-spin [animation-duration:7s]" />
+                  <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white/70 shadow-[0_0_44px_rgba(255,255,255,0.35)]">
+                    <div className="h-6 w-6 rounded-full bg-black shadow-[inset_0_0_12px_rgba(255,255,255,0.18)]" />
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
-                <p className="text-xs text-white/55">도형</p>
-                <p className="mt-2 text-sm text-white/85">{task?.shape || "확인 중"}</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
-                <p className="text-xs text-white/55">출발지</p>
-                <p className="mt-2 text-sm text-white/85">{task?.startPosition || "상태 불러오는 중"}</p>
+            <div className="mx-auto mb-14 w-full max-w-4xl rounded-2xl border border-white/10 bg-white/[0.025] p-7 text-left sm:p-8">
+              <dl className="grid grid-cols-1 gap-7 md:grid-cols-4">
+                <div className="space-y-3">
+                  <dt className="text-sm font-semibold text-white/45">요청 도형</dt>
+                  <dd className="truncate text-base font-medium text-white">{task?.shape || "확인 중"}</dd>
+                </div>
+                <div className="space-y-3 md:col-span-2">
+                  <dt className="text-sm font-semibold text-white/45">출발지</dt>
+                  <dd className="line-clamp-2 text-base font-medium text-white" title={task?.startPosition}>
+                    {task?.startPosition || "상태 불러오는 중"}
+                  </dd>
+                </div>
+                <div className="space-y-3">
+                  <dt className="text-sm font-semibold text-white/45">요청 시각</dt>
+                  <dd className="text-base font-medium text-white">{getCreatedAtLabel(task?.createdAt)}</dd>
+                </div>
+              </dl>
+
+              {status === "FAILED" && (
+                <div className="mt-6 rounded-xl border border-destructive/25 bg-destructive-container/25 p-4 text-sm leading-6 text-destructive">
+                  {currentStepDescription}
+                </div>
+              )}
+
+              {syncError && status !== "FAILED" && (
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-white/70">
+                  {syncError}
+                </div>
+              )}
+            </div>
+
+            <div className="mx-auto w-full max-w-5xl">
+              <div className="relative">
+                <div className="absolute left-6 right-6 top-4 hidden h-px bg-white/20 md:block" />
+                <div
+                  className="absolute left-6 top-4 hidden h-px bg-white transition-all duration-700 md:block"
+                  style={{ width: `calc((100% - 3rem) * ${progressPercent / 100})` }}
+                />
+                <ol className="relative grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4">
+                  {generationSteps.map((step, index) => {
+                    const isFailedStep = status === "FAILED" && index === activeStepIndex
+                    const isActiveStep = status !== "FAILED" && index === activeStepIndex
+                    const isCompletedStep = status !== "FAILED" && index < activeStepIndex
+
+                    return (
+                      <li key={step.label} className="flex flex-col items-center bg-black px-2 text-center">
+                        <div
+                          className={`relative z-10 mb-4 flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold ${
+                            isFailedStep
+                              ? "border-destructive/70 bg-destructive-container/60 text-destructive"
+                              : isCompletedStep
+                                ? "border-white bg-white text-black"
+                                : isActiveStep
+                                  ? "border-white bg-black text-white shadow-[0_0_18px_rgba(255,255,255,0.36)]"
+                                  : "border-white/15 bg-black text-white/30"
+                          }`}
+                        >
+                          {isFailedStep ? (
+                            <AlertCircle className="h-4 w-4" />
+                          ) : isCompletedStep ? (
+                            <Check className="h-4 w-4" />
+                          ) : isActiveStep ? (
+                            <span className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <p
+                          className={`text-sm font-semibold ${
+                            isFailedStep
+                              ? "text-destructive"
+                              : isActiveStep || isCompletedStep
+                                ? "text-white"
+                                : "text-white/35"
+                          }`}
+                        >
+                          {step.label}
+                        </p>
+                      </li>
+                    )
+                  })}
+                </ol>
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
-                <p className="text-xs text-white/55">현재 상태</p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  {status === "FAILED" ? "생성 실패" : status === "PROCESSING" ? "생성 중" : "생성 요청 접수"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-surface-container-high p-4">
-                <p className="text-xs text-white/55">요청 시각</p>
-                <p className="mt-2 text-sm text-white/85">{getCreatedAtLabel(task?.createdAt)}</p>
-              </div>
-            </div>
+            <div className="mx-auto mt-12 flex w-full max-w-lg flex-col items-center gap-3">
+              <p className="whitespace-nowrap text-xs leading-6 text-white/45 sm:text-sm">
+                페이지를 떠나도 생성은 계속 진행됩니다. 마이페이지에서 확인할 수 있어요.
+              </p>
 
-            {syncError && (
-              <div className="mt-4 rounded-2xl border border-white/10 bg-surface-container-high p-4 text-sm text-white/75">
-                {syncError}
-              </div>
-            )}
-
-            <div className="mt-6 rounded-2xl border border-white/10 bg-surface-container-high p-4 text-sm text-white/75">
-              페이지를 닫거나 새로고침해도 마이페이지에서 다시 상태를 확인할 수 있습니다.
-            </div>
-
-            {status === "FAILED" && !isChecking && (
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Button
-                  onClick={() => void handleRetryTask()}
-                  disabled={isRetrying}
-                  className="bg-primary text-primary-foreground hover:bg-primary-container"
-                >
-                  {isRetrying ? "재요청 중..." : "다시 생성하기"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDeleteTask}
-                  disabled={isRetrying}
-                  className="border-destructive/30 bg-destructive-container/35 text-on-destructive-container hover:bg-destructive-container/50 hover:text-on-destructive-container"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  작업 삭제
-                </Button>
-                <Link to="/mypage">
-                  <Button variant="outline" className="border-white/15 bg-surface-container-high text-white hover:bg-white/10">
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
+                <Link to="/mypage" className="w-full sm:flex-1">
+                  <Button className="h-12 w-full rounded-full bg-white px-8 text-black hover:bg-white/90">
+                    <ArrowLeft className="h-4 w-4" />
                     마이페이지로 이동
                   </Button>
                 </Link>
+                <Button
+                  variant="outline"
+                  onClick={() => void syncTaskStatus()}
+                  className="h-12 w-full rounded-full border-white/15 bg-transparent px-8 text-white hover:bg-white/10 sm:flex-1"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  상태 다시 확인
+                </Button>
               </div>
-            )}
+
+              {status === "FAILED" && !isChecking && (
+                <div className="flex w-full flex-col gap-3 sm:flex-row">
+                  <Button
+                    onClick={() => void handleRetryTask()}
+                    disabled={isRetrying}
+                    className="h-12 w-full rounded-full bg-white text-black hover:bg-white/90 sm:flex-1"
+                  >
+                    {isRetrying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        재요청 중...
+                      </>
+                    ) : (
+                      "다시 생성하기"
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDeleteTask}
+                    disabled={isRetrying}
+                    className="h-12 w-full rounded-full border-destructive/30 bg-destructive-container/35 text-on-destructive-container hover:bg-destructive-container/50 hover:text-on-destructive-container sm:flex-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    작업 삭제
+                  </Button>
+                </div>
+              )}
+            </div>
           </section>
-        </div>
-      </main>
-    </AppBackground>
+        </main>
+      </div>
+    </div>
   )
 }
