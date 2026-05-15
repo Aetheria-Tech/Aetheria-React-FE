@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { MapPin, Sparkles } from "lucide-react"
+import { MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import AppBackground from "@/components/layouts/app-background"
 import GlobalHeader from "@/components/layouts/global-header"
+import ShootingStars from "@/components/shooting-stars"
 import { toLatLngFromKakao } from "@/lib/coords"
+import { getRouteStepDisplayValue } from "@/lib/route-step-display"
 import { saveStoredGeocode } from "@/mocks/geocode-map"
 import { searchAddress as searchKakaoAddress } from "@/services/kakao-service"
 import { useCreateArt } from "@/hooks/use-create-art"
@@ -16,11 +16,19 @@ import type { RunningArtProficiency } from "@/types/running-art"
 import type { KakaoAddressResult } from "@/services/kakao-service"
 
 const proficiencyOptions: Array<{ value: RunningArtProficiency; label: string }> = [
-  { value: "INTRODUCTION", label: "입문 (3km)" },
-  { value: "BEGINNER", label: "초급 (10km)" },
-  { value: "SKILLED", label: "중급 (20km)" },
-  { value: "EXPERT", label: "전문가 (40km)" },
+  { value: "INTRODUCTION", label: "3km" },
+  { value: "BEGINNER", label: "10km" },
+  { value: "SKILLED", label: "20km" },
+  { value: "EXPERT", label: "40km" },
 ]
+
+const routePath = "M 70 235 C 178 120 288 122 372 214 S 560 252 650 140"
+const routeMarkerPositions = [
+  { x: 192, y: 153 },
+  { x: 500, y: 258 },
+  { x: 650, y: 140 },
+] as const
+const runnerPositions = [{ x: 70, y: 235 }, ...routeMarkerPositions] as const
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -120,124 +128,288 @@ export default function CreatePage() {
     }).open()
   }
 
-  return (
-    <AppBackground overlayClassName="bg-black/55">
-      <GlobalHeader />
+  const selectedProficiencyLabel =
+    proficiencyOptions.find((option) => option.value === formData.proficiency)?.label ?? ""
+  const routeProgressSteps = [
+    {
+      label: "거리",
+      value: selectedProficiencyLabel,
+      completed: Boolean(formData.proficiency),
+    },
+    {
+      label: "테마",
+      value: formData.theme.trim(),
+      completed: formData.theme.trim().length > 0,
+    },
+    {
+      label: "출발지",
+      value: formData.startPoint.trim(),
+      completed: formData.startPoint.trim().length > 0,
+    },
+  ]
+  const completedOptionCount = routeProgressSteps.filter((step) => step.completed).length
+  const activeRouteStepIndex = routeProgressSteps.findIndex((step) => !step.completed)
+  const routeProgressPercent = Math.round((completedOptionCount / routeProgressSteps.length) * 100)
+  const runnerPosition = runnerPositions[completedOptionCount]
 
-      <main className="flex-1 px-4 pb-10 pt-24 sm:px-8">
-        <div className="mx-auto max-w-7xl space-y-6">
-          <section className="text-center">
-            <h1 className="text-4xl font-black text-white sm:text-5xl">러닝 경로 생성</h1>
-            <p className="mt-3 text-sm text-white/80 sm:text-base">거리, 테마, 출발지를 입력해 경로를 생성하세요.</p>
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-surface-container text-white">
+      <ShootingStars />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <GlobalHeader />
+
+        <main className="relative flex min-h-screen flex-col overflow-hidden px-4 pb-6 pt-24 sm:px-8">
+          <section className="absolute inset-0 overflow-hidden bg-surface-container-lowest">
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)",
+                backgroundSize: "42px 42px",
+              }}
+            />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2),transparent_46%)]" />
+            <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-surface-container via-surface-container/80 to-transparent" />
+            <div
+              role="progressbar"
+              aria-label="생성 옵션 진행도"
+              aria-valuemin={0}
+              aria-valuemax={routeProgressSteps.length}
+              aria-valuenow={completedOptionCount}
+              className="absolute inset-0 z-10 flex items-center justify-center px-4 pb-44 pt-20 sm:pb-52"
+            >
+              <svg aria-hidden="true" viewBox="0 0 720 360" className="h-full max-h-[76vh] w-full max-w-[1500px] overflow-visible">
+                    <defs>
+                      <linearGradient id="create-route-progress" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stopColor="#ffffff" />
+                        <stop offset="55%" stopColor="#c7c6c6" />
+                        <stop offset="100%" stopColor="#8e9192" />
+                      </linearGradient>
+                      <filter id="create-route-glow">
+                        <feGaussianBlur result="blur" stdDeviation="4" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <path
+                      id="create-route-base"
+                      d={routePath}
+                      fill="none"
+                      stroke="rgba(255,255,255,0.24)"
+                      strokeLinecap="round"
+                      strokeWidth="15"
+                    />
+                    <path
+                      d={routePath}
+                      fill="none"
+                      filter="url(#create-route-glow)"
+                      pathLength={100}
+                      stroke="url(#create-route-progress)"
+                      strokeDasharray={`${routeProgressPercent} 100`}
+                      strokeLinecap="round"
+                      strokeWidth="15"
+                      style={{ transition: "stroke-dasharray 520ms ease" }}
+                    />
+                    <path
+                      d={routePath}
+                      fill="none"
+                      filter="url(#create-route-glow)"
+                      pathLength={100}
+                      stroke="rgba(255,255,255,0.8)"
+                      strokeDasharray="10 120"
+                      strokeLinecap="round"
+                      strokeWidth="15"
+                      className="create-route-flow"
+                    />
+                    {routeProgressSteps.map((step, index) => {
+                      const marker = routeMarkerPositions[index]
+                      const isCompleted = step.completed
+                      const isActiveMarker =
+                        !isCompleted &&
+                        activeRouteStepIndex === index &&
+                        completedOptionCount < routeProgressSteps.length
+                      return (
+                        <g key={`route-marker-${index}`}>
+                          {isCompleted && (
+                            <g transform={`translate(${marker.x} ${marker.y - 62})`}>
+                              <text
+                                fill="rgba(255,255,255,0.95)"
+                                fontSize="18"
+                                fontWeight="800"
+                                textAnchor="middle"
+                              >
+                                {step.label}
+                              </text>
+                              <text
+                                y="28"
+                                fill="rgba(255,255,255,0.62)"
+                                fontSize="16"
+                                fontWeight="700"
+                                textAnchor="middle"
+                              >
+                                {getRouteStepDisplayValue(step.value)}
+                              </text>
+                            </g>
+                          )}
+                          {isActiveMarker && (
+                            <circle
+                              cx={marker.x}
+                              cy={marker.y}
+                              fill="none"
+                              r="28"
+                              stroke="rgba(255,255,255,0.28)"
+                              strokeWidth="8"
+                              className="create-route-marker"
+                            />
+                          )}
+                          <circle
+                            cx={marker.x}
+                            cy={marker.y}
+                            fill={isCompleted ? "#ffffff" : "rgba(255,255,255,0.1)"}
+                            r="18"
+                            stroke={isCompleted ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.28)"}
+                            strokeWidth="6"
+                            style={{ transition: "fill 260ms ease, stroke 260ms ease" }}
+                          />
+                          {isCompleted && (
+                            <path
+                              d={`M ${marker.x - 4} ${marker.y} L ${marker.x - 1} ${marker.y + 4} L ${marker.x + 6} ${
+                                marker.y - 5
+                              }`}
+                              fill="none"
+                              stroke="#2f3131"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="5"
+                            />
+                          )}
+                        </g>
+                      )
+                    })}
+                    <g
+                      style={{
+                        transform: `translate(${runnerPosition.x}px, ${runnerPosition.y}px)`,
+                        transition: "transform 520ms ease",
+                      }}
+                    >
+                      <circle fill="rgba(255,255,255,0.22)" r="25" />
+                      <circle fill="#ffffff" r="11" stroke="#8e9192" strokeWidth="3" />
+                    </g>
+              </svg>
+            </div>
           </section>
 
-          <div className="mx-auto max-w-3xl">
-            <section className="rounded-2xl border border-white/20 bg-black/35 p-6 shadow-2xl backdrop-blur-md sm:p-8">
-              <h2 className="text-2xl font-black text-white">생성 설정</h2>
-              <p className="mt-2 text-sm text-white/70">생성 요청 후 전용 화면으로 이동해 진행 상태를 확인할 수 있습니다.</p>
+          <div className="pointer-events-none relative z-20 flex min-h-[calc(100vh-7.5rem)] flex-col justify-between">
+            <div className="pointer-events-auto pt-2 text-center">
+              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">러닝 경로 생성</h1>
+              <p className="mt-2 text-sm text-white/60">
+                거리, 테마, 출발지를 선택하면 Aetheria가 러닝 아트 경로를 설계합니다.
+              </p>
+            </div>
 
-              <div className="mt-6 space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="proficiency" className="text-sm font-semibold text-white/90">
-                    거리
-                  </Label>
-                  <Select
-                    value={formData.proficiency}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, proficiency: value as RunningArtProficiency }))
-                    }
-                  >
-                    <SelectTrigger id="proficiency" className="border-white/30 bg-white/10 text-white">
-                      <SelectValue placeholder="거리 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {proficiencyOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="theme" className="text-sm font-semibold text-white/90">
-                    테마
-                  </Label>
+            <section className="pointer-events-auto mx-auto w-full max-w-6xl px-1 sm:px-2">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div className="relative space-y-2">
+                <Label htmlFor="start_point" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                  Step 1. 시작 위치
+                </Label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-white/50" />
                   <Input
-                    id="theme"
-                    placeholder="하트, 별, 나비..."
-                    value={formData.theme}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, theme: event.target.value }))}
-                    className="border-white/30 bg-white/10 text-white placeholder:text-white/50"
+                    id="start_point"
+                    aria-label="출발지"
+                    placeholder="주소 검색"
+                    value={formData.startPoint}
+                    onClick={openDaumPostcode}
+                    onChange={(event) => {
+                      const nextValue = event.target.value
+                      setFormData((prev) => ({ ...prev, startPoint: nextValue }))
+                      searchAddress(nextValue)
+                    }}
+                    onFocus={() => {
+                      if (startAddressResults.length > 0) {
+                        setShowStartResults(true)
+                      }
+                    }}
+                    className="h-12 rounded-full border-white/20 bg-surface-container-high pl-11 text-white shadow-lg shadow-black/20 placeholder:text-white/40 hover:bg-surface-container-highest focus-visible:bg-surface-container-highest"
                   />
                 </div>
-
-                <div className="relative space-y-2">
-                  <Label htmlFor="start_point" className="text-sm font-semibold text-white/90">
-                    출발지
-                  </Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-white/50" />
-                    <Input
-                      id="start_point"
-                      placeholder="주소 검색"
-                      value={formData.startPoint}
-                      onClick={openDaumPostcode}
-                      onChange={(event) => {
-                        const nextValue = event.target.value
-                        setFormData((prev) => ({ ...prev, startPoint: nextValue }))
-                        searchAddress(nextValue)
-                      }}
-                      onFocus={() => {
-                        if (startAddressResults.length > 0) {
-                          setShowStartResults(true)
-                        }
-                      }}
-                      className="border-white/30 bg-white/10 pl-10 text-white placeholder:text-white/50"
-                    />
+                {showStartResults && startAddressResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/15 bg-surface-container-highest/95 backdrop-blur-md">
+                    {startAddressResults.map((result) => (
+                      <button
+                        key={`${result.addressName}-${result.x}-${result.y}`}
+                        onClick={() => handleAddressSelect(result)}
+                        className="w-full px-4 py-2 text-left text-sm text-white/90 transition-colors hover:bg-white/10"
+                      >
+                        {result.addressName}
+                      </button>
+                    ))}
                   </div>
-                  {showStartResults && startAddressResults.length > 0 && (
-                    <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-white/20 bg-zinc-900/95 backdrop-blur-md">
-                      {startAddressResults.map((result) => (
-                        <button
-                          key={`${result.addressName}-${result.x}-${result.y}`}
-                          onClick={() => handleAddressSelect(result)}
-                          className="w-full px-4 py-2 text-left text-sm text-white/90 transition-colors hover:bg-white/10"
-                        >
-                          {result.addressName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
-                  <p className="text-xs text-white/60">액션</p>
-                  <p className="mt-1 text-sm text-white/80">입력값을 확인한 뒤 작품 생성을 시작하세요.</p>
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="mt-4 w-full rounded-full bg-brand py-6 text-base font-black text-zinc-900 hover:bg-brand-hover"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5 animate-spin" />
-                        생성 요청 중...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        작품 생성
-                      </>
-                    )}
-                  </Button>
+              <div className="space-y-2">
+                <span id="target-distance-label" className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                  Step 2. 목표 거리
+                </span>
+                <div role="group" aria-labelledby="target-distance-label" className="grid grid-cols-4 gap-2">
+                  {proficiencyOptions.map((option) => {
+                    const isSelected = formData.proficiency === option.value
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            proficiency: prev.proficiency === option.value ? "" : option.value,
+                          }))
+                        }
+                        className={`h-12 rounded-full border text-sm font-black transition-all ${
+                          isSelected
+                            ? "border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.22)]"
+                            : "border-white/20 bg-surface-container-high text-white shadow-lg shadow-black/15 hover:border-white/35 hover:bg-surface-container-highest"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-            </section>
+
+              <div className="space-y-2">
+                <Label htmlFor="theme" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                  Step 3. 테마 및 형태
+                </Label>
+                <Input
+                  id="theme"
+                  aria-label="테마"
+                  placeholder="하트, 별, 나비..."
+                  value={formData.theme}
+                  onChange={(event) => setFormData((prev) => ({ ...prev, theme: event.target.value }))}
+                  className="h-12 rounded-full border-white/20 bg-surface-container-high text-white shadow-lg shadow-black/20 placeholder:text-white/40 hover:bg-surface-container-highest focus-visible:bg-surface-container-highest"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <Button
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="h-14 w-full rounded-full bg-white px-8 text-base font-black text-black hover:bg-white/90 md:w-auto md:min-w-[300px]"
+              >
+                {isLoading ? "생성 요청 중..." : "작품 생성"}
+              </Button>
+            </div>
+          </section>
           </div>
-        </div>
-      </main>
-    </AppBackground>
+        </main>
+      </div>
+    </div>
   )
 }

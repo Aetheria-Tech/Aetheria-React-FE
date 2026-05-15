@@ -1,10 +1,12 @@
 import { act, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { Link, Route, Routes } from "react-router-dom"
+import { Link, Route, Routes, useLocation } from "react-router-dom"
 import GenerationStatusPage from "@/pages/GenerationStatusPage"
 import {
+  createRunningArtTask,
   getRunningArtTaskStatus,
   getTrackedGenerationTask,
+  removeTrackedGenerationTask,
   subscribeRunningArtTaskEvents,
 } from "@/services/generation-service"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
@@ -12,9 +14,11 @@ import type { RunningArtTaskSseHandlers } from "@/types/generation"
 
 jest.mock("@/services/generation-service", () => ({
   GENERATION_STATUS_POLLING_INTERVAL_MS: 5000,
+  createRunningArtTask: jest.fn(),
   getRunningArtTaskStatus: jest.fn(),
   getTrackedGenerationTask: jest.fn(),
   isGeneratingTaskStatus: jest.fn((status: string) => status === "PENDING" || status === "PROCESSING"),
+  removeTrackedGenerationTask: jest.fn(),
   subscribeRunningArtTaskEvents: jest.fn(() => ({ close: jest.fn() })),
   syncTrackedGenerationTask: jest.fn(
     (
@@ -42,6 +46,11 @@ jest.mock("@/services/generation-service", () => ({
   upsertTrackedGenerationTask: jest.fn((task) => task),
 }))
 
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="location">{location.pathname}</div>
+}
+
 describe("GenerationStatusPage", () => {
   beforeEach(() => {
     jest.useRealTimers()
@@ -57,6 +66,8 @@ describe("GenerationStatusPage", () => {
       errorMessage: null,
     })
     ;(getRunningArtTaskStatus as jest.Mock).mockReset()
+    ;(createRunningArtTask as jest.Mock).mockReset()
+    ;(removeTrackedGenerationTask as jest.Mock).mockReset()
     ;(subscribeRunningArtTaskEvents as jest.Mock).mockReset()
     ;(subscribeRunningArtTaskEvents as jest.Mock).mockReturnValue({ close: jest.fn() })
   })
@@ -102,6 +113,67 @@ describe("GenerationStatusPage", () => {
 
     expect(await screen.findByText("생성에 실패했습니다")).toBeInTheDocument()
     expect(screen.getByText("모델 오류")).toBeInTheDocument()
+  })
+
+  it("retries a failed task with the same request options and opens the new task", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
+      taskId: "task-1",
+      status: "FAILED",
+      resultArtId: null,
+      errorMessage: "모델 오류",
+    })
+    ;(createRunningArtTask as jest.Mock).mockResolvedValue({ taskId: "task-2" })
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/mypage/tasks/:taskId"
+          element={
+            <>
+              <GenerationStatusPage />
+              <LocationProbe />
+            </>
+          }
+        />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "다시 생성하기" }))
+
+    await waitFor(() =>
+      expect(createRunningArtTask).toHaveBeenCalledWith({
+        startPosition: "서울시청",
+        shape: "HEART",
+        proficiency: "BEGINNER",
+      }),
+    )
+    expect(removeTrackedGenerationTask).toHaveBeenCalledWith("task-1")
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/mypage/tasks/task-2"))
+  })
+
+  it("deletes a failed task from local tracking and returns to my page", async () => {
+    const user = userEvent.setup()
+    ;(getRunningArtTaskStatus as jest.Mock).mockResolvedValue({
+      taskId: "task-1",
+      status: "FAILED",
+      resultArtId: null,
+      errorMessage: "모델 오류",
+    })
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/mypage/tasks/:taskId" element={<GenerationStatusPage />} />
+        <Route path="/mypage" element={<div>마이페이지</div>} />
+      </Routes>,
+      { route: "/mypage/tasks/task-1", auth: mockAuthPayload },
+    )
+
+    await user.click(await screen.findByRole("button", { name: "작업 삭제" }))
+
+    expect(removeTrackedGenerationTask).toHaveBeenCalledWith("task-1")
+    expect(await screen.findByText("마이페이지")).toBeInTheDocument()
   })
 
   it("shows a pending label when the task created time is unknown", async () => {

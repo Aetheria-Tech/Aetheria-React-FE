@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api-client"
+import reportDemoGpx from "@/assets/report-gyeongbokgung-dog-run.gpx?raw"
 import { env } from "@/services/env"
 import { unwrapApiResponse, unwrapVoidResponse } from "@/types/api"
 import type { Art, Coordinates, CreateArtPayload, CreateArtResponse } from "@/types/art"
@@ -9,6 +10,27 @@ const SAMPLE_ROUTE_ID = String(SAMPLE_RUNNING_ART_ID)
 
 type PagedResponse<T> = {
   content?: T[]
+  last?: boolean
+  number?: number
+  totalPages?: number
+}
+
+const MY_RUNNING_ART_PAGE_SIZE = 100
+const MY_RUNNING_ART_SORT = "createdAt,desc"
+const MAX_MY_RUNNING_ART_PAGE_COUNT = 50
+
+export const REPORT_DEMO_ART: Art = {
+  id: SAMPLE_ROUTE_ID,
+  title: "경복궁 댕댕런",
+  content: "예시 gpx",
+  imageUrl: "/placeholder.svg",
+  distanceKm: 8.7,
+  theme: "댕댕런",
+  isPublic: false,
+  createdAt: "2025-05-06T02:46:07.000Z",
+  ownerId: "report-demo",
+  gpxData: reportDemoGpx,
+  startAddress: "경복궁",
 }
 
 const mockGpxData = `<?xml version="1.0" encoding="UTF-8"?>
@@ -91,14 +113,52 @@ const normalizeSampleRunningArt = (runningArt: RunningArtDetail): RunningArtDeta
   id: SAMPLE_RUNNING_ART_ID,
 })
 
-const unwrapRunningArtList = (value: unknown): RunningArtSummary[] => {
+const unwrapRunningArtPage = (value: unknown): PagedResponse<RunningArtSummary> => {
   const data = unwrapApiResponse<RunningArtSummary[] | PagedResponse<RunningArtSummary>>(value)
 
   if (Array.isArray(data)) {
-    return data
+    return {
+      content: data,
+      last: true,
+      number: 0,
+      totalPages: 1,
+    }
   }
 
-  return Array.isArray(data.content) ? data.content : []
+  return {
+    ...data,
+    content: Array.isArray(data.content) ? data.content : [],
+  }
+}
+
+const shouldFetchNextRunningArtPage = (page: PagedResponse<RunningArtSummary>, requestedPage: number) => {
+  if (page.last === true) return false
+
+  if (typeof page.totalPages === "number" && Number.isFinite(page.totalPages)) {
+    return requestedPage + 1 < page.totalPages
+  }
+
+  return (page.content?.length ?? 0) >= MY_RUNNING_ART_PAGE_SIZE
+}
+
+const getKnownRunningArtPageCount = (page: PagedResponse<RunningArtSummary>) => {
+  if (typeof page.totalPages !== "number" || !Number.isFinite(page.totalPages)) {
+    return null
+  }
+
+  return Math.min(Math.max(0, Math.ceil(page.totalPages)), MAX_MY_RUNNING_ART_PAGE_COUNT)
+}
+
+const fetchMyRunningArtPage = async (pageNumber: number) => {
+  const response = await apiClient.get("/api/v1/running-arts/me", {
+    params: {
+      page: pageNumber,
+      size: MY_RUNNING_ART_PAGE_SIZE,
+      sort: MY_RUNNING_ART_SORT,
+    },
+  })
+
+  return unwrapRunningArtPage(response.data)
 }
 
 export async function createArt(payload: CreateArtPayload): Promise<CreateArtResponse> {
@@ -187,30 +247,59 @@ export async function getMyRunningArts(): Promise<RunningArtSummary[]> {
   if (isMockEnabled()) {
     return mockArts.map((art, index) => mapArtToRunningArt(art, index))
   }
-  const response = await apiClient.get("/api/v1/running-arts/me")
-  return unwrapRunningArtList(response.data)
+
+  const firstPage = await fetchMyRunningArtPage(0)
+  const runningArts = [...(firstPage.content ?? [])]
+  const knownPageCount = getKnownRunningArtPageCount(firstPage)
+
+  if (knownPageCount !== null) {
+    if (knownPageCount <= 1) {
+      return runningArts
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: knownPageCount - 1 }, (_, index) => fetchMyRunningArtPage(index + 1)),
+    )
+
+    return runningArts.concat(...remainingPages.map((page) => page.content ?? []))
+  }
+
+  if (!shouldFetchNextRunningArtPage(firstPage, 0)) {
+    return runningArts
+  }
+
+  for (let pageNumber = 1; pageNumber < MAX_MY_RUNNING_ART_PAGE_COUNT; pageNumber += 1) {
+    const page = await fetchMyRunningArtPage(pageNumber)
+    runningArts.push(...(page.content ?? []))
+
+    if (!shouldFetchNextRunningArtPage(page, pageNumber)) {
+      break
+    }
+  }
+
+  return runningArts
 }
 
 export async function getRunningArtSample(): Promise<RunningArtDetail> {
-  if (isMockEnabled()) {
-    return normalizeSampleRunningArt({
-      id: SAMPLE_RUNNING_ART_ID,
-      title: "샘플 작품",
-      content: "로그인한 사용자가 바로 확인할 수 있는 polyline 샘플 경로입니다.",
-      shape: "SAMPLE",
-      proficiency: "BEGINNER",
-      gpx: "_p~iF~ps|U_ulLnnqC_mqNvxq`@",
-      userId: 0,
-      imageUrl: "/placeholder.svg",
-      distanceKm: 3.2,
-      isPublic: false,
-      createdAt: new Date(0).toISOString(),
-    })
-  }
-  throw unsupportedBackendEndpoint("샘플 작품 API")
+  return normalizeSampleRunningArt({
+    id: Number(REPORT_DEMO_ART.id),
+    title: REPORT_DEMO_ART.title,
+    content: REPORT_DEMO_ART.content ?? "",
+    shape: "DOG_RUN",
+    proficiency: "BEGINNER",
+    gpx: REPORT_DEMO_ART.gpxData ?? "",
+    userId: 0,
+    imageUrl: REPORT_DEMO_ART.imageUrl,
+    distanceKm: REPORT_DEMO_ART.distanceKm,
+    isPublic: REPORT_DEMO_ART.isPublic,
+    createdAt: REPORT_DEMO_ART.createdAt,
+  })
 }
 
 export async function getRunningArtDetail(runningArtId: number | string): Promise<RunningArtDetail> {
+  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
+    return getRunningArtSample()
+  }
   if (isMockEnabled()) {
     const numericId = Number(runningArtId)
     const index = Number.isFinite(numericId) ? numericId - 1 : -1
@@ -219,9 +308,6 @@ export async function getRunningArtDetail(runningArtId: number | string): Promis
       throw new Error("작품을 찾을 수 없습니다.")
     }
     return mapArtToRunningArt(art, index)
-  }
-  if (String(runningArtId) === SAMPLE_ROUTE_ID) {
-    return getRunningArtSample()
   }
   const response = await apiClient.get(`/api/v1/running-arts/${runningArtId}`)
   return unwrapApiResponse<RunningArtDetail>(response.data)

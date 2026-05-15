@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Edit2, Mail, MessageSquareText, Plus, User } from "lucide-react"
-import AppBackground from "@/components/layouts/app-background"
+import { Edit2, Mail, Plus, User } from "lucide-react"
 import GlobalHeader from "@/components/layouts/global-header"
 import RouteThumbnail from "@/components/route-thumbnail"
+import ShootingStars from "@/components/shooting-stars"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { useMyArts } from "@/hooks/use-my-arts"
 import { formatDate, formatDistance } from "@/lib/formatters"
-import { updateMyProfile, withdrawMe } from "@/services/auth-service"
+import { REPORT_DEMO_ART } from "@/services/art-service"
+import { withdrawMe } from "@/services/auth-service"
 import { useToast } from "@/context/toast-context"
 import type { Art } from "@/types/art"
+import type { User as AuthUser } from "@/types/auth"
 import {
   GENERATION_STATUS_POLLING_INTERVAL_MS,
+  clearCurrentUserTrackedGenerationTasks,
   cleanupExpiredTrackedGenerationTasks,
   getRunningArtTaskStatus,
   isGeneratingTaskStatus,
@@ -24,52 +27,123 @@ import {
 const GENERATION_STATUS_SYNC_BATCH_SIZE = 3
 const TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS = 60_000
 
+type ArtDateSortOrder = "desc" | "asc"
+
+const getProviderLabel = (provider?: AuthUser["provider"]) => {
+  if (provider === "kakao") return "카카오"
+  if (provider === "google") return "구글"
+  return null
+}
+
+function ProviderIcon({ provider }: { provider?: AuthUser["provider"] }) {
+  if (provider === "kakao") {
+    return (
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FEE500] text-black"
+        aria-label="카카오 계정"
+        title="카카오 계정"
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 3C6.477 3 2 6.477 2 10.8c0 2.586 1.563 4.879 4 6.3V21l3.75-2.25c.72.15 1.47.25 2.25.25 5.523 0 10-3.477 10-7.8C22 6.877 17.523 3 12 3Z"
+            fill="currentColor"
+          />
+        </svg>
+      </span>
+    )
+  }
+
+  if (provider === "google") {
+    return (
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white"
+        aria-label="구글 계정"
+        title="구글 계정"
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.43h6.47a5.54 5.54 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.54-5.17 3.54-8.75Z"
+            fill="#4285F4"
+          />
+          <path
+            d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.88-3.02c-1.08.72-2.46 1.15-4.05 1.15-3.12 0-5.77-2.1-6.72-4.93H1.27v3.1A12 12 0 0 0 12 24Z"
+            fill="#34A853"
+          />
+          <path d="M5.28 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.27a12 12 0 0 0 0 10.8l4.01-3.1Z" fill="#FBBC05" />
+          <path
+            d="M12 4.77c1.76 0 3.34.6 4.58 1.8l3.43-3.43C17.95 1.15 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4.01 3.1C6.23 6.87 8.88 4.77 12 4.77Z"
+            fill="#EA4335"
+          />
+        </svg>
+      </span>
+    )
+  }
+
+  return <User className="h-7 w-7 shrink-0 text-white/75" aria-hidden="true" />
+}
+
 const getArtworkStatus = (artwork: Art) => {
   if (artwork.generationState === "FAILED") {
     return {
       label: "생성 실패",
-      className: "border-rose-300/20 bg-rose-500/15 text-rose-100",
+      className: "border-destructive/30 bg-destructive-container/35 text-on-destructive-container",
     }
   }
 
   if (artwork.isGenerationTask) {
     return {
       label: "생성 중",
-      className: "border-amber-300/20 bg-amber-400/15 text-amber-100",
+      className: "border-white/15 bg-surface-container-high text-white/75",
     }
   }
 
   return {
     label: "생성 완료",
-    className: "border-emerald-300/20 bg-emerald-400/15 text-emerald-100",
+    className: "border-primary/30 bg-white/10 text-white",
   }
 }
 
+const toCreatedAtTime = (artwork: Art) => {
+  const time = new Date(artwork.createdAt).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+const compareByCreatedAt = (left: Art, right: Art, order: ArtDateSortOrder) => {
+  const leftTime = toCreatedAtTime(left)
+  const rightTime = toCreatedAtTime(right)
+
+  if (leftTime !== rightTime) {
+    return order === "desc" ? rightTime - leftTime : leftTime - rightTime
+  }
+
+  return String(right.id).localeCompare(String(left.id))
+}
+
 export default function MyPage() {
-  const { user, logout, updateUser } = useAuth()
+  const { user, logout } = useAuth()
   const { notify } = useToast()
   const navigate = useNavigate()
   const { arts, isLoading, loadArts } = useMyArts()
   const [trackedArts, setTrackedArts] = useState<Art[]>([])
   const trackedPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const taskRefreshErrorNotifiedAtRef = useRef(0)
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isProfileActionsOpen, setIsProfileActionsOpen] = useState(false)
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [dateSortOrder, setDateSortOrder] = useState<ArtDateSortOrder>("desc")
   const [userProfile, setUserProfile] = useState({
     name: "",
     email: "",
-    statusMessage: "",
     profileImage: "",
+    provider: undefined as AuthUser["provider"],
   })
 
   useEffect(() => {
     setUserProfile({
       name: user?.name ?? "",
       email: user?.email ?? "",
-      statusMessage: user?.statusMessage ?? "",
       profileImage: user?.profileImage ?? "",
+      provider: user?.provider,
     })
   }, [user])
 
@@ -137,17 +211,17 @@ export default function MyPage() {
 
     const visibleTasks = syncedTasks.filter((task): task is NonNullable<typeof task> => Boolean(task))
 
+    let completedTaskIds = new Set<string>()
+
     if (completedTaskUpdates.length > 0) {
       // 완료된 task는 서버 작품 목록 갱신 전까지 추적 카드로 유지해 목록이 비는 순간을 줄인다.
       setTrackedArts(visibleTasks.map(toTrackedGenerationArt))
 
-      const didRefreshArts = await loadArts()
-        .then(() => true)
-        .catch(() => false)
+      const refreshedArts = await loadArts().catch(() => null)
 
       if (isDisposed()) return
 
-      if (!didRefreshArts) {
+      if (!refreshedArts) {
         const now = Date.now()
         if (now - taskRefreshErrorNotifiedAtRef.current >= TASK_REFRESH_ERROR_NOTICE_INTERVAL_MS) {
           taskRefreshErrorNotifiedAtRef.current = now
@@ -158,13 +232,19 @@ export default function MyPage() {
 
       taskRefreshErrorNotifiedAtRef.current = 0
 
+      const refreshedArtIds = new Set(refreshedArts.map((artwork) => String(artwork.id)))
+      completedTaskIds = new Set(
+        completedTaskUpdates
+          .filter(({ response }) => response.resultArtId !== null && refreshedArtIds.has(String(response.resultArtId)))
+          .map(({ trackedTask }) => trackedTask.taskId),
+      )
       completedTaskUpdates.forEach(({ trackedTask, response }) => {
+        if (response.resultArtId === null || !refreshedArtIds.has(String(response.resultArtId))) return
         syncTrackedGenerationTask(trackedTask.taskId, response, trackedTask)
       })
     }
 
-    const completedTaskIds = new Set(completedTaskUpdates.map(({ trackedTask }) => trackedTask.taskId))
-    // 작품 목록 갱신 후에는 완료 task 카드를 제거해 같은 작품이 두 번 보이지 않게 한다.
+    // 작품 목록에서 완료 결과가 확인된 task 카드만 제거해 같은 작품이 두 번 보이지 않게 한다.
     const validTasks = visibleTasks.filter((task) => !completedTaskIds.has(task.taskId))
     if (isDisposed()) return
 
@@ -212,70 +292,17 @@ export default function MyPage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isWithdrawOpen, isWithdrawing])
 
-  const resetProfileForm = () => {
-    setUserProfile({
-      name: user?.name ?? "",
-      email: user?.email ?? "",
-      statusMessage: user?.statusMessage ?? "",
-      profileImage: user?.profileImage ?? "",
-    })
-  }
-
-  const handleCancelProfileEdit = () => {
-    if (isSavingProfile) return
-    resetProfileForm()
-    setIsEditingProfile(false)
-  }
-
-  const handleSaveProfile = async () => {
-    if (isSavingProfile) return
-
-    const nickname = userProfile.name.trim()
-    const statusMessage = userProfile.statusMessage.trim()
-
-    if (nickname.length < 2 || nickname.length > 20) {
-      notify("닉네임은 2자 이상 20자 이하로 입력해 주세요.", "error")
-      return
-    }
-
-    if (statusMessage.length > 100) {
-      notify("상태 메시지는 100자 이하로 입력해 주세요.", "error")
-      return
-    }
-
-    setIsSavingProfile(true)
-    try {
-      const updatedUser = await updateMyProfile({
-        nickname,
-        statusMessage,
-      })
-
-      updateUser(updatedUser)
-      setUserProfile({
-        name: updatedUser.name,
-        email: updatedUser.email,
-        statusMessage: updatedUser.statusMessage ?? "",
-        profileImage: updatedUser.profileImage ?? "",
-      })
-      setIsEditingProfile(false)
-      notify("프로필이 저장되었습니다.", "success")
-    } catch (error) {
-      console.error("프로필 저장 실패:", error)
-      notify("프로필 저장에 실패했습니다. 입력값을 확인하고 다시 시도해주세요.", "error")
-    } finally {
-      setIsSavingProfile(false)
-    }
-  }
-
   const handleWithdraw = async () => {
     if (isWithdrawing) return
 
     setIsWithdrawing(true)
     try {
       await withdrawMe()
+      clearCurrentUserTrackedGenerationTasks()
       logout()
       notify("회원탈퇴가 완료되었습니다.", "success")
       setIsWithdrawOpen(false)
+      setIsProfileActionsOpen(false)
       navigate("/", { replace: true })
     } catch (error) {
       console.error("회원탈퇴 처리 중 오류가 발생했습니다:", error)
@@ -298,49 +325,32 @@ export default function MyPage() {
       return !artwork.taskId || !fetchedTaskIds.has(artwork.taskId)
     })
 
-    return [...filteredTrackedArts, ...arts]
-  }, [arts, trackedArts])
+    const withoutReportDemo = [...filteredTrackedArts, ...arts].filter((artwork) => String(artwork.id) !== String(REPORT_DEMO_ART.id))
+    return [REPORT_DEMO_ART, ...withoutReportDemo].sort((left, right) => compareByCreatedAt(left, right, dateSortOrder))
+  }, [arts, trackedArts, dateSortOrder])
+
+  const providerLabel = getProviderLabel(userProfile.provider)
 
   return (
-    <AppBackground overlayClassName="bg-black/50">
-      <GlobalHeader />
+    <div className="relative min-h-screen overflow-hidden bg-surface-container text-white">
+      <ShootingStars />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <GlobalHeader />
 
-      <main className="flex-1 px-6 pb-8 pt-24">
+        <main className="flex-1 px-6 pb-8 pt-24">
         <div className="mx-auto max-w-6xl space-y-8">
-          <section className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
+          <section className="rounded-2xl border border-white/15 bg-surface-container/90 p-6 shadow-xl backdrop-blur-md transition-all duration-300">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white">프로필</h2>
-              {!isEditingProfile ? (
-                <Button
-                  onClick={() => setIsEditingProfile(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-indigo-300 transition-all duration-300 hover:bg-white/10 hover:text-indigo-200"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  수정
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSaveProfile}
-                    size="sm"
-                    disabled={isSavingProfile}
-                    className="bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600"
-                  >
-                    {isSavingProfile ? "저장 중..." : "저장"}
-                  </Button>
-                  <Button
-                    onClick={handleCancelProfileEdit}
-                    variant="ghost"
-                    size="sm"
-                    disabled={isSavingProfile}
-                    className="text-white transition-all duration-300 hover:bg-white/10"
-                  >
-                    취소
-                  </Button>
-                </div>
-              )}
+              <Button
+                onClick={() => setIsProfileActionsOpen((current) => !current)}
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-white transition-all duration-300 hover:bg-white/10"
+              >
+                <Edit2 className="h-4 w-4" />
+                계정 관리
+              </Button>
             </div>
 
             <div className="mb-6 flex items-start gap-6">
@@ -348,61 +358,39 @@ export default function MyPage() {
                 <img
                   src={userProfile.profileImage || "/placeholder.svg"}
                   alt="프로필 이미지"
-                  className="h-20 w-20 rounded-full border-2 border-indigo-300 object-cover"
+                  className="h-20 w-20 rounded-full border-2 border-white object-cover"
                 />
               )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-center gap-3">
-                <User className="h-5 w-5 text-indigo-300" />
+                <ProviderIcon provider={userProfile.provider} />
                 <div className="flex-1">
                   <p className="text-sm text-gray-300">이름</p>
-                  {isEditingProfile ? (
-                    <input
-                      type="text"
-                      aria-label="닉네임 입력"
-                      value={userProfile.name}
-                      onChange={(event) => setUserProfile({ ...userProfile, name: event.target.value })}
-                      maxLength={20}
-                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-lg text-white">{userProfile.name || "-"}</p>
-                  )}
+                    {providerLabel && (
+                      <span className="rounded-full border border-outline-variant bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
+                        {providerLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-indigo-300" />
+                <Mail className="h-5 w-5 text-white/75" />
                 <div className="flex-1">
                   <p className="text-sm text-gray-300">이메일</p>
                   <p className="text-lg text-white">{userProfile.email || "-"}</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 md:col-span-2">
-                <MessageSquareText className="mt-1 h-5 w-5 text-indigo-300" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-300">상태 메시지</p>
-                  {isEditingProfile ? (
-                    <textarea
-                      aria-label="상태 메시지 입력"
-                      value={userProfile.statusMessage}
-                      onChange={(event) => setUserProfile({ ...userProfile, statusMessage: event.target.value })}
-                      rows={3}
-                      maxLength={100}
-                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap text-lg text-white">{userProfile.statusMessage?.trim() || "-"}</p>
-                  )}
-                </div>
-              </div>
             </div>
 
-            {isEditingProfile && (
-              <div className="mt-6 flex justify-end">
+            {isProfileActionsOpen && (
+              <div className="mt-6 flex justify-end border-t border-white/10 pt-5">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -415,14 +403,43 @@ export default function MyPage() {
             )}
           </section>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-4xl font-semibold text-white drop-shadow-lg md:text-5xl">내 작품</h1>
-            <Link to="/create">
-              <Button className="gap-2 bg-indigo-500 text-white transition-all duration-300 hover:bg-indigo-600">
-                <Plus className="h-4 w-4" />
-                생성하기
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                role="group"
+                aria-label="작품 정렬"
+                className="flex rounded-full border border-white/15 bg-surface-container/80 p-1 shadow-lg backdrop-blur-md"
+              >
+                {[
+                  { label: "최신순", value: "desc" as const },
+                  { label: "오래된순", value: "asc" as const },
+                ].map((option) => {
+                  const isSelected = dateSortOrder === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setDateSortOrder(option.value)}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+                        isSelected
+                          ? "bg-white text-black shadow"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <Link to="/create">
+                <Button className="gap-2 bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary-container">
+                  <Plus className="h-4 w-4" />
+                  생성하기
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {isLoading && <p className="text-white/70">작품을 불러오는 중...</p>}
@@ -438,12 +455,12 @@ export default function MyPage() {
                 return (
                   <article
                     key={artwork.id}
-                    className="group overflow-hidden rounded-2xl border border-white/20 bg-white/10 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-white/15"
+                    className="group overflow-hidden rounded-2xl border border-white/15 bg-surface-container/90 shadow-xl backdrop-blur-md transition-all duration-300 hover:bg-surface-container-high"
                   >
                     <Link to={artworkPath} aria-label={artwork.title} className="block">
                       <div
                         data-testid={`art-card-map-${artwork.id}`}
-                        className="relative aspect-square overflow-hidden bg-slate-950/40"
+                        className="relative aspect-square overflow-hidden bg-surface-container-lowest"
                       >
                         <div className="absolute left-3 top-3 z-10">
                           <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${status.className}`}>
@@ -454,23 +471,13 @@ export default function MyPage() {
                         {artwork.gpxData ? (
                           <RouteThumbnail gpxData={artwork.gpxData} title={artwork.title} />
                         ) : artwork.isGenerationTask ? (
-                          <div className="flex h-full flex-col justify-between p-5">
-                            <div className="space-y-3">
-                              <div className="h-3 w-24 rounded-full bg-white/10" />
-                              <div className="h-3 w-32 rounded-full bg-white/10" />
-                            </div>
-                            <div className="space-y-3">
-                              <div className="h-px w-full bg-white/10" />
-                              <div className="flex items-center justify-center gap-2">
-                                {[0, 1, 2].map((index) => (
-                                  <span
-                                    key={index}
-                                    className="h-2.5 w-2.5 rounded-full bg-brand animate-bounce"
-                                    style={{ animationDelay: `${index * 120}ms` }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
+                          <div className="flex h-full items-center justify-center bg-surface-container-lowest p-5">
+                            <img
+                              src="/favicon.png"
+                              alt=""
+                              aria-hidden="true"
+                              className="h-16 w-16 animate-bounce object-contain opacity-90 drop-shadow-[0_0_18px_rgba(255,255,255,0.28)] motion-reduce:animate-none"
+                            />
                           </div>
                         ) : (
                           <img
@@ -496,15 +503,15 @@ export default function MyPage() {
             </section>
           )}
         </div>
-      </main>
+        </main>
 
-      {isWithdrawOpen && (
+        {isWithdrawOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="withdraw-title"
-            className="w-full max-w-md rounded-2xl border border-white/20 bg-[#0a0f29] p-6 text-white shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-surface-container p-6 text-white shadow-2xl"
           >
             <h2 id="withdraw-title" className="mb-3 text-xl font-semibold">
               회원탈퇴
@@ -532,7 +539,8 @@ export default function MyPage() {
             </div>
           </div>
         </div>
-      )}
-    </AppBackground>
+        )}
+      </div>
+    </div>
   )
 }

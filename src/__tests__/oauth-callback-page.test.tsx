@@ -56,7 +56,7 @@ describe("oauth callback page", () => {
     )
 
     expect(await screen.findByText("메인 페이지")).toBeInTheDocument()
-    expect(mockedCompleteOAuthLoginWithAccessToken).toHaveBeenCalledWith("redirected-access-token")
+    expect(mockedCompleteOAuthLoginWithAccessToken).toHaveBeenCalledWith("redirected-access-token", "kakao")
     expect(localStorage.getItem("auth.tokens")).toContain("redirected-access-token")
   })
 

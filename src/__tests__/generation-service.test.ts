@@ -2,6 +2,7 @@ import { waitFor } from "@testing-library/react"
 import { authStorage } from "@/services/auth-storage"
 import { fetchWithAuthRetry } from "@/services/auth-session"
 import {
+  clearCurrentUserTrackedGenerationTasks,
   getTrackedGenerationTask,
   listTrackedGenerationTasks,
   subscribeRunningArtTaskEvents,
@@ -81,6 +82,33 @@ describe("generation-service tracked tasks", () => {
 
     expect(listTrackedGenerationTasks().map((task) => task.taskId)).toEqual(["task-1"])
     expect(getTrackedGenerationTask("task-1")?.userId).toBe("user-1")
+  })
+
+  it("clears only tracked tasks owned by the current stored user", () => {
+    setUser("user-1")
+    upsertTrackedGenerationTask(makeTask("task-1", "user-1"))
+
+    setUser("user-2")
+    upsertTrackedGenerationTask(makeTask("task-2", "user-2"))
+
+    setUser("user-1")
+    clearCurrentUserTrackedGenerationTasks()
+
+    expect(listTrackedGenerationTasks()).toEqual([])
+
+    setUser("user-2")
+
+    expect(listTrackedGenerationTasks().map((task) => task.taskId)).toEqual(["task-2"])
+  })
+
+  it("removes the tracked task storage entry when the current user owns all cached tasks", () => {
+    setUser("user-1")
+    upsertTrackedGenerationTask(makeTask("task-1", "user-1"))
+
+    clearCurrentUserTrackedGenerationTasks()
+
+    expect(listTrackedGenerationTasks()).toEqual([])
+    expect(localStorage.getItem("aetheria-running-art-task-history")).toBeNull()
   })
 
   it("maps completed tracked tasks to completed generation state", () => {
