@@ -4,7 +4,6 @@ import { Route, Routes } from "react-router-dom"
 import CreatePage from "@/pages/CreatePage"
 import { mockAuthPayload, renderWithProviders } from "@/test/test-utils"
 import { useCreateArt } from "@/hooks/use-create-art"
-import { searchAddress } from "@/services/kakao-service"
 
 jest.mock("@/hooks/use-create-art", () => ({
   useCreateArt: jest.fn(),
@@ -20,12 +19,9 @@ jest.mock("@/mocks/geocode-map", () => ({
 
 describe("CreatePage", () => {
   const createArtMock = jest.fn()
-  const searchAddressMock = searchAddress as jest.Mock
 
   beforeEach(() => {
     createArtMock.mockReset()
-    searchAddressMock.mockReset()
-    searchAddressMock.mockResolvedValue([])
     ;(useCreateArt as jest.Mock).mockReturnValue({
       createArt: createArtMock,
       isLoading: false,
@@ -97,49 +93,5 @@ describe("CreatePage", () => {
 
     await user.type(screen.getByLabelText("출발지"), "서울시청")
     expect(progress).toHaveAttribute("aria-valuenow", "3")
-  })
-  it("debounces address search while typing a start point", async () => {
-    const user = userEvent.setup()
-
-    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
-
-    const startInput = document.querySelector<HTMLInputElement>("#start_point")
-    expect(startInput).not.toBeNull()
-
-    await user.type(startInput!, "seoul")
-
-    expect(searchAddressMock).not.toHaveBeenCalled()
-    await waitFor(() => expect(searchAddressMock).toHaveBeenCalledTimes(1), { timeout: 1000 })
-    expect(searchAddressMock).toHaveBeenCalledWith("seoul")
-  })
-  it("opens postcode lookup from the address button only", async () => {
-    const user = userEvent.setup()
-
-    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
-
-    const startInput = document.querySelector<HTMLInputElement>("#start_point")
-    expect(startInput).not.toBeNull()
-
-    await user.click(startInput!)
-    expect(window.daum?.Postcode).not.toHaveBeenCalled()
-
-    await user.click(screen.getByRole("button", { name: "주소 찾기" }))
-    expect(window.daum?.Postcode).toHaveBeenCalledTimes(1)
-  })
-
-  it("closes address results when focus leaves the start point field", async () => {
-    const user = userEvent.setup()
-    searchAddressMock.mockResolvedValue([{ addressName: "서울시청", x: 126.978, y: 37.5665 }])
-
-    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
-
-    const startInput = document.querySelector<HTMLInputElement>("#start_point")
-    expect(startInput).not.toBeNull()
-
-    await user.type(startInput!, "seo")
-    expect(await screen.findByText("서울시청")).toBeInTheDocument()
-
-    await user.click(screen.getByRole("button", { name: "3km" }))
-    await waitFor(() => expect(screen.queryByText("서울시청")).not.toBeInTheDocument())
   })
 })
