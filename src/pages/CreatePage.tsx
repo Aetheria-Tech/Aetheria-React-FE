@@ -352,10 +352,10 @@ export default function CreatePage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                <span id="target-distance-label" className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
                   Step 2. 목표 거리
-                </Label>
-                <div role="group" aria-label="목표 거리" className="grid grid-cols-4 gap-2">
+                </span>
+                <div role="group" aria-labelledby="target-distance-label" className="grid grid-cols-4 gap-2">
                   {proficiencyOptions.map((option) => {
                     const isSelected = formData.proficiency === option.value
                     return (
