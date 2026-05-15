@@ -29,6 +29,7 @@ import type {
 
 const DEFAULT_SSE_CONNECT_TIMEOUT_MS = 10000
 const DEFAULT_PROFICIENCY = "BEGINNER" as const
+// UI-only fallback until the backend exposes granular generation phases.
 const PROCESSING_SAFE_REVIEW_DELAY_MS = 15000
 
 const getSseConnectTimeoutMs = () => {

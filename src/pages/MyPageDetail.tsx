@@ -262,7 +262,7 @@ export default function MyPageDetail() {
                         value={draftContent}
                         onChange={(event) => setDraftContent(event.target.value)}
                         rows={5}
-                        className="w-full resize-none rounded-2xl border border-white/15 bg-surface-container-high px-4 py-3 text-sm leading-6 text-white outline-none transition focus:border-white/40 focus:ring-2 focus:ring-white/30"
+                        className="w-full resize-none rounded-2xl border border-white/15 bg-surface-container-high px-4 py-3 text-sm leading-6 text-white outline-none transition focus-visible:border-white/70 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-high"
                         disabled={isSavingContent}
                       />
                       <div className="flex justify-end gap-2">
