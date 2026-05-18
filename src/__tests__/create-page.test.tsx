@@ -17,6 +17,17 @@ jest.mock("@/mocks/geocode-map", () => ({
   saveStoredGeocode: jest.fn(),
 }))
 
+const getCreateFormInputs = (container: HTMLElement) => {
+  const startInput = container.querySelector<HTMLInputElement>("#start_point")
+  const themeInput = container.querySelector<HTMLInputElement>("#theme")
+
+  if (!startInput || !themeInput) {
+    throw new Error("Create form inputs were not rendered.")
+  }
+
+  return { startInput, themeInput }
+}
+
 describe("CreatePage", () => {
   const createArtMock = jest.fn()
 
@@ -46,35 +57,43 @@ describe("CreatePage", () => {
     const user = userEvent.setup()
     createArtMock.mockResolvedValue({ taskId: "task-1" })
 
-    renderWithProviders(
+    const { container } = renderWithProviders(
       <Routes>
         <Route path="/create" element={<CreatePage />} />
-        <Route path="/mypage/tasks/:taskId" element={<div>생성 상태 페이지</div>} />
+        <Route path="/mypage/tasks/:taskId" element={<div>generation status page</div>} />
       </Routes>,
       { route: "/create", auth: mockAuthPayload },
     )
+    const { startInput, themeInput } = getCreateFormInputs(container)
 
     await user.click(screen.getByRole("button", { name: "3km" }))
-    await user.type(screen.getByLabelText("테마"), "하트")
-    await user.type(screen.getByLabelText("출발지"), "서울시청")
-    await user.click(screen.getByRole("button", { name: "작품 생성" }))
+    await user.type(themeInput, "Heart")
+    await user.type(startInput, "Seoul")
+
+    const buttons = screen.getAllByRole("button")
+    const createButton = buttons[buttons.length - 1]
+    if (!createButton) {
+      throw new Error("Create button was not rendered.")
+    }
+    await user.click(createButton)
 
     await waitFor(() =>
       expect(createArtMock).toHaveBeenCalledWith({
-        startPosition: "서울시청",
-        shape: "하트",
+        startPosition: "Seoul",
+        shape: "Heart",
         proficiency: "INTRODUCTION",
       }),
     )
-    expect(await screen.findByText("생성 상태 페이지")).toBeInTheDocument()
+    expect(await screen.findByText("generation status page")).toBeInTheDocument()
   })
 
   it("updates route progress as generation options are filled", async () => {
     const user = userEvent.setup()
 
-    renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+    const { container } = renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+    const { startInput, themeInput } = getCreateFormInputs(container)
 
-    const progress = screen.getByRole("progressbar", { name: "생성 옵션 진행도" })
+    const progress = screen.getByRole("progressbar")
     expect(progress).toHaveAttribute("aria-valuenow", "0")
 
     const distanceButton = screen.getByRole("button", { name: "3km" })
@@ -88,10 +107,38 @@ describe("CreatePage", () => {
     await user.click(distanceButton)
     expect(progress).toHaveAttribute("aria-valuenow", "1")
 
-    await user.type(screen.getByLabelText("테마"), "하트")
+    await user.type(themeInput, "Heart")
     expect(progress).toHaveAttribute("aria-valuenow", "2")
 
-    await user.type(screen.getByLabelText("출발지"), "서울시청")
+    await user.type(startInput, "Seoul")
     expect(progress).toHaveAttribute("aria-valuenow", "3")
+  })
+
+  it("orders route progress labels by input sequence", async () => {
+    const user = userEvent.setup()
+
+    const { container } = renderWithProviders(<CreatePage />, { route: "/create", auth: mockAuthPayload })
+    const { startInput, themeInput } = getCreateFormInputs(container)
+
+    const progress = screen.getByRole("progressbar")
+
+    await user.type(startInput, "Seoul")
+    await waitFor(() => expect(progress).toHaveTextContent("Seoul"))
+
+    await user.click(screen.getByRole("button", { name: "10km" }))
+    await waitFor(() => expect(progress).toHaveTextContent("10km"))
+
+    await user.type(themeInput, "Star")
+    await waitFor(() => expect(progress).toHaveTextContent("Star"))
+
+    let progressText = progress.textContent ?? ""
+    expect(progressText.indexOf("Seoul")).toBeLessThan(progressText.indexOf("10km"))
+    expect(progressText.indexOf("10km")).toBeLessThan(progressText.indexOf("Star"))
+
+    await user.clear(startInput)
+    await waitFor(() => expect(progress).not.toHaveTextContent("Seoul"))
+
+    progressText = progress.textContent ?? ""
+    expect(progressText.indexOf("10km")).toBeLessThan(progressText.indexOf("Star"))
   })
 })

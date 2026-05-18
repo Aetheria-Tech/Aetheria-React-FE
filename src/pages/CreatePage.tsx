@@ -29,6 +29,14 @@ const routeMarkerPositions = [
   { x: 650, y: 140 },
 ] as const
 const runnerPositions = [{ x: 70, y: 235 }, ...routeMarkerPositions] as const
+type RouteOptionKey = "proficiency" | "theme" | "startPoint"
+
+const routeOptionKeys: RouteOptionKey[] = ["proficiency", "theme", "startPoint"]
+const routeOptionLabels: Record<RouteOptionKey, string> = {
+  proficiency: "거리",
+  theme: "테마",
+  startPoint: "출발지",
+}
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -47,6 +55,7 @@ export default function CreatePage() {
 
   const [showStartResults, setShowStartResults] = useState(false)
   const [startAddressResults, setStartAddressResults] = useState<KakaoAddressResult[]>([])
+  const [routeOptionOrder, setRouteOptionOrder] = useState<RouteOptionKey[]>([])
 
   useEffect(() => {
     const script = document.createElement("script")
@@ -58,6 +67,30 @@ export default function CreatePage() {
       document.body.removeChild(script)
     }
   }, [])
+
+  useEffect(() => {
+    const completedKeys = new Set<RouteOptionKey>()
+
+    if (formData.proficiency) completedKeys.add("proficiency")
+    if (formData.theme.trim()) completedKeys.add("theme")
+    if (formData.startPoint.trim()) completedKeys.add("startPoint")
+
+    setRouteOptionOrder((prev) => {
+      const next = prev.filter((key) => completedKeys.has(key))
+
+      routeOptionKeys.forEach((key) => {
+        if (completedKeys.has(key) && !next.includes(key)) {
+          next.push(key)
+        }
+      })
+
+      if (next.length === prev.length && next.every((key, index) => key === prev[index])) {
+        return prev
+      }
+
+      return next
+    })
+  }, [formData.proficiency, formData.startPoint, formData.theme])
 
   const searchAddress = async (query: string) => {
     if (query.length < 2) {
@@ -147,9 +180,22 @@ export default function CreatePage() {
       completed: formData.startPoint.trim().length > 0,
     },
   ]
-  const completedOptionCount = routeProgressSteps.filter((step) => step.completed).length
-  const activeRouteStepIndex = routeProgressSteps.findIndex((step) => !step.completed)
-  const routeProgressPercent = Math.round((completedOptionCount / routeProgressSteps.length) * 100)
+  const routeProgressStepMap: Record<RouteOptionKey, (typeof routeProgressSteps)[number]> = {
+    proficiency: routeProgressSteps[0],
+    theme: routeProgressSteps[1],
+    startPoint: routeProgressSteps[2],
+  }
+  const orderedRouteProgressSteps = routeOptionOrder
+    .map((key) => ({
+      key,
+      label: routeOptionLabels[key],
+      value: routeProgressStepMap[key].value,
+      completed: routeProgressStepMap[key].completed,
+    }))
+    .filter((step) => step.completed)
+  const completedOptionCount = orderedRouteProgressSteps.length
+  const activeRouteStepIndex = completedOptionCount
+  const routeProgressPercent = Math.round((completedOptionCount / routeOptionKeys.length) * 100)
   const runnerPosition = runnerPositions[completedOptionCount]
 
   return (
@@ -174,7 +220,7 @@ export default function CreatePage() {
               role="progressbar"
               aria-label="생성 옵션 진행도"
               aria-valuemin={0}
-              aria-valuemax={routeProgressSteps.length}
+              aria-valuemax={routeOptionKeys.length}
               aria-valuenow={completedOptionCount}
               className="absolute inset-0 z-10 flex items-center justify-center px-4 pb-44 pt-20 sm:pb-52"
             >
@@ -223,36 +269,14 @@ export default function CreatePage() {
                       strokeWidth="15"
                       className="create-route-flow"
                     />
-                    {routeProgressSteps.map((step, index) => {
-                      const marker = routeMarkerPositions[index]
-                      const isCompleted = step.completed
+                    {routeMarkerPositions.map((marker, index) => {
+                      const isCompleted = index < completedOptionCount
                       const isActiveMarker =
                         !isCompleted &&
                         activeRouteStepIndex === index &&
-                        completedOptionCount < routeProgressSteps.length
+                        completedOptionCount < routeOptionKeys.length
                       return (
                         <g key={`route-marker-${index}`}>
-                          {isCompleted && (
-                            <g transform={`translate(${marker.x} ${marker.y - 62})`}>
-                              <text
-                                fill="rgba(255,255,255,0.95)"
-                                fontSize="18"
-                                fontWeight="800"
-                                textAnchor="middle"
-                              >
-                                {step.label}
-                              </text>
-                              <text
-                                y="28"
-                                fill="rgba(255,255,255,0.62)"
-                                fontSize="16"
-                                fontWeight="700"
-                                textAnchor="middle"
-                              >
-                                {getRouteStepDisplayValue(step.value)}
-                              </text>
-                            </g>
-                          )}
                           {isActiveMarker && (
                             <circle
                               cx={marker.x}
@@ -267,24 +291,49 @@ export default function CreatePage() {
                           <circle
                             cx={marker.x}
                             cy={marker.y}
-                            fill={isCompleted ? "#ffffff" : "rgba(255,255,255,0.1)"}
+                            fill={isCompleted ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"}
                             r="18"
-                            stroke={isCompleted ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.28)"}
+                            stroke={isCompleted ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.28)"}
                             strokeWidth="6"
                             style={{ transition: "fill 260ms ease, stroke 260ms ease" }}
                           />
-                          {isCompleted && (
-                            <path
-                              d={`M ${marker.x - 4} ${marker.y} L ${marker.x - 1} ${marker.y + 4} L ${marker.x + 6} ${
-                                marker.y - 5
-                              }`}
-                              fill="none"
-                              stroke="#2f3131"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="5"
-                            />
-                          )}
+                        </g>
+                      )
+                    })}
+                    {orderedRouteProgressSteps.map((step, index) => {
+                      const marker = routeMarkerPositions[index]
+
+                      return (
+                        <g
+                          key={`route-step-${step.key}`}
+                          style={{
+                            transform: `translate(${marker.x}px, ${marker.y}px)`,
+                            transition: "transform 520ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease",
+                          }}
+                        >
+                          <g transform="translate(0 -62)">
+                            <text fill="rgba(255,255,255,0.95)" fontSize="18" fontWeight="800" textAnchor="middle">
+                              {step.label}
+                            </text>
+                            <text
+                              y="28"
+                              fill="rgba(255,255,255,0.62)"
+                              fontSize="16"
+                              fontWeight="700"
+                              textAnchor="middle"
+                            >
+                              {getRouteStepDisplayValue(step.value)}
+                            </text>
+                          </g>
+                          <circle fill="#ffffff" r="18" stroke="rgba(255,255,255,0.9)" strokeWidth="6" />
+                          <path
+                            d="M -4 0 L -1 4 L 6 -5"
+                            fill="none"
+                            stroke="#2f3131"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="5"
+                          />
                         </g>
                       )
                     })}
